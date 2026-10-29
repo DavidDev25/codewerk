@@ -1,11 +1,3 @@
-/* ==========================================================================
-   editor.js – Monaco (der Editor aus VS Code), selbst gehostet.
-
-   Monaco liegt in node_modules und wird vom Server unter /vendor/monaco
-   ausgeliefert. Kein CDN, keine externen Anfragen.
-   ========================================================================== */
-
-/** Lädt Monaco über seinen AMD-Loader. */
 export function loadMonaco() {
   return new Promise((resolve, reject) => {
     window.MonacoEnvironment = { getWorkerUrl: () => '/monaco-worker.js' };
@@ -15,7 +7,7 @@ export function loadMonaco() {
     script.onload = () => {
       window.require.config({
         paths: { vs: '/vendor/monaco/vs' },
-        'vs/nls': { availableLanguages: { '*': 'de' } }, // deutsche Oberfläche
+        'vs/nls': { availableLanguages: { '*': 'de' } },
       });
       window.require(['vs/editor/editor.main'], () => resolve(window.monaco), reject);
     };
@@ -23,7 +15,6 @@ export function loadMonaco() {
   });
 }
 
-/** Erzeugt den Editor und richtet Farben, Optionen und JS-Hilfen ein. */
 export function createEditor(monaco, element, { fontSize }) {
   monaco.editor.defineTheme('cw-light', {
     base: 'vs', inherit: true,
@@ -62,8 +53,6 @@ export function createEditor(monaco, element, { fontSize }) {
     },
   });
 
-  // JavaScript-Hilfen. Moderne Sprachversion (damit #private & Co. verstanden werden),
-  // aber OHNE Browser-Bibliothek (dom), damit z. B. `const name = …` nicht mit window.name kollidiert.
   const js = monaco.languages.typescript.javascriptDefaults;
   js.setCompilerOptions({
     target: monaco.languages.typescript.ScriptTarget.ESNext,
@@ -74,10 +63,6 @@ export function createEditor(monaco, element, { fontSize }) {
     'declare const console: { log(...a: any[]): void; info(...a: any[]): void; warn(...a: any[]): void; error(...a: any[]): void; table(a: any): void; };',
     'ts:codewerk-console.d.ts'
   );
-  // Bewusst AUS: Monacos TypeScript-Prüfung meldet bei normalem JavaScript viele
-  // falsche Rotmarkierungen (z. B. bei this.titel in Klassen). Das würde nur verunsichern.
-  // Echte Fehler meldet unser Runner verständlich auf Deutsch, mit Zeilennummer.
-  // Schreibfehler (Syntax) markiert Monaco weiterhin direkt beim Tippen.
   js.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: false, noSuggestionDiagnostics: true });
 
   const editor = monaco.editor.create(element, {
@@ -100,7 +85,7 @@ export function createEditor(monaco, element, { fontSize }) {
     hideCursorInOverviewRuler: true,
     scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 },
     accessibilitySupport: 'auto',
-    showUnused: false,        // keine ausgegrauten Variablen: weniger Ablenkung
+    showUnused: false,
     showDeprecated: false,
     ariaLabel: 'Code-Editor. Mit Strg+Enter ausführen.',
   });

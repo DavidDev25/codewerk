@@ -1,11 +1,3 @@
-/* ==========================================================================
-   main.js – Verbindet alles: Lektionen, Editor, Ausführen, Ergebnis, Tutor.
-
-   Reihenfolge beim Start:
-     1. Config, Lektionsliste und gespeicherten Fortschritt vom Server holen
-     2. Monaco laden
-     3. Letzte Lektion öffnen (Code, Tab, Chat) und den Code einmal ausführen
-   ========================================================================== */
 import { api } from './api.js';
 import { renderMarkdown, inline, escapeHtml } from './markdown.js';
 import { loadMonaco, createEditor } from './editor.js';
@@ -16,31 +8,28 @@ import { createTutor } from './tutor-chat.js';
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-const FONT_SIZES = { m: 15, l: 17, xl: 19 }; // Editor-Schriftgröße je Textgröße
+const FONT_SIZES = { m: 15, l: 17, xl: 19 };
 
 const state = {
   config: null,
-  lessons: [],            // Kurzinfos aller Lektionen
-  lesson: null,           // geöffnete Lektion (komplett)
-  progress: null,         // Fortschritt vom Server
+  lessons: [],
+  lesson: null,
+  progress: null,
   monaco: null,
   editor: null,
   leftTab: 'verstehen',
   resultTab: 'pruefung',
-  last: null,             // letzte Ausführung: { result, code }
+  last: null,
   running: false,
   dirty: false,
   saveTimer: null,
   uiTimer: null,
-  lastEditEvent: {},      // lessonId -> Zeitpunkt des letzten "Code bearbeitet"-Protokolleintrags
+  lastEditEvent: {},
 };
 
 let diagram;
 let tutor;
 
-/* ======================================================================
-   Hilfsfunktionen
-   ====================================================================== */
 const lessonProgress = (id) => (state.progress.lessons[id] ||= { code: null, done: false, chat: [] });
 const doneCount = () => state.lessons.filter((l) => state.progress.lessons[l.id] && state.progress.lessons[l.id].done).length;
 
@@ -55,30 +44,24 @@ function showFatal(message) {
     '</p><p class="muted">Lade die Seite neu. Läuft der Server noch? (<code>docker compose logs</code>)</p></main>';
 }
 
-/* ======================================================================
-   Ansicht: Farbschema und Textgröße (nur Anzeige, im Browser gemerkt)
-   ====================================================================== */
 function applyTheme(pref) {
   const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const root = document.documentElement;
   root.dataset.pref = pref;
   root.dataset.theme = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
-  try { localStorage.setItem('cw-theme', pref); } catch (e) { /* egal */ }
+  try { localStorage.setItem('cw-theme', pref); } catch (e) { }
   if (state.monaco) state.monaco.editor.setTheme(root.dataset.theme === 'dark' ? 'cw-dark' : 'cw-light');
 }
 
 function applySize(size) {
   document.documentElement.dataset.size = size;
-  try { localStorage.setItem('cw-size', size); } catch (e) { /* egal */ }
+  try { localStorage.setItem('cw-size', size); } catch (e) { }
   if (state.editor) {
     const fs = FONT_SIZES[size];
     state.editor.updateOptions({ fontSize: fs, lineHeight: Math.round(fs * 1.65) });
   }
 }
 
-/* ======================================================================
-   Tabs links (Verstehen / Aufgabe / Tutor) und rechts (Prüfung / Ausgabe / Diagramm)
-   ====================================================================== */
 function setLeftTab(tab, persist = true) {
   state.leftTab = tab;
   $$('[data-tab]').forEach((b) => {
@@ -107,7 +90,6 @@ function scheduleUiSave() {
   state.uiTimer = setTimeout(() => api.saveUi({ tab: state.leftTab, resultTab: state.resultTab }).catch(() => {}), 600);
 }
 
-/** Pfeiltasten wechseln zwischen den Tabs (Standard-Bedienung für Tab-Leisten). */
 function wireTabKeys(selector, attr, setter) {
   $$(selector).forEach((btn) => {
     btn.addEventListener('keydown', (e) => {
@@ -120,9 +102,6 @@ function wireTabKeys(selector, attr, setter) {
   });
 }
 
-/* ======================================================================
-   Lektion anzeigen
-   ====================================================================== */
 function renderProgress() {
   const total = state.lessons.length;
   const done = doneCount();
@@ -173,7 +152,6 @@ async function openLesson(id, { initial = false } = {}) {
   clearMarkers();
   tutor.setMessages(saved ? saved.chat : []);
 
-  // Tab: beim ersten Öffnen der Seite genau dort weitermachen, wo man aufgehört hat
   const ui = state.progress.ui || {};
   if (initial && ui.tab) setLeftTab(ui.tab, false);
   else setLeftTab(hasCode ? 'aufgabe' : 'verstehen', false);
@@ -197,9 +175,6 @@ function setEditorValue(code) {
   setSaveState('saved');
 }
 
-/* ======================================================================
-   Speichern (automatisch)
-   ====================================================================== */
 function onEditorChange() {
   if (state.suppressChange) return;
   clearMarkers();
@@ -221,7 +196,6 @@ async function flushSave(keepalive = false) {
     lessonProgress(id).code = code;
     state.progress.lastLessonId = id;
     if (state.editor.getValue() === code) setSaveState('saved'); else setSaveState('dirty');
-    // höchstens alle 5 Minuten ein Protokolleintrag für „Wo war ich?“
     const now = Date.now();
     if (!state.lastEditEvent[id] || now - state.lastEditEvent[id] > 5 * 60 * 1000) {
       state.lastEditEvent[id] = now;
@@ -233,9 +207,6 @@ async function flushSave(keepalive = false) {
   }
 }
 
-/* ======================================================================
-   Marker und Sprung zur Fehlerzeile im Editor
-   ====================================================================== */
 function clearMarkers() {
   const model = state.editor && state.editor.getModel();
   if (model) state.monaco.editor.setModelMarkers(model, 'codewerk', []);
@@ -256,11 +227,6 @@ function gotoLine(line, column) {
   state.editor.focus();
 }
 
-/* ======================================================================
-   Ausführen und Ergebnis
-   ====================================================================== */
-
-/** Faßt ein Ergebnis in eine Art und Zahlen zusammen. */
 function classify(result) {
   if (!result) return { kind: 'none' };
   if (result.crashed) return { kind: 'crashed', text: result.crashed };
@@ -306,12 +272,10 @@ async function run({ auto = false } = {}) {
   renderResults(result);
 
   if (!auto) {
-    // Das Ergebnis dorthin legen, wo man als Nächstes hinschauen sollte
     if (info.kind === 'tests' || info.kind === 'ran') setResultTab(info.kind === 'tests' ? 'pruefung' : 'ausgabe');
     else setResultTab('ausgabe');
   }
 
-  // Fortschritt speichern
   const lp = lessonProgress(state.lesson.id);
   const summary = info.kind === 'tests'
     ? { passed: info.passed, total: info.total }
@@ -324,7 +288,7 @@ async function run({ auto = false } = {}) {
     api.event(state.lesson.id, 'done', `Lektion ${state.lesson.index} „${state.lesson.title}“ geschafft (${info.total} Tests bestanden)`);
     renderProgress();
     renderLessonList();
-    renderNextStep(); // zeigt jetzt „Geschafft“
+    renderNextStep();
   }
   api.saveLesson(state.lesson.id, patch).catch(() => {});
   if (!auto) {
@@ -345,7 +309,6 @@ function renderResults(result) {
   else diagram.render(null, 'Das Diagramm erscheint, sobald dein Code ohne Fehler bis zum Ende läuft.');
   if (state.resultTab === 'diagramm') requestAnimationFrame(() => diagram.refresh());
 
-  // Zähler an den Tabs
   const bp = $('#badge-pruefung');
   bp.textContent = info.kind === 'tests' ? `${info.passed}/${info.total}` : '';
   bp.className = 'badge' + (info.kind === 'tests' ? (info.all ? ' badge-ok' : ' badge-warn') : '');
@@ -415,7 +378,6 @@ function renderConsole(result, info) {
   el.innerHTML = parts.join('');
 }
 
-/** Der „nächste Schritt“ – immer genau eine klare Empfehlung. */
 function renderNextStep() {
   const el = $('#nextstep');
   const l = state.lesson;
@@ -453,9 +415,6 @@ function renderNextStep() {
   el.innerHTML = html;
 }
 
-/* ======================================================================
-   Tutor
-   ====================================================================== */
 function tutorContext() {
   const last = state.last && state.last.result;
   return {
@@ -472,9 +431,6 @@ function askTutor(mode) {
   tutor.ask({ mode });
 }
 
-/* ======================================================================
-   „Ausprobieren“-Knöpfe in den Erklärungen
-   ====================================================================== */
 async function trySnippet(button) {
   const out = button.closest('.codeblock').querySelector('.try-out');
   button.disabled = true;
@@ -493,11 +449,7 @@ async function trySnippet(button) {
   out.hidden = false;
 }
 
-/* ======================================================================
-   Verdrahtung der festen Bedienelemente
-   ====================================================================== */
 function wireUi() {
-  // Tabs
   $$('[data-tab]').forEach((b) => b.addEventListener('click', () => { setLeftTab(b.dataset.tab); renderNextStep(); if (b.dataset.tab === 'tutor') tutor.focusInput(); }));
   $$('[data-rtab]').forEach((b) => b.addEventListener('click', () => setResultTab(b.dataset.rtab)));
   wireTabKeys('.pane-left .tabs .tab', 'tab', (t) => setLeftTab(t));
@@ -505,7 +457,6 @@ function wireUi() {
 
   $('#btn-run').addEventListener('click', () => run());
 
-  // Ergebnis vergrößern / wieder verkleinern (nützlich für das Diagramm)
   $('#btn-expand').addEventListener('click', () => {
     const on = $('.pane-right').classList.toggle('is-expanded');
     $('#btn-expand').setAttribute('aria-pressed', String(on));
@@ -516,7 +467,6 @@ function wireUi() {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
   });
 
-  // Tipp
   $('#btn-tip').addEventListener('click', () => {
     const box = $('#tip-text');
     box.hidden = !box.hidden;
@@ -524,7 +474,6 @@ function wireUi() {
     $('#btn-tip').setAttribute('aria-expanded', String(!box.hidden));
   });
 
-  // Klicks in Bereichen, die neu gezeichnet werden (Delegation)
   document.addEventListener('click', (e) => {
     const t = e.target.closest('button');
     if (!t) return;
@@ -544,7 +493,6 @@ function wireUi() {
     }
   });
 
-  // Lektionsmenü
   const menu = $('#dlg-menu');
   $('#btn-menu').addEventListener('click', () => { renderLessonList(); menu.showModal(); const cur = $('.lesson-item.is-current', menu); if (cur) cur.scrollIntoView({ block: 'center' }); });
   $('#lesson-list').addEventListener('click', (e) => {
@@ -554,7 +502,6 @@ function wireUi() {
     if (!state.lesson || b.dataset.id !== state.lesson.id) openLesson(b.dataset.id);
   });
 
-  // Ansicht
   const view = $('#dlg-view');
   $('#btn-view').addEventListener('click', () => {
     $(`input[name="theme"][value="${document.documentElement.dataset.pref}"]`).checked = true;
@@ -567,7 +514,6 @@ function wireUi() {
     if (document.documentElement.dataset.pref === 'auto') applyTheme('auto');
   });
 
-  // Zurücksetzen
   const resetDlg = $('#dlg-reset');
   $('#btn-reset').addEventListener('click', () => resetDlg.showModal());
   $('#btn-reset-confirm').addEventListener('click', async () => {
@@ -575,7 +521,7 @@ function wireUi() {
     const id = state.lesson.id;
     clearTimeout(state.saveTimer);
     state.dirty = false;
-    try { await api.resetLesson(id); } catch (e) { /* der Editor wird trotzdem zurückgesetzt */ }
+    try { await api.resetLesson(id); } catch (e) { }
     const lp = lessonProgress(id);
     lp.code = null;
     lp.lastRun = null;
@@ -586,19 +532,14 @@ function wireUi() {
     setLeftTab('aufgabe');
   });
 
-  // Dialoge: „Schließen“-Knöpfe und Klick auf den Hintergrund
   $$('dialog').forEach((d) => {
     d.addEventListener('click', (e) => { if (e.target === d || e.target.closest('[data-close]')) d.close(); });
   });
 
-  // Beim Verlassen noch schnell speichern
   window.addEventListener('pagehide', () => flushSave(true));
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSave(true); });
 }
 
-/* ======================================================================
-   Start
-   ====================================================================== */
 async function init() {
   let config, lessonInfo, progress;
   try {
@@ -641,7 +582,6 @@ async function init() {
   wireUi();
   renderProgress();
 
-  // Genau dort weitermachen, wo man aufgehört hat
   const wanted = state.lessons.find((l) => l.id === progress.lastLessonId) || state.lessons[0];
   await openLesson(wanted.id, { initial: true });
   renderProgress();

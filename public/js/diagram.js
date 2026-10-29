@@ -1,25 +1,9 @@
-/* ==========================================================================
-   diagram.js – Zeichnet Variablen und Objekte als Boxen mit Pfeilen.
-
-   Eingabe ist der "Snapshot" aus core.js:
-     { variables: [{name, kind, value}], nodes: {id: {...}}, order, classRoots }
-   Ein Wert (value) ist eine von drei Formen:
-     { t: 'prim', type, text }   einfacher Wert, wird direkt in der Box gezeigt
-     { t: 'fn', text }           Funktion, als kleine Marke gezeigt
-     { t: 'ref', id }            Verweis auf ein Objekt -> PFEIL
-
-   Aufbau der Zeichnung:
-     Spalte 0: Variablen
-     Spalte 1..n: Objekte/Klassen, nach Abstand von den Variablen sortiert
-     Pfeile: eine SVG-Ebene über den Boxen, nach dem Layout vermessen.
-   ========================================================================== */
 import { escapeHtml } from './markdown.js';
 
 const KIND_LABEL = {
   class: 'Klasse', instance: 'Objekt', object: 'Objekt', array: 'Array', map: 'Map', set: 'Set', other: 'Wert',
 };
 
-/** Spaltennummer (Tiefe) jeder Box bestimmen. */
 function computeDepths(snap) {
   const depth = {};
   const neighbors = (node) => {
@@ -31,7 +15,6 @@ function computeDepths(snap) {
     return out;
   };
 
-  // Breitensuche ab den Variablen
   let frontier = [];
   snap.variables.forEach((v) => {
     if (v.value.t === 'ref' && depth[v.value.id] === undefined) { depth[v.value.id] = 1; frontier.push(v.value.id); }
@@ -47,7 +30,6 @@ function computeDepths(snap) {
   }
   snap.order.forEach((id) => { if (depth[id] === undefined) depth[id] = 1; });
 
-  // Eltern und Klassen müssen rechts von Kindern und Objekten stehen
   for (let pass = 0; pass < 20; pass++) {
     let changed = false;
     snap.order.forEach((id) => {
@@ -67,7 +49,6 @@ function valueHtml(value) {
   return '';
 }
 
-/** Kleiner Punkt, an dem ein Pfeil beginnt. */
 function portHtml(value, type) {
   return `<span class="dg-port" data-to="${escapeHtml(value.id)}" data-type="${type}" aria-hidden="true"></span>`;
 }
@@ -124,7 +105,6 @@ function variableHtml(v) {
     (isRef ? portHtml(v.value, 'ref') : valueHtml(v.value)) + '</div>';
 }
 
-/** Erzeugt eine Diagramm-Ansicht in `container`. */
 export function createDiagram(container) {
   let hasContent = false;
 
@@ -167,12 +147,11 @@ export function createDiagram(container) {
     requestAnimationFrame(refresh);
   }
 
-  /** Pfeile neu vermessen und zeichnen (nach Layout-Änderung oder wenn der Tab sichtbar wird). */
   function refresh() {
     if (!hasContent) return;
     const canvas = container.querySelector('.dg-canvas');
     const svg = container.querySelector('.dg-arrows');
-    if (!canvas || !svg || canvas.offsetParent === null) return; // unsichtbar: später nochmal
+    if (!canvas || !svg || canvas.offsetParent === null) return;
     const cr = canvas.getBoundingClientRect();
     svg.setAttribute('width', canvas.scrollWidth);
     svg.setAttribute('height', canvas.scrollHeight);
@@ -190,12 +169,10 @@ export function createDiagram(container) {
       const ty = Math.min(t.top - cr.top + 22, t.top - cr.top + t.height / 2);
       let d;
       if (t.left - cr.left > x1 + 8) {
-        // Ziel liegt rechts: sanfte S-Kurve zur linken Kante
         const x2 = t.left - cr.left - 2;
         const dx = Math.max(40, (x2 - x1) / 2);
         d = `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${ty} ${x2},${ty}`;
       } else {
-        // Ziel liegt links oder darunter: außen herum zur rechten Kante
         const x2 = t.right - cr.left + 2;
         const out = Math.max(x1, x2) + 46;
         d = `M${x1},${y1} C${out},${y1} ${out},${ty} ${x2},${ty}`;
@@ -210,7 +187,6 @@ export function createDiagram(container) {
     });
   }
 
-  /** Beim Überfahren/Fokussieren einer Box: ihre Pfeile hervorheben. */
   function wireHover() {
     const canvas = container.querySelector('.dg-canvas');
     const mark = (id) => {
@@ -227,7 +203,6 @@ export function createDiagram(container) {
     });
   }
 
-  // Bei Größenänderung die Pfeile neu zeichnen
   if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => refresh()).observe(container);
 
   emptyState('Noch nichts zu sehen. Drücke „Ausführen“, dann erscheint hier dein Code als Bild.');

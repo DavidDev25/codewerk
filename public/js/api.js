@@ -1,10 +1,8 @@
-/* api.js – dünne Hülle um fetch() für die Server-Schnittstelle. */
-
 async function json(url, options) {
   const res = await fetch(url, options);
   if (!res.ok) {
     let msg = 'Serverfehler ' + res.status;
-    try { msg = (await res.json()).error || msg; } catch (e) { /* kein JSON */ }
+    try { msg = (await res.json()).error || msg; } catch (e) { }
     throw new Error(msg);
   }
   return res.json();
@@ -22,7 +20,6 @@ export const api = {
   lessons: () => json('/api/lessons'),
   lesson: (id) => json('/api/lessons/' + encodeURIComponent(id)),
   progress: () => json('/api/progress'),
-  /** keepalive = true: wird auch beim Schließen des Tabs noch abgeschickt */
   saveLesson: (id, patch, keepalive) => put('/api/progress/lessons/' + encodeURIComponent(id), patch, keepalive),
   resetLesson: (id) => post('/api/progress/lessons/' + encodeURIComponent(id) + '/reset'),
   saveUi: (ui) => put('/api/progress/ui', ui),

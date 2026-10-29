@@ -1,9 +1,3 @@
-/* ==========================================================================
-   tutor-chat.js – Der Chat mit dem KI-Tutor.
-
-   Schickt Fragen an /api/chat (unser Server -> OmniRoute) und zeigt die
-   Antwort live an, während sie ankommt (Streaming per Server-Sent Events).
-   ========================================================================== */
 import { renderMarkdown, inline } from './markdown.js';
 
 const MODE_LABEL = {
@@ -17,13 +11,6 @@ const EMPTY_HINT =
   'Hier kannst du Fragen stellen. Der Tutor verrät die Lösung nicht, hilft dir aber Schritt für Schritt. ' +
   'Probier eine der Schnellfragen oben.';
 
-/**
- * @param {object} o
- * @param {HTMLElement} o.root        das Tutor-Panel
- * @param {() => object} o.getContext liefert {lessonId, code, output, error, tests}
- * @param {(messages: object[]) => void} o.onChange  wird nach jeder fertigen Antwort aufgerufen (zum Speichern)
- * @param {(mode: string) => void} o.onAsk           Protokoll: Tutor wurde gefragt
- */
 export function createTutor({ root, getContext, onChange, onAsk }) {
   const log = root.querySelector('#chat-log');
   const form = root.querySelector('#chat-form');
@@ -34,8 +21,8 @@ export function createTutor({ root, getContext, onChange, onAsk }) {
   const quick = root.querySelectorAll('.quick [data-mode]');
   const setup = root.querySelector('#tutor-setup');
 
-  let messages = [];       // {role, content}
-  let controller = null;   // AbortController des laufenden Streams
+  let messages = [];
+  let controller = null;
   let configured = true;
 
   function bubble(role, html, extraClass) {
@@ -71,9 +58,8 @@ export function createTutor({ root, getContext, onChange, onAsk }) {
     input.disabled = busy;
   }
 
-  /** Eine Frage stellen. mode: 'tipp' | 'fehler' | 'review' | 'wo' | 'chat' */
   async function ask({ mode, message }) {
-    if (controller) return; // es läuft schon eine Antwort
+    if (controller) return;
     const ctx = getContext();
     const userText = mode === 'chat' ? String(message || '').trim() : MODE_LABEL[mode];
     if (!userText) return;
@@ -106,7 +92,7 @@ export function createTutor({ root, getContext, onChange, onAsk }) {
       });
       if (!res.ok || !res.body) {
         let msg = 'Der Server antwortet mit Fehler ' + res.status + '.';
-        try { msg = (await res.json()).error || msg; } catch (e) { /* kein JSON */ }
+        try { msg = (await res.json()).error || msg; } catch (e) { }
         throw new Error(msg);
       }
       const reader = res.body.getReader();
@@ -140,7 +126,6 @@ export function createTutor({ root, getContext, onChange, onAsk }) {
       messages.push({ role: 'assistant', content: answer });
       onChange(messages);
     } else {
-      // keine Antwort: die Frage wieder aus dem Verlauf nehmen
       messages.pop();
     }
     renderAll();
@@ -149,7 +134,6 @@ export function createTutor({ root, getContext, onChange, onAsk }) {
     if (mode === 'chat') input.focus();
   }
 
-  /* ---- Bedienung ---- */
   quick.forEach((b) => b.addEventListener('click', () => ask({ mode: b.dataset.mode })));
   form.addEventListener('submit', (e) => {
     e.preventDefault();

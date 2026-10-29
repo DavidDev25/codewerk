@@ -1,37 +1,12 @@
-/* ==========================================================================
-   core.js – Der gemeinsame Kern zum Ausführen und Prüfen von Code.
-
-   Diese Datei läuft an ZWEI Stellen mit exakt demselben Verhalten:
-     1. im Browser, innerhalb des Web Workers (public/js/worker.js)
-     2. in Node, beim Prüfen der Musterlösungen (scripts/verify-solutions.js)
-
-   Sie braucht nur `acorn` (Parser für Syntaxfehler mit Zeilennummer) im
-   globalen Scope.
-
-   Was sie tut (Funktion `CW.runLesson`):
-     a) Code mit acorn parsen   -> Syntaxfehler mit Zeile/Spalte, auf Deutsch
-     b) Code + Snapshot-Aufruf + Tests zu EINEM Programm zusammenbauen und
-        ausführen. Dadurch sehen die Tests alle Variablen/Klassen des
-        Nutzercodes (auch `let`, `const` und `class`).
-     c) Konsolenausgabe einsammeln, Fehler übersetzen, Testergebnisse sammeln
-     d) einen "Snapshot" bauen: alle Variablen und Objekte als einfache
-        JSON-Struktur – daraus zeichnet diagram.js die Boxen und Pfeile.
-   ========================================================================== */
 (function (root) {
   'use strict';
 
   const CW = {};
 
-  // Der Nutzercode läuft im "strict mode". Das deckt Tippfehler auf
-  // (z. B. nicht deklarierte Variablen) und lässt falsche Zuweisungen laut
-  // scheitern, statt still zu verpuffen.
   const STRICT_PREFIX = "'use strict';";
-  const SOURCE_NAME = 'user.js'; // erscheint in Fehler-Stacks -> Zeilennummern
+  const SOURCE_NAME = 'user.js';
   const MAX_LOG_LINES = 300;
 
-  /* ------------------------------------------------------------------------
-     1. Werte lesbar machen ("show") – für Konsole und Testmeldungen
-     ------------------------------------------------------------------------ */
   function cut(text, max) {
     return text.length > max ? text.slice(0, max - 1) + '…' : text;
   }
@@ -42,7 +17,7 @@
       if (proto && Object.prototype.hasOwnProperty.call(proto, 'constructor')) {
         return proto.constructor.name || '';
       }
-    } catch (e) { /* ignorieren */ }
+    } catch (e) { }
     return '';
   }
 
@@ -54,7 +29,6 @@
     }
   }
 
-  /** Macht jeden Wert zu kurzem, lesbarem Text. Strings bekommen Anführungszeichen. */
   function show(value, depth, seen) {
     depth = depth || 0;
     seen = seen || [];
@@ -102,16 +76,12 @@
   }
   CW.show = show;
 
-  /** Wie in der Browser-Konsole: Texte roh, alles andere über show(). */
   function formatLog(args) {
     return args.map(function (a) { return typeof a === 'string' ? a : show(a); }).join(' ');
   }
 
-  /* ------------------------------------------------------------------------
-     2. Vergleichen (für toEqual)
-     ------------------------------------------------------------------------ */
   function equals(a, b, seen) {
-    if (Object.is(a, b) || a === b) return true; // 0 und -0 gelten als gleich
+    if (Object.is(a, b) || a === b) return true;
     if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
     seen = seen || [];
     for (let i = 0; i < seen.length; i++) if (seen[i][0] === a && seen[i][1] === b) return true;
@@ -146,11 +116,6 @@
     return true;
   }
 
-  /* ------------------------------------------------------------------------
-     3. Fehlermeldungen auf Deutsch
-     ------------------------------------------------------------------------ */
-
-  // Dinge, die es im Worker nicht gibt – und was man stattdessen nutzt.
   const NOT_IN_WORKER = {
     alert: 'Es gibt hier kein Pop-up. Gib Text mit console.log(...) aus.',
     prompt: 'Es gibt hier keine Eingabe-Abfrage. Lege den Wert einfach als Variable fest.',
@@ -160,7 +125,6 @@
     localStorage: 'Im Übungs-Editor gibt es keinen Browser-Speicher. Dein Code wird ohnehin automatisch gespeichert.',
   };
 
-  /** Übersetzt gängige JavaScript-Laufzeitfehler in einfaches Deutsch. */
   function translateError(name, message) {
     message = String(message || '');
     let m;
@@ -226,7 +190,6 @@
   }
   CW.translateError = translateError;
 
-  /** Übersetzt acorn-Syntaxfehler. */
   function translateSyntax(message) {
     message = String(message || '').replace(/\s*\(\d+:\d+\)\s*$/, '');
     let m;
@@ -249,11 +212,6 @@
   }
   CW.translateSyntax = translateSyntax;
 
-  /* ------------------------------------------------------------------------
-     4. expect() – die Prüf-Werkzeuge für Lektions-Tests
-     ------------------------------------------------------------------------ */
-
-  /** Ein fehlgeschlagener Test. `hint` ist ein optionaler Tipp des Lektionsautors. */
   function TestFailure(message, hint) {
     this.message = message;
     this.hint = hint || '';
@@ -261,7 +219,6 @@
   }
 
   function makeExpect() {
-    // Jeder Matcher liefert { pass, expected } – die Meldung bauen wir einheitlich.
     const matchers = {
       toBe: function (a, e) { return { pass: Object.is(a, e) || (a === e), expected: show(e) }; },
       toEqual: function (a, e) { return { pass: equals(a, e), expected: show(e) }; },
@@ -278,7 +235,7 @@
       },
       toBeInstanceOf: function (a, C) {
         let pass = false;
-        try { pass = a instanceof C; } catch (e) { /* C ist keine Klasse */ }
+        try { pass = a instanceof C; } catch (e) { }
         return { pass: pass, expected: 'ein Objekt der Klasse ' + (C && C.name ? C.name : '?') };
       },
       toContain: function (a, e) {
@@ -311,7 +268,6 @@
             }
           };
         });
-        // Funktion soll einen Fehler auslösen (oder eben nicht, bei .not)
         api.toThrow = function (pattern) {
           let threw = false;
           let error;
@@ -336,15 +292,11 @@
     return expect;
   }
 
-  /* ------------------------------------------------------------------------
-     5. Snapshot: Variablen und Objekte als JSON für das Diagramm
-     ------------------------------------------------------------------------ */
-  const MAX_NODES = 60;      // mehr Boxen wären unübersichtlich
-  const MAX_ROWS = 12;       // Zeilen pro Box (z. B. Array-Einträge)
+  const MAX_NODES = 60;
+  const MAX_ROWS = 12;
 
   const classInfoCache = new Map();
 
-  /** Liest mit acorn aus dem Klassentext, welche #privaten Felder/Methoden es gibt. */
   function classInfo(ctor) {
     if (classInfoCache.has(ctor)) return classInfoCache.get(ctor);
     const info = { privateFields: [], privateMethods: [] };
@@ -359,19 +311,18 @@
           if (el.type === 'MethodDefinition' && el.kind === 'method') info.privateMethods.push('#' + el.key.name);
         });
       }
-    } catch (e) { /* kein Drama: dann gibt es eben keine Schloss-Zeilen */ }
+    } catch (e) { }
     classInfoCache.set(ctor, info);
     return info;
   }
 
-  /** Kurzform einer Funktion, z. B. "ƒ addiere(a, b)". */
   function functionLabel(fn) {
     let params = '';
     try {
       const src = Function.prototype.toString.call(fn);
       const m = src.match(/^(?:async\s*)?(?:function\b[^(]*|[\w$*]*\s*)?\(([^)]*)\)/) || src.match(/^(?:async\s*)?([\w$]+)\s*=>/);
       if (m) params = m[1].replace(/\s+/g, ' ').trim();
-    } catch (e) { /* egal */ }
+    } catch (e) { }
     return 'ƒ ' + (fn.name || 'anonym') + '(' + params + ')';
   }
 
@@ -382,7 +333,6 @@
     let truncated = false;
     const prim = function (type, text) { return { t: 'prim', type: type, text: text }; };
 
-    // Klassische Konstruktor-Funktionen (function Hund() {}) mit Methoden am prototype
     function hasConstructorShape(fn) {
       try {
         const p = fn.prototype;
@@ -451,7 +401,6 @@
       return reg.id;
     }
 
-    /** Alle privaten Feldnamen einer Klasse samt Elternklassen. */
     function privateFieldsOf(ctor) {
       const out = [];
       let c = ctor;
@@ -506,13 +455,11 @@
       } else if (proto === Object.prototype) {
         node.title = 'Objekt';
       } else if (Object.prototype.hasOwnProperty.call(proto, 'constructor') && typeof proto.constructor === 'function') {
-        // Instanz einer Klasse
         node.kind = 'instance';
         node.title = proto.constructor.name || 'Objekt';
         node.classId = classNode(proto.constructor) || undefined;
         privateFieldsOf(proto.constructor).forEach(function (n) { node.privates.push(n); });
       } else {
-        // Objekt, dessen Prototyp ein anderes einfaches Objekt ist (Object.create)
         node.protoId = objectNode(proto) || undefined;
       }
 
@@ -530,7 +477,7 @@
     const classRoots = [];
     entries.forEach(function (entry) {
       let v;
-      try { v = entry.get(); } catch (e) { v = undefined; } // z. B. let vor der Zeile (TDZ)
+      try { v = entry.get(); } catch (e) { v = undefined; }
       if (entry.kind === 'class' && typeof v === 'function') {
         const id = classNode(v);
         if (id) classRoots.push(id);
@@ -542,9 +489,6 @@
     return { variables: variables, nodes: nodes, order: order, classRoots: classRoots, truncated: truncated };
   }
 
-  /* ------------------------------------------------------------------------
-     6. Top-Level-Deklarationen finden (für den Snapshot)
-     ------------------------------------------------------------------------ */
   function collectNames(pattern, kind, out) {
     if (!pattern) return;
     switch (pattern.type) {
@@ -574,11 +518,6 @@
     return out.filter(function (d) { if (seen[d.name]) return false; seen[d.name] = true; return true; });
   }
 
-  /* ------------------------------------------------------------------------
-     7. Hauptfunktion: Code ausführen (und optional prüfen)
-     ------------------------------------------------------------------------ */
-
-  /** Zeile/Spalte des Fehlers im Nutzercode aus dem Stack lesen. */
   function locateError(error, userLineCount) {
     const stack = String((error && error.stack) || '');
     const lines = stack.split('\n');
@@ -589,25 +528,19 @@
         let column = Number(m[2]);
         if (line === 1) column = Math.max(1, column - STRICT_PREFIX.length);
         if (line >= 1 && line <= userLineCount) return { line: line, column: column };
-        return null; // Fehler stammt aus dem Testcode, nicht aus dem Nutzercode
+        return null;
       }
     }
     return null;
   }
 
-  /* ------------------------------------------------------------------------
-     8. Asynchroner Code: Timer beobachten und abwarten
-     ------------------------------------------------------------------------ */
-  const SETTLE_LIMIT_MS = 2000; // so lange darf asynchroner Nutzercode nachlaufen
-  const TEST_TIMEOUT_MS = 1000; // so lange darf ein einzelner async-Test warten
+  const SETTLE_LIMIT_MS = 2000;
+  const TEST_TIMEOUT_MS = 1000;
 
-  /**
-   * Ersetzt setTimeout/setInterval durch Varianten, die mitzählen, was noch offen ist.
-   * Fehler in Timer-Callbacks landen in onError statt den Worker abstürzen zu lassen.
-   */
   function watchTimers(g, onError) {
-    const real = { setTimeout: g.setTimeout, clearTimeout: g.clearTimeout, setInterval: g.setInterval, clearInterval: g.clearInterval };
-    const pending = new Map(); // id -> 'timeout' | 'interval'
+    const bind = function (fn) { return typeof fn === 'function' ? fn.bind(g) : fn; };
+    const real = { setTimeout: bind(g.setTimeout), clearTimeout: bind(g.clearTimeout), setInterval: bind(g.setInterval), clearInterval: bind(g.clearInterval) };
+    const pending = new Map();
     const guard = function (fn, args) {
       if (typeof fn !== 'function') return;
       try { fn.apply(null, args); } catch (e) { onError(e); }
@@ -640,7 +573,6 @@
     };
   }
 
-  /** Wartet, bis keine Timer mehr offen sind (oder das Zeitlimit erreicht ist). */
   async function settle(timers, limitMs) {
     const sleep = function (ms) {
       return new Promise(function (resolve) { (timers.real.setTimeout || setTimeout)(resolve, ms); });
@@ -648,7 +580,7 @@
     if (typeof timers.real.setTimeout !== 'function') { await Promise.resolve(); return true; }
     const start = Date.now();
     for (;;) {
-      await sleep(5); // Promises (Mikrotasks) und fällige Timer laufen lassen
+      await sleep(5);
       if (timers.pending() === 0) {
         await sleep(0);
         if (timers.pending() === 0) return true;
@@ -657,32 +589,23 @@
     }
   }
 
-  // Nicht abgefangene Promise-Fehler meldet der Host (Worker bzw. Prüfskript) hierüber.
   let currentAsyncError = null;
   CW.asyncError = function (reason) { if (currentAsyncError) currentAsyncError(reason); };
 
-  /**
-   * Führt den Code aus – auch asynchronen (setTimeout, Promises, async/await).
-   * @param {{code: string, tests?: string|null}} options
-   *   tests = Quelltext der Tests (Inhalt von tests.js) oder null, um nur auszuführen.
-   * @returns Promise mit JSON-sicherem Ergebnis:
-   *   { logs, syntaxError, error, tests, testsBroken, snapshot }
-   */
   CW.runLesson = async function runLesson(options) {
     const code = String(options.code || '');
     const testsSource = options.tests ? String(options.tests) : null;
     const g = root;
 
     const result = {
-      logs: [],          // [{ type: 'log'|'warn'|'error', text }]
-      syntaxError: null, // { line, column, message }
-      error: null,       // { name, message, raw, line, column }  (Laufzeitfehler)
-      tests: null,       // [{ name, ok, message, hint }]  oder null
-      testsBroken: null, // Text, falls die Lektion selbst fehlerhaft ist
+      logs: [],
+      syntaxError: null,
+      error: null,
+      tests: null,
+      testsBroken: null,
       snapshot: null,
     };
 
-    /* a) Syntax prüfen – mit Zeilennummer */
     let declarations = [];
     try {
       const ast = g.acorn.parse(STRICT_PREFIX + code, { ecmaVersion: 'latest', sourceType: 'script', locations: true });
@@ -692,7 +615,6 @@
         const line = e.loc.line;
         const column = line === 1 ? Math.max(1, e.loc.column + 1 - STRICT_PREFIX.length) : e.loc.column + 1;
         let message = translateSyntax(e.message);
-        // acorn meldet „await“ außerhalb einer async-Funktion nur als „Unexpected token“
         if (typeof e.pos === 'number' && /\bawait\s*$/.test((STRICT_PREFIX + code).slice(0, e.pos))) {
           message = 'await geht nur innerhalb einer async-Funktion. Schreibe async davor, z. B. async function laden() { … } – und rufe sie dann auf.';
         }
@@ -703,9 +625,8 @@
       return result;
     }
 
-    /* b) Konsole abfangen */
     let capturing = true;
-    let capture = null; // temporärer Zusatzpuffer für capture()
+    let capture = null;
     let overflow = false;
     function push(type, args) {
       const text = formatLog(args);
@@ -729,7 +650,6 @@
       clear: noop, group: noop, groupEnd: noop, time: noop, timeEnd: noop,
     };
 
-    /* c) Das Programm zusammenbauen */
     const registered = [];
     let entriesFn = null;
     function takeSnapshot() {
@@ -741,15 +661,13 @@
       snapshot: function (entries) {
         entriesFn = entries;
         takeSnapshot();
-        capturing = false; // ab jetzt zählt nur noch, was der Nutzercode selbst ausgegeben hat
+        capturing = false;
       },
       api: {
         test: function (name, fn) { registered.push({ name: name, fn: fn }); },
         expect: makeExpect(),
         output: function () { return result.logs.map(function (l) { return l.text; }); },
         source: function () { return code; },
-        // Fängt console.log-Ausgaben eines Aufrufs ab. Gibt fn ein Promise zurück
-        // (async), kommt auch capture() als Promise zurück: await capture(async () => …)
         capture: function (fn) {
           const buffer = [];
           capture = buffer;
@@ -761,15 +679,12 @@
           capture = null;
           return buffer;
         },
-        // Für async-Tests: eine Weile warten, z. B. await wait(100)
         wait: function (ms) {
           return new Promise(function (resolve) { setTimeout(resolve, ms); });
         },
       },
     };
 
-    // Für jede Top-Level-Deklaration ein kleiner "Getter" (function(){ return name; }):
-    // So kann der Snapshot auch let/const/class lesen, die sonst unsichtbar wären.
     const getters = declarations.map(function (d) {
       return '{name:' + JSON.stringify(d.name) + ',kind:' + JSON.stringify(d.kind) + ',get:function(){return ' + d.name + ';}}';
     }).join(',');
@@ -796,8 +711,6 @@
       };
     }
 
-    // Fehler aus Timern und nicht abgefangenen Promises: im Nutzerteil ein Laufzeitfehler,
-    // während eines Tests lässt er genau diesen Test scheitern.
     let testAsyncError = null;
     function onAsyncError(e) {
       if (g.__cw.phase === 'running-tests') { if (!testAsyncError) testAsyncError = e; return; }
@@ -806,7 +719,6 @@
     currentAsyncError = onAsyncError;
     const timers = watchTimers(g, onAsyncError);
 
-    /* d) Ausführen */
     try {
       (0, g.eval)(program);
     } catch (e) {
@@ -818,10 +730,9 @@
       }
     }
 
-    /* d2) Asynchronen Nutzercode zu Ende laufen lassen (setTimeout, Promises, async) */
     if (!result.syntaxError && !result.testsBroken) {
       g.__cw.phase = 'user-async';
-      capturing = true; // Ausgaben aus Timern/Promises gehören noch zum Nutzercode
+      capturing = true;
       const done = await settle(timers, SETTLE_LIMIT_MS);
       if (!done) {
         const intervals = timers.intervals();
@@ -834,10 +745,9 @@
         });
       }
       capturing = false;
-      takeSnapshot(); // Diagramm zeigt den Zustand NACH dem asynchronen Teil
+      takeSnapshot();
     }
 
-    /* e) Tests ausführen (nur wenn der Code ohne Fehler durchgelaufen ist) */
     if (testsSource && !result.error && !result.testsBroken) {
       g.__cw.phase = 'running-tests';
       const sleep = function (ms) {

@@ -1,11 +1,5 @@
-/* runner.js – startet pro Ausführung einen frischen Worker und erzwingt ein Zeitlimit. */
-
 const TIMEOUT_MS = 5000;
 
-/**
- * @param {{code: string, tests?: string|null}} job
- * @returns {Promise<object>} Ergebnis von CW.runLesson – oder { timeout: true } / { crashed: "…" }
- */
 export function runCode(job) {
   return new Promise((resolve) => {
     let worker;
