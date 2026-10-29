@@ -1,0 +1,6 @@
+{
+  "titel": "Kapselung mit #private",
+  "minuten": 15,
+  "kurz": "Geheime Daten in der Klasse: Von außen kommt niemand direkt heran.",
+  "tipp": "Ein privates Feld legst du oben in der Klasse an: #saldo = 0; Nur Methoden der Klasse dürfen this.#saldo lesen oder ändern."
+}

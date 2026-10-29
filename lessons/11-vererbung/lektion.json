@@ -1,0 +1,6 @@
+{
+  "titel": "Vererbung",
+  "minuten": 12,
+  "kurz": "Eine Klasse übernimmt alles von einer anderen und fügt Neues hinzu.",
+  "tipp": "Schreibe class Hund extends Tier { … }. Im Hund brauchst du keinen constructor: Er übernimmt den von Tier."
+}

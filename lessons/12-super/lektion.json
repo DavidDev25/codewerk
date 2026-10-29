@@ -1,0 +1,6 @@
+{
+  "titel": "super",
+  "minuten": 15,
+  "kurz": "Die Elternklasse mitbenutzen: super(…) im constructor und super.methode().",
+  "tipp": "Im constructor der Kindklasse kommt super(name) ZUERST. Erst danach darfst du this.rasse = rasse schreiben."
+}

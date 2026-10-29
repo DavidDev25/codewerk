@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codewerk – JavaScript lernen</title>
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23226B74'/%3E%3Cpath d='M12 10l-5 6 5 6M20 10l5 6-5 6' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <!-- setzt Hell/Dunkel und Textgröße, bevor die Seite erscheint (kein Aufblitzen) -->
+  <script src="/js/theme-init.js"></script>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <a class="skip" href="#editor">Zum Editor springen</a>
+
+  <header class="topbar">
+    <button id="btn-menu" class="btn ghost" type="button" aria-haspopup="dialog">Lektionen</button>
+    <div class="topbar-title">
+      <span id="lesson-counter" class="muted small"></span>
+      <h1 id="lesson-title">Codewerk</h1>
+    </div>
+    <div class="progress" title="Fortschritt">
+      <div class="progress-track" role="progressbar" aria-label="Fortschritt" aria-valuemin="0" aria-valuemax="100" id="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <span id="progress-text" class="small muted"></span>
+    </div>
+    <button id="btn-view" class="btn ghost" type="button" aria-haspopup="dialog">Ansicht</button>
+  </header>
+
+  <main class="layout">
+    <!-- ===================== Linke Seite: eine Sache gleichzeitig ===================== -->
+    <section class="pane pane-left" aria-label="Lektion">
+      <div class="tabs" role="tablist" aria-label="Bereiche der Lektion">
+        <button class="tab" role="tab" id="tabbtn-verstehen" data-tab="verstehen" aria-controls="tab-verstehen">1 · Verstehen</button>
+        <button class="tab" role="tab" id="tabbtn-aufgabe" data-tab="aufgabe" aria-controls="tab-aufgabe">2 · Aufgabe</button>
+        <button class="tab" role="tab" id="tabbtn-tutor" data-tab="tutor" aria-controls="tab-tutor">Tutor</button>
+      </div>
+
+      <div class="pane-body">
+        <article class="tab-panel prose" id="tab-verstehen" role="tabpanel" aria-labelledby="tabbtn-verstehen"></article>
+
+        <article class="tab-panel" id="tab-aufgabe" role="tabpanel" aria-labelledby="tabbtn-aufgabe" hidden>
+          <div class="prose" id="task-text"></div>
+          <div class="tip-box">
+            <button id="btn-tip" class="btn" type="button" aria-expanded="false">Tipp anzeigen</button>
+            <div id="tip-text" class="callout callout-tipp" hidden></div>
+          </div>
+        </article>
+
+        <section class="tab-panel tutor" id="tab-tutor" role="tabpanel" aria-labelledby="tabbtn-tutor" hidden>
+          <div id="tutor-setup" class="notice notice-warn" hidden></div>
+          <div class="quick" role="group" aria-label="Schnellfragen">
+            <button class="btn" type="button" data-mode="tipp">Gib mir einen Tipp</button>
+            <button class="btn" type="button" data-mode="fehler">Erklär mir den Fehler</button>
+            <button class="btn" type="button" data-mode="review">Code-Review</button>
+            <button class="btn" type="button" data-mode="wo">Wo war ich?</button>
+          </div>
+          <div id="chat-log" class="chat-log" aria-live="polite"></div>
+          <form id="chat-form" class="chat-form">
+            <label for="chat-input" class="sr-only">Frage an den Tutor</label>
+            <textarea id="chat-input" rows="2" placeholder="Eigene Frage stellen …  (Enter sendet)"></textarea>
+            <div class="chat-actions">
+              <button id="chat-clear" class="btn ghost small" type="button">Neuer Chat</button>
+              <button id="chat-stop" class="btn" type="button" hidden>Stopp</button>
+              <button id="chat-send" class="btn primary" type="submit">Senden</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </section>
+
+    <!-- ===================== Rechte Seite: Editor + Ergebnis ===================== -->
+    <section class="pane pane-right" aria-label="Code und Ergebnis">
+      <div class="card editor-card">
+        <div class="editor-bar">
+          <span class="file">dein-code.js</span>
+          <span id="save-state" class="small muted" role="status">Gespeichert</span>
+          <span class="spacer"></span>
+          <button id="btn-reset" class="btn ghost small" type="button">Startcode zurücksetzen</button>
+          <button id="btn-run" class="btn primary run" type="button">Ausführen <span class="kbd">Strg + Enter</span></button>
+        </div>
+        <div id="editor" class="editor" aria-label="Code-Editor"></div>
+      </div>
+
+      <div class="card results-card">
+        <div id="nextstep" class="nextstep" role="status"></div>
+        <div class="tabs small-tabs" role="tablist" aria-label="Ergebnis">
+          <button class="tab" role="tab" data-rtab="pruefung" id="rtabbtn-pruefung" aria-controls="rtab-pruefung">Prüfung <span class="badge" id="badge-pruefung"></span></button>
+          <button class="tab" role="tab" data-rtab="ausgabe" id="rtabbtn-ausgabe" aria-controls="rtab-ausgabe">Ausgabe <span class="badge" id="badge-ausgabe"></span></button>
+          <button class="tab" role="tab" data-rtab="diagramm" id="rtabbtn-diagramm" aria-controls="rtab-diagramm">Diagramm</button>
+          <button id="btn-expand" class="btn ghost small expand" type="button" aria-pressed="false">Ergebnis vergrößern</button>
+        </div>
+        <div class="results-body">
+          <div class="rtab-panel" id="rtab-pruefung" role="tabpanel" aria-labelledby="rtabbtn-pruefung"></div>
+          <div class="rtab-panel" id="rtab-ausgabe" role="tabpanel" aria-labelledby="rtabbtn-ausgabe" hidden></div>
+          <div class="rtab-panel" id="rtab-diagramm" role="tabpanel" aria-labelledby="rtabbtn-diagramm" hidden></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== Dialoge ===================== -->
+  <dialog id="dlg-menu" class="drawer" aria-label="Alle Lektionen">
+    <div class="drawer-head">
+      <h2>Alle Lektionen</h2>
+      <button class="btn ghost small" type="button" data-close>Schließen</button>
+    </div>
+    <ol id="lesson-list" class="lesson-list"></ol>
+    <p id="lesson-problems" class="muted small"></p>
+  </dialog>
+
+  <dialog id="dlg-view" class="modal" aria-label="Ansicht">
+    <h2>Ansicht</h2>
+    <fieldset>
+      <legend>Farben</legend>
+      <label><input type="radio" name="theme" value="auto"> Wie das Gerät</label>
+      <label><input type="radio" name="theme" value="light"> Hell</label>
+      <label><input type="radio" name="theme" value="dark"> Dunkel</label>
+    </fieldset>
+    <fieldset>
+      <legend>Textgröße</legend>
+      <label><input type="radio" name="size" value="m"> Normal</label>
+      <label><input type="radio" name="size" value="l"> Groß</label>
+      <label><input type="radio" name="size" value="xl"> Sehr groß</label>
+    </fieldset>
+    <div class="modal-actions"><button class="btn primary" type="button" data-close>Fertig</button></div>
+  </dialog>
+
+  <dialog id="dlg-reset" class="modal" aria-label="Zurücksetzen">
+    <h2>Startcode wiederherstellen?</h2>
+    <p>Dein aktueller Code in dieser Lektion wird durch den Startcode ersetzt. Das lässt sich nicht rückgängig machen.</p>
+    <div class="modal-actions">
+      <button class="btn ghost" type="button" data-close>Abbrechen</button>
+      <button class="btn danger" type="button" id="btn-reset-confirm">Ja, zurücksetzen</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

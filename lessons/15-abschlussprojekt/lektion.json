@@ -1,0 +1,6 @@
+{
+  "titel": "Abschlussprojekt: Mini-Bibliothek",
+  "minuten": 20,
+  "kurz": "Alles zusammen: Klassen, #private, Getter, Vererbung, super, Polymorphie, Komposition.",
+  "tipp": "Arbeite von oben nach unten und führe nach jedem Schritt aus. Ein Hörbuch ist ein Buch (extends). Die Bibliothek hat Bücher (Komposition): ein Array in this.buecher."
+}

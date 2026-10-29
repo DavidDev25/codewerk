@@ -1,0 +1,26 @@
+# Codewerk starten:   docker compose up -d --build
+services:
+  codewerk:
+    build: .
+    container_name: codewerk
+    restart: unless-stopped
+    ports:
+      # Außen erreichbar unter http://SERVER:PORT  (PORT steht in der .env, Standard 3000)
+      - "${PORT:-3000}:3000"
+    env_file: .env
+    environment:
+      # Diese beiden Werte gelten immer im Container (überschreiben die .env)
+      PORT: "3000"
+      DATA_DIR: /app/data
+    # Macht "host.docker.internal" zur Adresse deines Servers.
+    # So erreicht der Container OmniRoute, das direkt auf dem Server läuft.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Dein Fortschritt und dein Code (bleibt bei Updates erhalten)
+      - codewerk-daten:/app/data
+      # Eigene Lektionen: Ordner in ./lessons anlegen, Seite neu laden. Kein Neubau nötig.
+      - ./lessons:/app/lessons:ro
+
+volumes:
+  codewerk-daten:

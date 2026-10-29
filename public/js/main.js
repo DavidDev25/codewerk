@@ -1,0 +1,650 @@
+/* ==========================================================================
+   main.js – Verbindet alles: Lektionen, Editor, Ausführen, Ergebnis, Tutor.
+
+   Reihenfolge beim Start:
+     1. Config, Lektionsliste und gespeicherten Fortschritt vom Server holen
+     2. Monaco laden
+     3. Letzte Lektion öffnen (Code, Tab, Chat) und den Code einmal ausführen
+   ========================================================================== */
+import { api } from './api.js';
+import { renderMarkdown, inline, escapeHtml } from './markdown.js';
+import { loadMonaco, createEditor } from './editor.js';
+import { runCode, TIMEOUT_SECONDS } from './runner.js';
+import { createDiagram } from './diagram.js';
+import { createTutor } from './tutor-chat.js';
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+const FONT_SIZES = { m: 15, l: 17, xl: 19 }; // Editor-Schriftgröße je Textgröße
+
+const state = {
+  config: null,
+  lessons: [],            // Kurzinfos aller Lektionen
+  lesson: null,           // geöffnete Lektion (komplett)
+  progress: null,         // Fortschritt vom Server
+  monaco: null,
+  editor: null,
+  leftTab: 'verstehen',
+  resultTab: 'pruefung',
+  last: null,             // letzte Ausführung: { result, code }
+  running: false,
+  dirty: false,
+  saveTimer: null,
+  uiTimer: null,
+  lastEditEvent: {},      // lessonId -> Zeitpunkt des letzten "Code bearbeitet"-Protokolleintrags
+};
+
+let diagram;
+let tutor;
+
+/* ======================================================================
+   Hilfsfunktionen
+   ====================================================================== */
+const lessonProgress = (id) => (state.progress.lessons[id] ||= { code: null, done: false, chat: [] });
+const doneCount = () => state.lessons.filter((l) => state.progress.lessons[l.id] && state.progress.lessons[l.id].done).length;
+
+function setSaveState(kind) {
+  const el = $('#save-state');
+  el.textContent = { saved: 'Gespeichert', dirty: 'Ungespeichert …', saving: 'Speichert …', error: 'Nicht gespeichert – Server nicht erreichbar' }[kind];
+  el.classList.toggle('is-error', kind === 'error');
+}
+
+function showFatal(message) {
+  document.body.innerHTML = '<main class="fatal"><h1>Codewerk startet nicht</h1><p>' + escapeHtml(message) +
+    '</p><p class="muted">Lade die Seite neu. Läuft der Server noch? (<code>docker compose logs</code>)</p></main>';
+}
+
+/* ======================================================================
+   Ansicht: Farbschema und Textgröße (nur Anzeige, im Browser gemerkt)
+   ====================================================================== */
+function applyTheme(pref) {
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const root = document.documentElement;
+  root.dataset.pref = pref;
+  root.dataset.theme = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+  try { localStorage.setItem('cw-theme', pref); } catch (e) { /* egal */ }
+  if (state.monaco) state.monaco.editor.setTheme(root.dataset.theme === 'dark' ? 'cw-dark' : 'cw-light');
+}
+
+function applySize(size) {
+  document.documentElement.dataset.size = size;
+  try { localStorage.setItem('cw-size', size); } catch (e) { /* egal */ }
+  if (state.editor) {
+    const fs = FONT_SIZES[size];
+    state.editor.updateOptions({ fontSize: fs, lineHeight: Math.round(fs * 1.65) });
+  }
+}
+
+/* ======================================================================
+   Tabs links (Verstehen / Aufgabe / Tutor) und rechts (Prüfung / Ausgabe / Diagramm)
+   ====================================================================== */
+function setLeftTab(tab, persist = true) {
+  state.leftTab = tab;
+  $$('[data-tab]').forEach((b) => {
+    const on = b.dataset.tab === tab;
+    b.setAttribute('aria-selected', String(on));
+    b.tabIndex = on ? 0 : -1;
+  });
+  $$('.pane-left .tab-panel').forEach((p) => { p.hidden = p.id !== 'tab-' + tab; });
+  if (persist) scheduleUiSave();
+}
+
+function setResultTab(tab, persist = true) {
+  state.resultTab = tab;
+  $$('[data-rtab]').forEach((b) => {
+    const on = b.dataset.rtab === tab;
+    b.setAttribute('aria-selected', String(on));
+    b.tabIndex = on ? 0 : -1;
+  });
+  $$('.rtab-panel').forEach((p) => { p.hidden = p.id !== 'rtab-' + tab; });
+  if (tab === 'diagramm') requestAnimationFrame(() => diagram.refresh());
+  if (persist) scheduleUiSave();
+}
+
+function scheduleUiSave() {
+  clearTimeout(state.uiTimer);
+  state.uiTimer = setTimeout(() => api.saveUi({ tab: state.leftTab, resultTab: state.resultTab }).catch(() => {}), 600);
+}
+
+/** Pfeiltasten wechseln zwischen den Tabs (Standard-Bedienung für Tab-Leisten). */
+function wireTabKeys(selector, attr, setter) {
+  $$(selector).forEach((btn) => {
+    btn.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const all = $$(selector, btn.parentElement);
+      const next = all[(all.indexOf(btn) + (e.key === 'ArrowRight' ? 1 : all.length - 1)) % all.length];
+      setter(next.dataset[attr]);
+      next.focus();
+    });
+  });
+}
+
+/* ======================================================================
+   Lektion anzeigen
+   ====================================================================== */
+function renderProgress() {
+  const total = state.lessons.length;
+  const done = doneCount();
+  $('#progress-fill').style.width = total ? (done / total) * 100 + '%' : '0';
+  $('#progress-track').setAttribute('aria-valuenow', String(total ? Math.round((done / total) * 100) : 0));
+  $('#progress-text').textContent = `${done} von ${total} geschafft`;
+}
+
+function renderLessonList() {
+  const list = $('#lesson-list');
+  list.innerHTML = state.lessons.map((l) => {
+    const done = state.progress.lessons[l.id] && state.progress.lessons[l.id].done;
+    const current = state.lesson && state.lesson.id === l.id;
+    return `<li><button type="button" class="lesson-item${current ? ' is-current' : ''}" data-id="${escapeHtml(l.id)}"${current ? ' aria-current="true"' : ''}>` +
+      `<span class="lesson-status" aria-hidden="true">${done ? '✓' : current ? '●' : ''}</span>` +
+      `<span class="lesson-text"><span class="lesson-name">${l.index}. ${escapeHtml(l.title)}</span>` +
+      `<span class="lesson-meta">${escapeHtml(l.summary)} · ca. ${l.minutes} Min.${done ? ' · geschafft' : ''}</span></span></button></li>`;
+  }).join('');
+}
+
+function renderLessonTexts() {
+  const l = state.lesson;
+  $('#lesson-title').textContent = l.title;
+  $('#lesson-counter').textContent = `Lektion ${l.index} von ${state.lessons.length} · ca. ${l.minutes} Min.`;
+  document.title = `${l.index}. ${l.title} – Codewerk`;
+  $('#tab-verstehen').innerHTML = renderMarkdown(l.explanation, { runnable: true }) +
+    '<div class="next-hint"><button class="btn primary" type="button" data-goto="aufgabe">Weiter zur Aufgabe</button></div>';
+  $('#task-text').innerHTML = renderMarkdown(l.task);
+  $('#tip-text').innerHTML = '<div class="callout-title">Tipp</div>' + renderMarkdown(l.tip || 'Für diese Lektion gibt es keinen Tipp.');
+  $('#tip-text').hidden = true;
+  $('#btn-tip').textContent = 'Tipp anzeigen';
+  $('#btn-tip').setAttribute('aria-expanded', 'false');
+}
+
+async function openLesson(id, { initial = false } = {}) {
+  await flushSave();
+  let lesson;
+  try { lesson = await api.lesson(id); } catch (e) { showFatal('Lektion konnte nicht geladen werden: ' + e.message); return; }
+  state.lesson = lesson;
+  state.last = null;
+  const saved = state.progress.lessons[id];
+  const hasCode = !!(saved && typeof saved.code === 'string');
+
+  renderLessonTexts();
+  renderLessonList();
+
+  setEditorValue(hasCode ? saved.code : lesson.starterCode);
+  clearMarkers();
+  tutor.setMessages(saved ? saved.chat : []);
+
+  // Tab: beim ersten Öffnen der Seite genau dort weitermachen, wo man aufgehört hat
+  const ui = state.progress.ui || {};
+  if (initial && ui.tab) setLeftTab(ui.tab, false);
+  else setLeftTab(hasCode ? 'aufgabe' : 'verstehen', false);
+  setResultTab(initial && ui.resultTab ? ui.resultTab : 'pruefung', false);
+  $('#tab-verstehen').scrollTop = 0;
+  $('.pane-body').scrollTop = 0;
+
+  state.progress.lastLessonId = id;
+  if (!initial) api.event(id, 'open', `Lektion ${lesson.index} „${lesson.title}“ geöffnet`);
+
+  if (hasCode) await run({ auto: true });
+  else { renderResults(null); }
+}
+
+function setEditorValue(code) {
+  state.suppressChange = true;
+  state.editor.setValue(code);
+  state.suppressChange = false;
+  state.editor.setScrollTop(0);
+  state.dirty = false;
+  setSaveState('saved');
+}
+
+/* ======================================================================
+   Speichern (automatisch)
+   ====================================================================== */
+function onEditorChange() {
+  if (state.suppressChange) return;
+  clearMarkers();
+  state.dirty = true;
+  setSaveState('dirty');
+  clearTimeout(state.saveTimer);
+  state.saveTimer = setTimeout(() => flushSave(), 800);
+}
+
+async function flushSave(keepalive = false) {
+  clearTimeout(state.saveTimer);
+  if (!state.dirty || !state.lesson) return;
+  const id = state.lesson.id;
+  const code = state.editor.getValue();
+  state.dirty = false;
+  setSaveState('saving');
+  try {
+    await api.saveLesson(id, { code }, keepalive);
+    lessonProgress(id).code = code;
+    state.progress.lastLessonId = id;
+    if (state.editor.getValue() === code) setSaveState('saved'); else setSaveState('dirty');
+    // höchstens alle 5 Minuten ein Protokolleintrag für „Wo war ich?“
+    const now = Date.now();
+    if (!state.lastEditEvent[id] || now - state.lastEditEvent[id] > 5 * 60 * 1000) {
+      state.lastEditEvent[id] = now;
+      api.event(id, 'edit', `Code bearbeitet (${code.length} Zeichen)`);
+    }
+  } catch (e) {
+    state.dirty = true;
+    setSaveState('error');
+  }
+}
+
+/* ======================================================================
+   Marker und Sprung zur Fehlerzeile im Editor
+   ====================================================================== */
+function clearMarkers() {
+  const model = state.editor && state.editor.getModel();
+  if (model) state.monaco.editor.setModelMarkers(model, 'codewerk', []);
+}
+
+function markLine(line, column, message) {
+  const model = state.editor.getModel();
+  if (!line || line > model.getLineCount()) return;
+  state.monaco.editor.setModelMarkers(model, 'codewerk', [{
+    severity: state.monaco.MarkerSeverity.Error,
+    message, startLineNumber: line, startColumn: column || 1, endLineNumber: line, endColumn: model.getLineMaxColumn(line),
+  }]);
+}
+
+function gotoLine(line, column) {
+  state.editor.revealLineInCenter(line);
+  state.editor.setPosition({ lineNumber: line, column: column || 1 });
+  state.editor.focus();
+}
+
+/* ======================================================================
+   Ausführen und Ergebnis
+   ====================================================================== */
+
+/** Faßt ein Ergebnis in eine Art und Zahlen zusammen. */
+function classify(result) {
+  if (!result) return { kind: 'none' };
+  if (result.crashed) return { kind: 'crashed', text: result.crashed };
+  if (result.timeout) return { kind: 'timeout' };
+  if (result.syntaxError) return { kind: 'syntax', line: result.syntaxError.line };
+  if (result.error) return { kind: 'error', line: result.error.line };
+  if (result.testsBroken) return { kind: 'broken', text: result.testsBroken };
+  if (result.tests) {
+    const passed = result.tests.filter((t) => t.ok).length;
+    return { kind: 'tests', passed, total: result.tests.length, all: passed === result.tests.length && result.tests.length > 0 };
+  }
+  return { kind: 'ran' };
+}
+
+function errorText(result) {
+  if (!result) return '';
+  if (result.syntaxError) return `Syntaxfehler in Zeile ${result.syntaxError.line}: ${result.syntaxError.message}`;
+  if (result.error) return `${result.error.line ? 'Zeile ' + result.error.line + ': ' : ''}${result.error.raw} (${result.error.message})`;
+  if (result.timeout) return `Zeitlimit von ${TIMEOUT_SECONDS} Sekunden überschritten (Endlosschleife?)`;
+  return '';
+}
+
+async function run({ auto = false } = {}) {
+  if (state.running || !state.lesson) return;
+  state.running = true;
+  const btn = $('#btn-run');
+  btn.disabled = true;
+  btn.firstChild.textContent = 'Läuft … ';
+  await flushSave();
+
+  const code = state.editor.getValue();
+  const result = await runCode({ code, tests: state.lesson.testsSource });
+  state.last = { result, code };
+  state.running = false;
+  btn.disabled = false;
+  btn.firstChild.textContent = 'Ausführen ';
+
+  clearMarkers();
+  const info = classify(result);
+  const err = result.syntaxError || result.error;
+  if (err && err.line) markLine(err.line, err.column, err.message);
+
+  renderResults(result);
+
+  if (!auto) {
+    // Das Ergebnis dorthin legen, wo man als Nächstes hinschauen sollte
+    if (info.kind === 'tests' || info.kind === 'ran') setResultTab(info.kind === 'tests' ? 'pruefung' : 'ausgabe');
+    else setResultTab('ausgabe');
+  }
+
+  // Fortschritt speichern
+  const lp = lessonProgress(state.lesson.id);
+  const summary = info.kind === 'tests'
+    ? { passed: info.passed, total: info.total }
+    : { passed: 0, total: 0, error: errorText(result) || result.testsBroken || '' };
+  lp.lastRun = summary;
+  const patch = { lastRun: summary };
+  if (!auto && info.kind === 'tests' && info.all && !lp.done) {
+    lp.done = true;
+    patch.done = true;
+    api.event(state.lesson.id, 'done', `Lektion ${state.lesson.index} „${state.lesson.title}“ geschafft (${info.total} Tests bestanden)`);
+    renderProgress();
+    renderLessonList();
+    renderNextStep(); // zeigt jetzt „Geschafft“
+  }
+  api.saveLesson(state.lesson.id, patch).catch(() => {});
+  if (!auto) {
+    const detail = info.kind === 'tests' ? `Ausgeführt: ${info.passed} von ${info.total} Tests bestanden`
+      : info.kind === 'ran' ? 'Ausgeführt' : 'Ausgeführt mit Fehler: ' + (errorText(result) || 'unbekannt').slice(0, 120);
+    api.event(state.lesson.id, 'run', detail);
+  }
+}
+
+function renderResults(result) {
+  const info = classify(result);
+  renderTests(result, info);
+  renderConsole(result, info);
+
+  if (!result) diagram.render(null);
+  else if (result.snapshot) diagram.render(result.snapshot);
+  else if (info.kind === 'syntax') diagram.render(null, 'Das Diagramm erscheint, sobald dein Code keine Schreibfehler mehr hat.');
+  else diagram.render(null, 'Das Diagramm erscheint, sobald dein Code ohne Fehler bis zum Ende läuft.');
+  if (state.resultTab === 'diagramm') requestAnimationFrame(() => diagram.refresh());
+
+  // Zähler an den Tabs
+  const bp = $('#badge-pruefung');
+  bp.textContent = info.kind === 'tests' ? `${info.passed}/${info.total}` : '';
+  bp.className = 'badge' + (info.kind === 'tests' ? (info.all ? ' badge-ok' : ' badge-warn') : '');
+  const ba = $('#badge-ausgabe');
+  const failed = ['syntax', 'error', 'timeout', 'crashed'].includes(info.kind);
+  ba.textContent = failed ? '!' : result && result.logs && result.logs.length ? String(result.logs.length) : '';
+  ba.className = 'badge' + (failed ? ' badge-bad' : '');
+
+  renderNextStep();
+}
+
+function renderTests(result, info) {
+  const el = $('#rtab-pruefung');
+  if (!result) {
+    el.innerHTML = '<div class="empty"><p>Hier erscheinen die Ergebnisse der Tests.</p><p class="muted">Schreibe deinen Code und drücke <strong>Ausführen</strong>.</p></div>';
+    return;
+  }
+  if (['syntax', 'error', 'timeout', 'crashed'].includes(info.kind)) {
+    el.innerHTML = '<div class="empty"><p>Die Tests laufen erst, wenn dein Code ohne Fehler durchläuft.</p>' +
+      '<p><button type="button" class="btn" data-action="show-output">Fehler ansehen</button></p></div>';
+    return;
+  }
+  if (info.kind === 'broken') {
+    el.innerHTML = '<div class="notice notice-warn"><strong>Mit dieser Lektion stimmt etwas nicht.</strong><br>' + inline(info.text) + '</div>';
+    return;
+  }
+  if (!result.tests) { el.innerHTML = '<div class="empty"><p>Diese Lektion hat keine Tests.</p></div>'; return; }
+
+  el.innerHTML = '<ul class="tests">' + result.tests.map((t) => {
+    if (t.ok) {
+      return `<li class="test is-ok"><span class="test-icon" aria-hidden="true">✓</span><div class="test-body"><div class="test-name">${inline(t.name)}</div></div><span class="sr-only">bestanden</span></li>`;
+    }
+    return `<li class="test is-fail"><span class="test-icon" aria-hidden="true">✗</span><div class="test-body"><div class="test-name">${inline(t.name)} <span class="sr-only">nicht bestanden</span></div>` +
+      `<div class="test-msg">${inline(t.message || '')}</div>` +
+      (t.hint ? `<div class="test-hint"><strong>Tipp:</strong> ${inline(t.hint)}</div>` : '') + '</div></li>';
+  }).join('') + '</ul>';
+}
+
+function renderConsole(result, info) {
+  const el = $('#rtab-ausgabe');
+  if (!result) {
+    el.innerHTML = '<div class="empty"><p>Hier erscheint, was dein Code mit <code>console.log</code> ausgibt.</p></div>';
+    return;
+  }
+  const parts = [];
+  if (info.kind === 'crashed') {
+    parts.push(`<div class="errorcard"><div class="errorcard-title">Das Ausführen ist abgestürzt</div><p>${escapeHtml(info.text)}</p></div>`);
+  } else if (info.kind === 'timeout') {
+    parts.push(`<div class="errorcard"><div class="errorcard-title">Zeitlimit überschritten</div><p>Dein Code lief länger als ${TIMEOUT_SECONDS} Sekunden und wurde angehalten. Gibt es eine Schleife, die nie aufhört? Prüfe die Bedingung der Schleife.</p>` +
+      '<p><button type="button" class="btn small" data-action="explain">Erklär mir den Fehler</button></p></div>');
+  } else if (result.syntaxError || result.error) {
+    const e = result.syntaxError || result.error;
+    const title = result.syntaxError ? 'Schreibfehler im Code' : 'Fehler beim Ausführen';
+    parts.push(`<div class="errorcard"><div class="errorcard-title">${title}${e.line ? ' · Zeile ' + e.line : ''}</div>` +
+      `<p>${inline(e.message)}</p><div class="errorcard-actions">` +
+      (e.line ? `<button type="button" class="btn small" data-goto-line="${e.line}" data-goto-col="${e.column || 1}">Zu Zeile ${e.line} springen</button>` : '') +
+      '<button type="button" class="btn small" data-action="explain">Erklär mir den Fehler</button></div>' +
+      `<details><summary>Originalmeldung</summary><code>${escapeHtml(e.raw)}</code></details></div>`);
+  }
+  const logs = result.logs || [];
+  if (logs.length) {
+    parts.push('<div class="console" aria-label="Konsole">' + logs.map((l) =>
+      `<div class="log log-${l.type}">${escapeHtml(l.text)}</div>`).join('') + '</div>');
+  } else if (!result.syntaxError && !result.error && !result.timeout) {
+    parts.push('<div class="empty"><p>Keine Ausgabe.</p><p class="muted">Mit <code>console.log(…)</code> kannst du Werte anzeigen.</p></div>');
+  }
+  el.innerHTML = parts.join('');
+}
+
+/** Der „nächste Schritt“ – immer genau eine klare Empfehlung. */
+function renderNextStep() {
+  const el = $('#nextstep');
+  const l = state.lesson;
+  if (!l) { el.innerHTML = ''; return; }
+  const lp = state.progress.lessons[l.id];
+  const info = classify(state.last && state.last.result);
+  const isLast = l.index === state.lessons.length;
+  let cls = 'is-info';
+  let html;
+  const nextBtn = isLast ? '' : '<button type="button" class="btn primary" data-action="next">Nächste Lektion</button>';
+
+  if (info.kind === 'tests' && info.all) {
+    cls = 'is-success';
+    html = `<div class="ns-text"><strong>Geschafft!</strong> Alle ${info.total} Tests bestehen.${isLast ? ' Du hast alle Lektionen durch. Starkes Ergebnis.' : ''}</div>${nextBtn}`;
+  } else if (info.kind === 'tests') {
+    cls = 'is-progress';
+    html = `<div class="ns-text"><strong>${info.passed} von ${info.total} Tests bestehen.</strong> Nächster Schritt: Öffne unter „Prüfung“ den ersten roten Test.</div>` +
+      '<button type="button" class="btn" data-action="tip">Gib mir einen Tipp</button>';
+  } else if (['syntax', 'error', 'timeout', 'crashed'].includes(info.kind)) {
+    cls = 'is-error';
+    html = '<div class="ns-text"><strong>Ein Fehler stoppt deinen Code.</strong> Nächster Schritt: Lies die Meldung unter „Ausgabe“' + (info.line ? ` und schau in Zeile ${info.line}.` : '.') + '</div>' +
+      '<button type="button" class="btn" data-action="explain">Erklär mir den Fehler</button>';
+  } else if (info.kind === 'broken') {
+    cls = 'is-error';
+    html = '<div class="ns-text"><strong>Die Tests dieser Lektion sind fehlerhaft.</strong> Das liegt nicht an dir. Prüfe die Datei tests.js.</div>';
+  } else if (lp && lp.done) {
+    cls = 'is-success';
+    html = `<div class="ns-text"><strong>Diese Lektion hast du schon geschafft.</strong> Du kannst sie wiederholen oder weitergehen.</div>${nextBtn}`;
+  } else {
+    html = state.leftTab === 'verstehen'
+      ? '<div class="ns-text"><strong>Nächster Schritt:</strong> Lies links die Erklärung. Danach geht es zur Aufgabe.</div><button type="button" class="btn" data-goto="aufgabe">Zur Aufgabe</button>'
+      : '<div class="ns-text"><strong>Nächster Schritt:</strong> Schreibe deinen Code und drücke <strong>Ausführen</strong>.</div>';
+  }
+  el.className = 'nextstep ' + cls;
+  el.innerHTML = html;
+}
+
+/* ======================================================================
+   Tutor
+   ====================================================================== */
+function tutorContext() {
+  const last = state.last && state.last.result;
+  return {
+    lessonId: state.lesson.id,
+    code: state.editor.getValue(),
+    output: last && last.logs ? last.logs.map((l) => l.text).join('\n') : '',
+    error: errorText(last),
+    tests: last && last.tests ? last.tests.map((t) => ({ name: t.name, ok: t.ok, message: t.message })) : [],
+  };
+}
+
+function askTutor(mode) {
+  setLeftTab('tutor');
+  tutor.ask({ mode });
+}
+
+/* ======================================================================
+   „Ausprobieren“-Knöpfe in den Erklärungen
+   ====================================================================== */
+async function trySnippet(button) {
+  const out = button.closest('.codeblock').querySelector('.try-out');
+  button.disabled = true;
+  const result = await runCode({ code: button.dataset.code, tests: null });
+  button.disabled = false;
+  let html;
+  if (result.timeout) html = '<div class="log log-error">Das hat zu lange gedauert.</div>';
+  else if (result.crashed) html = '<div class="log log-error">' + escapeHtml(result.crashed) + '</div>';
+  else if (result.syntaxError) html = `<div class="log log-error">Zeile ${result.syntaxError.line}: ${escapeHtml(result.syntaxError.message)}</div>`;
+  else {
+    const lines = (result.logs || []).map((l) => `<div class="log log-${l.type}">${escapeHtml(l.text)}</div>`);
+    if (result.error) lines.push(`<div class="log log-error">${escapeHtml(result.error.message)}</div>`);
+    html = lines.join('') || '<div class="log log-muted">(keine Ausgabe)</div>';
+  }
+  out.innerHTML = '<div class="try-label">Ausgabe</div>' + html;
+  out.hidden = false;
+}
+
+/* ======================================================================
+   Verdrahtung der festen Bedienelemente
+   ====================================================================== */
+function wireUi() {
+  // Tabs
+  $$('[data-tab]').forEach((b) => b.addEventListener('click', () => { setLeftTab(b.dataset.tab); renderNextStep(); if (b.dataset.tab === 'tutor') tutor.focusInput(); }));
+  $$('[data-rtab]').forEach((b) => b.addEventListener('click', () => setResultTab(b.dataset.rtab)));
+  wireTabKeys('.pane-left .tabs .tab', 'tab', (t) => setLeftTab(t));
+  wireTabKeys('.results-card .tabs .tab', 'rtab', (t) => setResultTab(t));
+
+  $('#btn-run').addEventListener('click', () => run());
+
+  // Ergebnis vergrößern / wieder verkleinern (nützlich für das Diagramm)
+  $('#btn-expand').addEventListener('click', () => {
+    const on = $('.pane-right').classList.toggle('is-expanded');
+    $('#btn-expand').setAttribute('aria-pressed', String(on));
+    $('#btn-expand').textContent = on ? 'Ergebnis verkleinern' : 'Ergebnis vergrößern';
+    requestAnimationFrame(() => { diagram.refresh(); state.editor.layout(); });
+  });
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+  });
+
+  // Tipp
+  $('#btn-tip').addEventListener('click', () => {
+    const box = $('#tip-text');
+    box.hidden = !box.hidden;
+    $('#btn-tip').textContent = box.hidden ? 'Tipp anzeigen' : 'Tipp verbergen';
+    $('#btn-tip').setAttribute('aria-expanded', String(!box.hidden));
+  });
+
+  // Klicks in Bereichen, die neu gezeichnet werden (Delegation)
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('button');
+    if (!t) return;
+    if (t.classList.contains('try')) return trySnippet(t);
+    if (t.dataset.goto) { setLeftTab(t.dataset.goto); renderNextStep(); return; }
+    if (t.dataset.gotoLine) return gotoLine(Number(t.dataset.gotoLine), Number(t.dataset.gotoCol));
+    switch (t.dataset.action) {
+      case 'next': {
+        const i = state.lessons.findIndex((l) => l.id === state.lesson.id);
+        if (state.lessons[i + 1]) openLesson(state.lessons[i + 1].id);
+        break;
+      }
+      case 'tip': askTutor('tipp'); break;
+      case 'explain': askTutor('fehler'); break;
+      case 'show-output': setResultTab('ausgabe'); break;
+      default: break;
+    }
+  });
+
+  // Lektionsmenü
+  const menu = $('#dlg-menu');
+  $('#btn-menu').addEventListener('click', () => { renderLessonList(); menu.showModal(); const cur = $('.lesson-item.is-current', menu); if (cur) cur.scrollIntoView({ block: 'center' }); });
+  $('#lesson-list').addEventListener('click', (e) => {
+    const b = e.target.closest('.lesson-item');
+    if (!b) return;
+    menu.close();
+    if (!state.lesson || b.dataset.id !== state.lesson.id) openLesson(b.dataset.id);
+  });
+
+  // Ansicht
+  const view = $('#dlg-view');
+  $('#btn-view').addEventListener('click', () => {
+    $(`input[name="theme"][value="${document.documentElement.dataset.pref}"]`).checked = true;
+    $(`input[name="size"][value="${document.documentElement.dataset.size}"]`).checked = true;
+    view.showModal();
+  });
+  $$('input[name="theme"]').forEach((r) => r.addEventListener('change', () => applyTheme(r.value)));
+  $$('input[name="size"]').forEach((r) => r.addEventListener('change', () => applySize(r.value)));
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (document.documentElement.dataset.pref === 'auto') applyTheme('auto');
+  });
+
+  // Zurücksetzen
+  const resetDlg = $('#dlg-reset');
+  $('#btn-reset').addEventListener('click', () => resetDlg.showModal());
+  $('#btn-reset-confirm').addEventListener('click', async () => {
+    resetDlg.close();
+    const id = state.lesson.id;
+    clearTimeout(state.saveTimer);
+    state.dirty = false;
+    try { await api.resetLesson(id); } catch (e) { /* der Editor wird trotzdem zurückgesetzt */ }
+    const lp = lessonProgress(id);
+    lp.code = null;
+    lp.lastRun = null;
+    setEditorValue(state.lesson.starterCode);
+    state.last = null;
+    clearMarkers();
+    renderResults(null);
+    setLeftTab('aufgabe');
+  });
+
+  // Dialoge: „Schließen“-Knöpfe und Klick auf den Hintergrund
+  $$('dialog').forEach((d) => {
+    d.addEventListener('click', (e) => { if (e.target === d || e.target.closest('[data-close]')) d.close(); });
+  });
+
+  // Beim Verlassen noch schnell speichern
+  window.addEventListener('pagehide', () => flushSave(true));
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSave(true); });
+}
+
+/* ======================================================================
+   Start
+   ====================================================================== */
+async function init() {
+  let config, lessonInfo, progress;
+  try {
+    [config, lessonInfo, progress] = await Promise.all([api.config(), api.lessons(), api.progress()]);
+  } catch (e) {
+    return showFatal('Der Server antwortet nicht: ' + e.message);
+  }
+  state.config = config;
+  state.lessons = lessonInfo.lessons;
+  state.progress = progress;
+  state.progress.lessons = state.progress.lessons || {};
+  state.progress.ui = state.progress.ui || {};
+
+  if (!state.lessons.length) return showFatal('Es wurden keine Lektionen gefunden. Prüfe den Ordner „lessons“.');
+  if (lessonInfo.problems && lessonInfo.problems.length) $('#lesson-problems').textContent = lessonInfo.problems.join(' ');
+
+  try {
+    state.monaco = await loadMonaco();
+  } catch (e) {
+    return showFatal(e.message);
+  }
+  const size = document.documentElement.dataset.size || 'm';
+  state.editor = createEditor(state.monaco, $('#editor'), { fontSize: FONT_SIZES[size] });
+  state.editor.onDidChangeModelContent(onEditorChange);
+  state.editor.addCommand(state.monaco.KeyMod.CtrlCmd | state.monaco.KeyCode.Enter, () => run());
+
+  diagram = createDiagram($('#rtab-diagramm'));
+  tutor = createTutor({
+    root: $('#tab-tutor'),
+    getContext: tutorContext,
+    onChange: (messages) => {
+      if (!state.lesson) return;
+      lessonProgress(state.lesson.id).chat = messages;
+      api.saveLesson(state.lesson.id, { chat: messages }).catch(() => {});
+    },
+    onAsk: (mode) => api.event(state.lesson.id, 'tutor', mode === 'chat' ? 'Tutor gefragt (eigene Frage)' : `Tutor gefragt: ${mode}`),
+  });
+  tutor.setConfigured(config.tutorConfigured, config.model);
+
+  wireUi();
+  renderProgress();
+
+  // Genau dort weitermachen, wo man aufgehört hat
+  const wanted = state.lessons.find((l) => l.id === progress.lastLessonId) || state.lessons[0];
+  await openLesson(wanted.id, { initial: true });
+  renderProgress();
+}
+
+init().catch((e) => showFatal(e.message || String(e)));

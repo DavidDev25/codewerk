@@ -1,0 +1,6 @@
+{
+  "titel": "Arrays",
+  "minuten": 12,
+  "kurz": "Eine nummerierte Liste von Werten.",
+  "tipp": "Das erste Element hat die Nummer 0, nicht 1. Das letzte Element hat die Nummer liste.length - 1."
+}

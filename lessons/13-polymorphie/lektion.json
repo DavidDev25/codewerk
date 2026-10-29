@@ -1,0 +1,6 @@
+{
+  "titel": "Polymorphie",
+  "minuten": 15,
+  "kurz": "Gleicher Methodenname, je nach Objekt ein anderes Verhalten.",
+  "tipp": "Kreis und Rechteck überschreiben beide flaeche(). In gesamtFlaeche() rufst du einfach forme.flaeche() auf – ohne zu prüfen, welche Art von Form es ist."
+}

@@ -1,0 +1,6 @@
+{
+  "titel": "Funktionen",
+  "minuten": 12,
+  "kurz": "Kleine Maschinen: etwas hineingeben, etwas zurückbekommen.",
+  "tipp": "Eine Funktion gibt nur etwas zurück, wenn du return schreibst. console.log zeigt zwar etwas an, liefert aber nichts zurück."
+}
