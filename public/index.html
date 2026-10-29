@@ -2,14 +2,14 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Codewerk – JavaScript lernen</title>
   <meta name="color-scheme" content="light dark">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23226B74'/%3E%3Cpath d='M12 10l-5 6 5 6M20 10l5 6-5 6' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
   <script src="/js/theme-init.js"></script>
   <link rel="stylesheet" href="/css/app.css">
 </head>
-<body>
+<body data-view="lernen">
   <a class="skip" href="#editor">Zum Editor springen</a>
 
   <header class="topbar">
@@ -74,7 +74,7 @@
           <span class="file">dein-code.js</span>
           <span id="save-state" class="small muted" role="status">Gespeichert</span>
           <span class="spacer"></span>
-          <button id="btn-reset" class="btn ghost small" type="button">Startcode zurücksetzen</button>
+          <button id="btn-reset" class="btn ghost small" type="button"><span class="long-label">Startcode </span>zurücksetzen</button>
           <button id="btn-run" class="btn primary run" type="button">Ausführen <span class="kbd">Strg + Enter</span></button>
         </div>
         <div id="editor" class="editor" aria-label="Code-Editor"></div>
@@ -96,6 +96,21 @@
       </div>
     </section>
   </main>
+
+  <nav class="mobile-nav" aria-label="Bereich wählen">
+    <button type="button" class="mn-btn" data-view="lernen" aria-pressed="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></svg>
+      <span>Lernen</span>
+    </button>
+    <button type="button" class="mn-btn" data-view="code" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg>
+      <span>Code</span>
+    </button>
+    <button type="button" class="mn-btn" data-view="ergebnis" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+      <span>Ergebnis</span><span class="badge" id="badge-mobile"></span>
+    </button>
+  </nav>
 
   <dialog id="dlg-menu" class="drawer" aria-label="Alle Lektionen">
     <div class="drawer-head">

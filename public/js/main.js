@@ -85,6 +85,15 @@ function setResultTab(tab, persist = true) {
   if (persist) scheduleUiSave();
 }
 
+const MOBILE = window.matchMedia('(max-width: 999px)');
+
+function setView(view) {
+  document.body.dataset.view = view;
+  $$('.mn-btn').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === view)));
+  if (view === 'ergebnis' && state.resultTab === 'diagramm') requestAnimationFrame(() => diagram.refresh());
+  if (view === 'code' && state.editor) requestAnimationFrame(() => state.editor.layout());
+}
+
 function scheduleUiSave() {
   clearTimeout(state.uiTimer);
   state.uiTimer = setTimeout(() => api.saveUi({ tab: state.leftTab, resultTab: state.resultTab }).catch(() => {}), 600);
@@ -222,6 +231,7 @@ function markLine(line, column, message) {
 }
 
 function gotoLine(line, column) {
+  if (MOBILE.matches) setView('code');
   state.editor.revealLineInCenter(line);
   state.editor.setPosition({ lineNumber: line, column: column || 1 });
   state.editor.focus();
@@ -274,6 +284,7 @@ async function run({ auto = false } = {}) {
   if (!auto) {
     if (info.kind === 'tests' || info.kind === 'ran') setResultTab(info.kind === 'tests' ? 'pruefung' : 'ausgabe');
     else setResultTab('ausgabe');
+    if (MOBILE.matches) setView('ergebnis');
   }
 
   const lp = lessonProgress(state.lesson.id);
@@ -316,6 +327,9 @@ function renderResults(result) {
   const failed = ['syntax', 'error', 'timeout', 'crashed'].includes(info.kind);
   ba.textContent = failed ? '!' : result && result.logs && result.logs.length ? String(result.logs.length) : '';
   ba.className = 'badge' + (failed ? ' badge-bad' : '');
+  const bm = $('#badge-mobile');
+  bm.textContent = failed ? '!' : bp.textContent;
+  bm.className = failed ? ba.className : bp.className;
 
   renderNextStep();
 }
@@ -408,7 +422,7 @@ function renderNextStep() {
     html = `<div class="ns-text"><strong>Diese Lektion hast du schon geschafft.</strong> Du kannst sie wiederholen oder weitergehen.</div>${nextBtn}`;
   } else {
     html = state.leftTab === 'verstehen'
-      ? '<div class="ns-text"><strong>Nächster Schritt:</strong> Lies links die Erklärung. Danach geht es zur Aufgabe.</div><button type="button" class="btn" data-goto="aufgabe">Zur Aufgabe</button>'
+      ? `<div class="ns-text"><strong>Nächster Schritt:</strong> Lies ${MOBILE.matches ? 'unter „Lernen“' : 'links'} die Erklärung. Danach geht es zur Aufgabe.</div><button type="button" class="btn" data-goto="aufgabe">Zur Aufgabe</button>`
       : '<div class="ns-text"><strong>Nächster Schritt:</strong> Schreibe deinen Code und drücke <strong>Ausführen</strong>.</div>';
   }
   el.className = 'nextstep ' + cls;
@@ -427,6 +441,7 @@ function tutorContext() {
 }
 
 function askTutor(mode) {
+  setView('lernen');
   setLeftTab('tutor');
   tutor.ask({ mode });
 }
@@ -456,6 +471,8 @@ function wireUi() {
   wireTabKeys('.results-card .tabs .tab', 'rtab', (t) => setResultTab(t));
 
   $('#btn-run').addEventListener('click', () => run());
+  $$('.mn-btn').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
+  MOBILE.addEventListener('change', () => renderNextStep());
 
   $('#btn-expand').addEventListener('click', () => {
     const on = $('.pane-right').classList.toggle('is-expanded');
@@ -478,12 +495,12 @@ function wireUi() {
     const t = e.target.closest('button');
     if (!t) return;
     if (t.classList.contains('try')) return trySnippet(t);
-    if (t.dataset.goto) { setLeftTab(t.dataset.goto); renderNextStep(); return; }
+    if (t.dataset.goto) { setView('lernen'); setLeftTab(t.dataset.goto); renderNextStep(); return; }
     if (t.dataset.gotoLine) return gotoLine(Number(t.dataset.gotoLine), Number(t.dataset.gotoCol));
     switch (t.dataset.action) {
       case 'next': {
         const i = state.lessons.findIndex((l) => l.id === state.lesson.id);
-        if (state.lessons[i + 1]) openLesson(state.lessons[i + 1].id);
+        if (state.lessons[i + 1]) { setView('lernen'); openLesson(state.lessons[i + 1].id); }
         break;
       }
       case 'tip': askTutor('tipp'); break;
@@ -499,7 +516,7 @@ function wireUi() {
     const b = e.target.closest('.lesson-item');
     if (!b) return;
     menu.close();
-    if (!state.lesson || b.dataset.id !== state.lesson.id) openLesson(b.dataset.id);
+    if (!state.lesson || b.dataset.id !== state.lesson.id) { setView('lernen'); openLesson(b.dataset.id); }
   });
 
   const view = $('#dlg-view');
