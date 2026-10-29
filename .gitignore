@@ -1,4 +1,36 @@
-node_modules
-data
+# Abhängigkeiten
+node_modules/
+
+# Fortschritt, Code und Chat der Lernenden (lokal bzw. im Docker-Volume)
+/data/
+progress*.json
+
+# Zugangsdaten und Konfiguration – nur die Vorlage gehört ins Repo
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# Pakete und Archive
 *.zip
+*.tgz
+
+# Editoren und Betriebssystem
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Werkzeuge
+graphify-out/
+coverage/
+tmp/
