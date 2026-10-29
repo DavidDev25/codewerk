@@ -218,13 +218,43 @@ Gute Tests haben ein **verständliches deutsches `test('…')`**, einen **kleine
 
 ---
 
-## 5. Deine Daten
+## 5. Anmeldung mit GitHub (für den öffentlichen Betrieb)
 
-- Fortschritt, Code und Chat liegen in der Datei `progress.json` im Docker-Volume `codewerk-daten`. Sie bleiben bei Updates erhalten.
+Codewerk kennt zwei Betriebsarten:
+
+| | Persönlicher Modus | Konten-Modus |
+| --- | --- | --- |
+| Wann | `GITHUB_CLIENT_ID` und `GITHUB_CLIENT_SECRET` sind leer | beide sind gesetzt |
+| Für wen | eine lernende Person | viele, öffentlich |
+| Fortschritt | `data/progress.json` | Gäste: nur im eigenen Browser · Konten: `data/codewerk.db` |
+| KI-Tutor | ja | nur mit Anmeldung |
+
+**So richtest du den GitHub-Login ein:**
+
+1. Auf GitHub: **Settings → Developer settings → OAuth Apps → New OAuth App**.
+2. *Homepage URL*: die Adresse von Codewerk, z. B. `https://lernen.example.de` (lokal: `http://localhost:3000`).
+3. *Authorization callback URL*: dieselbe Adresse plus `/auth/github/callback`, z. B. `https://lernen.example.de/auth/github/callback`.
+4. Nach dem Anlegen die **Client ID** kopieren und mit **Generate a new client secret** ein Secret erzeugen.
+5. In der `.env` eintragen: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` und `PUBLIC_URL` (genau die Adresse aus Schritt 2, ohne `/` am Ende). Dann neu starten.
+
+**Was gespeichert wird:** nur GitHub-ID, Benutzername und Anzeigename. Codewerk fragt keine Berechtigungen an (kein „scope“) und verwirft das GitHub-Zugangstoken sofort nach der Anmeldung. Sitzungen liegen nur als Prüfsumme (Hash) in der Datenbank.
+
+**Gäste** lernen ohne Anmeldung los. Ihr Fortschritt bleibt in ihrem Browser. Melden sie sich an, wird er ins Konto übernommen (vorhandener Fortschritt im Konto wird dabei nicht überschrieben).
+
+**Dein bisheriger Fortschritt:** Das **allererste** Konto, das sich anmeldet, übernimmt die vorhandene `data/progress.json` aus dem persönlichen Modus. Melde dich also als Erste/r an. Die alte Datei wird umbenannt, nicht gelöscht.
+
+**Datenschutz:** Angemeldete können im Konto-Menü (Initialen oben rechts) ihre Daten herunterladen und ihr Konto endgültig löschen. Für einen öffentlichen Betrieb in Deutschland brauchst du außerdem ein Impressum und eine Datenschutzerklärung.
+
+---
+
+## 6. Deine Daten
+
+- Persönlicher Modus: Fortschritt, Code und Chat liegen in `progress.json` im Docker-Volume `codewerk-daten`. Konten-Modus: in `codewerk.db` im selben Volume. Beides bleibt bei Updates erhalten.
 - **Sichern:**
 
   ```bash
   docker compose cp codewerk:/app/data/progress.json ./progress-sicherung.json
+  docker compose cp codewerk:/app/data/codewerk.db ./codewerk-sicherung.db
   ```
 
 - **Update nach Code-Änderungen:** `docker compose up -d --build`
@@ -232,9 +262,9 @@ Gute Tests haben ein **verständliches deutsches `test('…')`**, einen **kleine
 
 ---
 
-## 6. Ohne Docker starten (zum Ausprobieren)
+## 7. Ohne Docker starten (zum Ausprobieren)
 
-Du brauchst Node.js 22 oder neuer.
+Du brauchst Node.js 22.13 oder neuer (empfohlen: 24).
 
 ```bash
 cp .env.example .env     # und ausfüllen; bei OMNIROUTE_BASE_URL die echte Adresse eintragen, z. B. http://localhost:20128/v1
@@ -246,16 +276,19 @@ Dann `http://localhost:3000` öffnen. Der Fortschritt liegt im Ordner `data/`.
 
 ---
 
-## 7. Aufbau des Projekts
+## 8. Aufbau des Projekts
 
 ```
 codewerk/
 ├─ server/                 Backend (Node.js + Express)
-│  ├─ index.js             Routen, Sicherheits-Header, statische Dateien
+│  ├─ index.js             Routen, Sicherheits-Header, statische Dateien, Rate-Limits
+│  ├─ accounts.js          GitHub-Login, Sitzungen, Konto (Export, Löschen), Gast-Import
+│  ├─ db.js                SQLite: Konten, Sitzungen, Fortschritt pro Konto
+│  ├─ progress.js          Regeln für den Fortschritt (Grenzen, Import)
 │  ├─ auth.js              optionaler Passwortschutz
 │  ├─ lessons.js           liest die Ordner in lessons/ (ohne Musterlösung an den Browser)
-│  ├─ storage.js           Fortschritt als JSON, atomar gespeichert
-│  └─ tutor.js             Prompt bauen, OmniRoute anfragen, Antwort streamen
+│  ├─ storage.js           Fortschritt als JSON im persönlichen Modus, atomar gespeichert
+│  └─ tutor.js             Prompt bauen, OmniRoute anfragen, Antwort streamen, Tagesbudget
 ├─ public/                 Frontend (reines JavaScript, kein Build-Schritt)
 │  ├─ index.html, css/app.css
 │  └─ js/
@@ -277,7 +310,7 @@ Monaco, die Schriften und der Parser `acorn` kommen aus `node_modules` und werde
 
 ---
 
-## 8. Kleine Hilfe bei Problemen
+## 9. Kleine Hilfe bei Problemen
 
 | Problem | Lösung |
 | --- | --- |

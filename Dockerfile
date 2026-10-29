@@ -1,6 +1,7 @@
 # Codewerk – Container-Image
-# Node 22 (wird für process.loadEnvFile und fetch-Streaming gebraucht)
-FROM node:22-alpine
+# Node 24 (LTS): bringt process.loadEnvFile, fetch-Streaming und SQLite (node:sqlite,
+# für die Konten) mit – ohne zusätzliche Pakete
+FROM node:24-alpine
 
 WORKDIR /app
 ENV NODE_ENV=production
