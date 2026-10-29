@@ -24,6 +24,7 @@ export function createTutor({ root, getContext, onChange, onAsk }) {
   let messages = [];
   let controller = null;
   let configured = true;
+  let unavailable = 'Der Tutor ist noch nicht eingerichtet (siehe Hinweis oben).';
 
   function bubble(role, html, extraClass) {
     const div = document.createElement('div');
@@ -64,7 +65,7 @@ export function createTutor({ root, getContext, onChange, onAsk }) {
     const userText = mode === 'chat' ? String(message || '').trim() : MODE_LABEL[mode];
     if (!userText) return;
 
-    if (!configured) { renderAll(); bubble('error', '<p>Der Tutor ist noch nicht eingerichtet (siehe Hinweis oben).</p>'); return; }
+    if (!configured) { renderAll(); bubble('error', '<p>' + inline(unavailable) + '</p>'); return; }
 
     const history = messages.slice(-8);
     messages.push({ role: 'user', content: userText });
@@ -161,10 +162,22 @@ export function createTutor({ root, getContext, onChange, onAsk }) {
     setConfigured(ok, model) {
       configured = ok;
       setup.hidden = ok;
+      setup.className = 'notice notice-warn';
       if (!ok) {
         setup.innerHTML = '<strong>Der Tutor ist noch nicht eingerichtet.</strong> Trage in der Datei <code>.env</code> die Werte <code>OMNIROUTE_API_KEY</code> und <code>OMNIROUTE_MODEL</code> ein und starte den Container neu. Alles andere funktioniert auch ohne Tutor.';
       }
       void model;
+    },
+    setLocked() {
+      configured = false;
+      unavailable = 'Der KI-Tutor ist mit einem kostenlosen Konto verfügbar. Melde dich oben mit GitHub an.';
+      setup.hidden = false;
+      setup.className = 'notice notice-info';
+      setup.innerHTML = '<p><strong>Der KI-Tutor ist mit Anmeldung verfügbar.</strong> Er gibt dir Tipps, erklärt Fehler und schaut über deinen Code – ohne die Lösung zu verraten. Die Anmeldung mit GitHub ist kostenlos.</p>' +
+        '<a class="btn primary" href="/auth/github">Mit GitHub anmelden</a>';
+      root.querySelector('.quick').hidden = true;
+      log.hidden = true;
+      form.hidden = true;
     },
     focusInput() { input.focus(); },
   };

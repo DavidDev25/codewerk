@@ -557,10 +557,86 @@ function wireUi() {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSave(true); });
 }
 
+const LOGIN_ERRORS = {
+  abgebrochen: 'Die Anmeldung wurde abgebrochen.',
+  ungueltig: 'Die Anmeldung ist abgelaufen oder ungültig. Versuch es bitte noch einmal.',
+  github: 'GitHub hat die Anmeldung nicht bestätigt. Versuch es bitte noch einmal.',
+};
+
+let toastTimer;
+function showToast(text, kind = 'info') {
+  const el = $('#toast');
+  el.textContent = text;
+  el.className = 'toast toast-' + kind;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 6000);
+}
+
+function initials(name) {
+  const parts = String(name || '?').replace(/[^\p{L}\p{N}\s-]/gu, ' ').trim().split(/[\s-]+/).filter(Boolean);
+  return ((parts[0] || '?')[0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+
+function renderAccount(config) {
+  const box = $('#account');
+  if (!config.accounts) { box.hidden = true; return; }
+  box.hidden = false;
+  if (!config.user) {
+    box.innerHTML = '<a class="btn primary small login" href="/auth/github"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.93-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.23 1.88.87 2.34.67.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg><span class="login-long">Mit GitHub anmelden</span><span class="login-short">Anmelden</span></a>';
+    return;
+  }
+  box.innerHTML = `<button type="button" class="btn ghost account-btn" id="btn-account" aria-haspopup="dialog" title="Konto: ${escapeHtml(config.user.login)}"><span class="avatar" aria-hidden="true">${escapeHtml(initials(config.user.name))}</span><span class="account-name">${escapeHtml(config.user.login)}</span></button>`;
+  $('#account-login').textContent = config.user.login;
+  $('#btn-account').addEventListener('click', () => $('#dlg-account').showModal());
+}
+
+function wireAccount() {
+  $('#btn-logout').addEventListener('click', async () => {
+    await flushSave();
+    try { await api.logout(); } catch (e) { }
+    location.href = '/';
+  });
+  $('#btn-delete-account').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      await api.deleteAccount();
+      location.href = '/?konto=geloescht';
+    } catch (err) {
+      btn.disabled = false;
+      showToast('Das Konto konnte nicht gelöscht werden: ' + err.message, 'error');
+    }
+  });
+}
+
+async function handleLoginReturn(config) {
+  const params = new URLSearchParams(location.search);
+  const login = params.get('login');
+  const konto = params.get('konto');
+  if (!login && !konto) return;
+  history.replaceState(null, '', location.pathname);
+  if (konto === 'geloescht') { showToast('Dein Konto wurde gelöscht.'); return; }
+  if (login === 'fehler') { showToast(LOGIN_ERRORS[params.get('grund')] || LOGIN_ERRORS.github, 'error'); return; }
+  if (login !== 'ok' || !config.user) return;
+  const guestDoc = api.guestProgress();
+  if (!guestDoc) { showToast(`Willkommen, ${config.user.name}!`); return; }
+  try {
+    const res = await api.importGuestProgress(guestDoc);
+    api.clearGuestProgress();
+    showToast(res.lessons ? `Willkommen, ${config.user.name}! Dein Gast-Fortschritt (${res.lessons} ${res.lessons === 1 ? 'Lektion' : 'Lektionen'}) ist jetzt in deinem Konto.` : `Willkommen, ${config.user.name}!`);
+  } catch (e) {
+    showToast('Dein Gast-Fortschritt konnte nicht übernommen werden: ' + e.message, 'error');
+  }
+}
+
 async function init() {
   let config, lessonInfo, progress;
   try {
-    [config, lessonInfo, progress] = await Promise.all([api.config(), api.lessons(), api.progress()]);
+    config = await api.config();
+    api.setGuest(config.accounts && !config.user);
+    await handleLoginReturn(config);
+    [lessonInfo, progress] = await Promise.all([api.lessons(), api.progress()]);
   } catch (e) {
     return showFatal('Der Server antwortet nicht: ' + e.message);
   }
@@ -595,8 +671,12 @@ async function init() {
     onAsk: (mode) => api.event(state.lesson.id, 'tutor', mode === 'chat' ? 'Tutor gefragt (eigene Frage)' : `Tutor gefragt: ${mode}`),
   });
   tutor.setConfigured(config.tutorConfigured, config.model);
+  if (config.tutorLocked) tutor.setLocked();
+  renderAccount(config);
+  $('#guest-note').hidden = !api.isGuest();
 
   wireUi();
+  wireAccount();
   renderProgress();
 
   const wanted = state.lessons.find((l) => l.id === progress.lastLessonId) || state.lessons[0];

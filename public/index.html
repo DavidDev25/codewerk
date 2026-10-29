@@ -13,7 +13,7 @@
   <a class="skip" href="#editor">Zum Editor springen</a>
 
   <header class="topbar">
-    <button id="btn-menu" class="btn ghost" type="button" aria-haspopup="dialog">Lektionen</button>
+    <button id="btn-menu" class="btn ghost icon-btn" type="button" aria-haspopup="dialog" aria-label="Lektionen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span class="btn-label">Lektionen</span></button>
     <div class="topbar-title">
       <span id="lesson-counter" class="muted small"></span>
       <h1 id="lesson-title">Codewerk</h1>
@@ -24,8 +24,11 @@
       </div>
       <span id="progress-text" class="small muted"></span>
     </div>
-    <button id="btn-view" class="btn ghost" type="button" aria-haspopup="dialog">Ansicht</button>
+    <div id="account" class="account" hidden></div>
+    <button id="btn-view" class="btn ghost icon-btn" type="button" aria-haspopup="dialog" aria-label="Ansicht"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span class="btn-label">Ansicht</span></button>
   </header>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <main class="layout">
     <section class="pane pane-left" aria-label="Lektion">
@@ -117,8 +120,24 @@
       <h2>Alle Lektionen</h2>
       <button class="btn ghost small" type="button" data-close>Schließen</button>
     </div>
+    <p id="guest-note" class="guest-note small" hidden>Du lernst als <strong>Gast</strong>: Dein Fortschritt wird nur in diesem Browser gespeichert. <a href="/auth/github">Mit GitHub anmelden</a>, um ihn im Konto zu sichern und den KI-Tutor zu nutzen.</p>
     <ol id="lesson-list" class="lesson-list"></ol>
     <p id="lesson-problems" class="muted small"></p>
+  </dialog>
+
+  <dialog id="dlg-account" class="modal" aria-label="Konto">
+    <h2>Dein Konto</h2>
+    <p>Angemeldet mit GitHub als <strong id="account-login"></strong>.</p>
+    <div class="account-actions">
+      <a class="btn" href="/api/me/export" download>Meine Daten herunterladen</a>
+      <button class="btn" type="button" id="btn-logout">Abmelden</button>
+    </div>
+    <details class="danger-zone">
+      <summary>Konto löschen</summary>
+      <p class="small">Dein Konto, dein gespeicherter Code, dein Fortschritt und deine Tutor-Verläufe werden endgültig gelöscht. Das lässt sich nicht rückgängig machen.</p>
+      <button class="btn danger" type="button" id="btn-delete-account">Konto endgültig löschen</button>
+    </details>
+    <div class="modal-actions"><button class="btn primary" type="button" data-close>Schließen</button></div>
   </dialog>
 
   <dialog id="dlg-view" class="modal" aria-label="Ansicht">
