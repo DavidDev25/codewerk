@@ -2,7 +2,7 @@
    markdown.js – Ein kleiner, sicherer Markdown-Umwandler (ohne Bibliothek).
 
    Unterstützt: ## Überschriften, Absätze, - Listen, 1. Listen, **fett**,
-   `code`, ``` Codeblöcke ```, und Hinweisboxen mit  :::alltag … :::
+   `code`, ``` Codeblöcke ```, | Tabellen | und Hinweisboxen mit  :::alltag … :::
    Alles wird zuerst "entschärft" (HTML-Zeichen ersetzt), es kann also kein
    fremder HTML-Code in die Seite gelangen – auch nicht aus KI-Antworten.
    ========================================================================== */
@@ -36,7 +36,19 @@ export function renderMarkdown(src, opts) {
   let i = 0;
 
   const isBlockStart = (l) => /^```/.test(l) || /^:::/.test(l) || /^#{1,4}\s/.test(l) ||
-    /^\s*[-*]\s+/.test(l) || /^\s*\d+[.)]\s+/.test(l);
+    /^\s*[-*]\s+/.test(l) || /^\s*\d+[.)]\s+/.test(l) || /^\s*\|/.test(l);
+  // Tabellenzeile in Zellen zerlegen; | innerhalb von `code` zählt nicht als Trenner
+  const cells = (l) => {
+    const parts = [];
+    let cur = '';
+    let inCode = false;
+    for (const ch of l.trim().replace(/^\||\|$/g, '')) {
+      if (ch === '`') inCode = !inCode;
+      if (ch === '|' && !inCode) { parts.push(cur.trim()); cur = ''; } else cur += ch;
+    }
+    parts.push(cur.trim());
+    return parts;
+  };
 
   while (i < lines.length) {
     const line = lines[i];
@@ -93,6 +105,18 @@ export function renderMarkdown(src, opts) {
       const items = [];
       while (i < lines.length && /^\s*\d+[.)]\s+/.test(lines[i])) items.push(inline(lines[i++].replace(/^\s*\d+[.)]\s+/, '')));
       out.push('<ol>' + items.map((t) => '<li>' + t + '</li>').join('') + '</ol>');
+      continue;
+    }
+
+    // Tabelle: Kopfzeile, Trennzeile |---|---|, dann Datenzeilen
+    if (/^\s*\|/.test(line) && i + 1 < lines.length && /^\s*\|?\s*:?-{3,}/.test(lines[i + 1])) {
+      const head = cells(line);
+      i += 2;
+      const rows = [];
+      while (i < lines.length && /^\s*\|/.test(lines[i])) rows.push(cells(lines[i++]));
+      out.push('<div class="table-wrap"><table><thead><tr>' + head.map((c) => '<th>' + inline(c) + '</th>').join('') +
+        '</tr></thead><tbody>' + rows.map((r) => '<tr>' + r.map((c) => '<td>' + inline(c) + '</td>').join('') + '</tr>').join('') +
+        '</tbody></table></div>');
       continue;
     }
 

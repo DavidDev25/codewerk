@@ -13,7 +13,16 @@ importScripts('/vendor/acorn/acorn.js', '/js/core.js');
   try { self[name] = undefined; } catch (e) { /* nicht überschreibbar: ignorieren */ }
 });
 
+// Nicht abgefangene Promise-Fehler (z. B. reject ohne catch) als Fehler des Nutzercodes melden
+self.addEventListener('unhandledrejection', function (event) {
+  event.preventDefault();
+  self.CW.asyncError(event.reason);
+});
+
 self.onmessage = function (event) {
-  var result = self.CW.runLesson(event.data);
-  self.postMessage(result);
+  self.CW.runLesson(event.data).then(function (result) {
+    self.postMessage(result);
+  }, function (e) {
+    self.postMessage({ crashed: 'Interner Fehler beim Ausführen: ' + (e && e.message ? e.message : String(e)) });
+  });
 };

@@ -595,14 +595,80 @@
     return null;
   }
 
+  /* ------------------------------------------------------------------------
+     8. Asynchroner Code: Timer beobachten und abwarten
+     ------------------------------------------------------------------------ */
+  const SETTLE_LIMIT_MS = 2000; // so lange darf asynchroner Nutzercode nachlaufen
+  const TEST_TIMEOUT_MS = 1000; // so lange darf ein einzelner async-Test warten
+
   /**
-   * Führt den Code aus.
+   * Ersetzt setTimeout/setInterval durch Varianten, die mitzählen, was noch offen ist.
+   * Fehler in Timer-Callbacks landen in onError statt den Worker abstürzen zu lassen.
+   */
+  function watchTimers(g, onError) {
+    const real = { setTimeout: g.setTimeout, clearTimeout: g.clearTimeout, setInterval: g.setInterval, clearInterval: g.clearInterval };
+    const pending = new Map(); // id -> 'timeout' | 'interval'
+    const guard = function (fn, args) {
+      if (typeof fn !== 'function') return;
+      try { fn.apply(null, args); } catch (e) { onError(e); }
+    };
+    if (typeof real.setTimeout !== 'function') {
+      return { real: real, pending: function () { return 0; }, intervals: function () { return 0; }, clearAll: function () {} };
+    }
+    g.setTimeout = function (fn, ms) {
+      const args = [].slice.call(arguments, 2);
+      const id = real.setTimeout(function () { pending.delete(id); guard(fn, args); }, ms);
+      pending.set(id, 'timeout');
+      return id;
+    };
+    g.clearTimeout = function (id) { pending.delete(id); real.clearTimeout(id); };
+    g.setInterval = function (fn, ms) {
+      const args = [].slice.call(arguments, 2);
+      const id = real.setInterval(function () { guard(fn, args); }, ms);
+      pending.set(id, 'interval');
+      return id;
+    };
+    g.clearInterval = function (id) { pending.delete(id); real.clearInterval(id); };
+    return {
+      real: real,
+      pending: function () { return pending.size; },
+      intervals: function () { let n = 0; pending.forEach(function (k) { if (k === 'interval') n++; }); return n; },
+      clearAll: function () {
+        pending.forEach(function (kind, id) { (kind === 'interval' ? real.clearInterval : real.clearTimeout)(id); });
+        pending.clear();
+      },
+    };
+  }
+
+  /** Wartet, bis keine Timer mehr offen sind (oder das Zeitlimit erreicht ist). */
+  async function settle(timers, limitMs) {
+    const sleep = function (ms) {
+      return new Promise(function (resolve) { (timers.real.setTimeout || setTimeout)(resolve, ms); });
+    };
+    if (typeof timers.real.setTimeout !== 'function') { await Promise.resolve(); return true; }
+    const start = Date.now();
+    for (;;) {
+      await sleep(5); // Promises (Mikrotasks) und fällige Timer laufen lassen
+      if (timers.pending() === 0) {
+        await sleep(0);
+        if (timers.pending() === 0) return true;
+      }
+      if (Date.now() - start > limitMs) return false;
+    }
+  }
+
+  // Nicht abgefangene Promise-Fehler meldet der Host (Worker bzw. Prüfskript) hierüber.
+  let currentAsyncError = null;
+  CW.asyncError = function (reason) { if (currentAsyncError) currentAsyncError(reason); };
+
+  /**
+   * Führt den Code aus – auch asynchronen (setTimeout, Promises, async/await).
    * @param {{code: string, tests?: string|null}} options
    *   tests = Quelltext der Tests (Inhalt von tests.js) oder null, um nur auszuführen.
-   * @returns JSON-sicheres Ergebnis:
+   * @returns Promise mit JSON-sicherem Ergebnis:
    *   { logs, syntaxError, error, tests, testsBroken, snapshot }
    */
-  CW.runLesson = function runLesson(options) {
+  CW.runLesson = async function runLesson(options) {
     const code = String(options.code || '');
     const testsSource = options.tests ? String(options.tests) : null;
     const g = root;
@@ -625,7 +691,12 @@
       if (e && e.loc) {
         const line = e.loc.line;
         const column = line === 1 ? Math.max(1, e.loc.column + 1 - STRICT_PREFIX.length) : e.loc.column + 1;
-        result.syntaxError = { line: line, column: column, message: translateSyntax(e.message), raw: String(e.message) };
+        let message = translateSyntax(e.message);
+        // acorn meldet „await“ außerhalb einer async-Funktion nur als „Unexpected token“
+        if (typeof e.pos === 'number' && /\bawait\s*$/.test((STRICT_PREFIX + code).slice(0, e.pos))) {
+          message = 'await geht nur innerhalb einer async-Funktion. Schreibe async davor, z. B. async function laden() { … } – und rufe sie dann auf.';
+        }
+        result.syntaxError = { line: line, column: column, message: message, raw: String(e.message) };
       } else {
         result.syntaxError = { line: 1, column: 1, message: translateSyntax(e && e.message), raw: String(e && e.message) };
       }
@@ -660,10 +731,16 @@
 
     /* c) Das Programm zusammenbauen */
     const registered = [];
+    let entriesFn = null;
+    function takeSnapshot() {
+      if (!entriesFn) return;
+      try { result.snapshot = buildSnapshot(entriesFn()); result.snapshotError = undefined; } catch (e) { result.snapshotError = String(e && e.message); }
+    }
     g.__cw = {
       phase: 'user',
       snapshot: function (entries) {
-        try { result.snapshot = buildSnapshot(entries()); } catch (e) { result.snapshotError = String(e && e.message); }
+        entriesFn = entries;
+        takeSnapshot();
         capturing = false; // ab jetzt zählt nur noch, was der Nutzercode selbst ausgegeben hat
       },
       api: {
@@ -671,11 +748,22 @@
         expect: makeExpect(),
         output: function () { return result.logs.map(function (l) { return l.text; }); },
         source: function () { return code; },
+        // Fängt console.log-Ausgaben eines Aufrufs ab. Gibt fn ein Promise zurück
+        // (async), kommt auch capture() als Promise zurück: await capture(async () => …)
         capture: function (fn) {
           const buffer = [];
           capture = buffer;
-          try { fn(); } finally { capture = null; }
+          let value;
+          try { value = fn(); } catch (e) { capture = null; throw e; }
+          if (value && typeof value.then === 'function') {
+            return value.then(function () { capture = null; return buffer; }, function (e) { capture = null; throw e; });
+          }
+          capture = null;
           return buffer;
+        },
+        // Für async-Tests: eine Weile warten, z. B. await wait(100)
+        wait: function (ms) {
+          return new Promise(function (resolve) { setTimeout(resolve, ms); });
         },
       },
     };
@@ -689,47 +777,98 @@
 
     let program = STRICT_PREFIX + code + '\n;__cw.snapshot(function(){return [' + getters + '];});\n';
     if (testsSource) {
-      program += ';__cw.phase="tests";\n;(function(){ const { test, expect, output, source, capture } = __cw.api;\n' +
+      program += ';__cw.phase="tests";\n;(function(){ const { test, expect, output, source, capture, wait } = __cw.api;\n' +
         testsSource + '\n})();\n';
     }
     program += '//# sourceURL=' + SOURCE_NAME;
+
+    function userError(e) {
+      const isObject = e !== null && typeof e === 'object';
+      const name = isObject ? String(e.name || 'Error') : 'Error';
+      const message = isObject ? String(e.message) : String(e);
+      const loc = isObject ? locateError(e, userLineCount) : null;
+      return {
+        name: name,
+        message: isObject ? translateError(name, message) : 'Dein Code hat etwas „geworfen“ (throw): ' + show(e),
+        raw: isObject ? name + ': ' + message : String(e),
+        line: loc ? loc.line : null,
+        column: loc ? loc.column : null,
+      };
+    }
+
+    // Fehler aus Timern und nicht abgefangenen Promises: im Nutzerteil ein Laufzeitfehler,
+    // während eines Tests lässt er genau diesen Test scheitern.
+    let testAsyncError = null;
+    function onAsyncError(e) {
+      if (g.__cw.phase === 'running-tests') { if (!testAsyncError) testAsyncError = e; return; }
+      if (!result.error) result.error = userError(e);
+    }
+    currentAsyncError = onAsyncError;
+    const timers = watchTimers(g, onAsyncError);
 
     /* d) Ausführen */
     try {
       (0, g.eval)(program);
     } catch (e) {
-      const isObject = e !== null && typeof e === 'object';
-      const name = isObject ? String(e.name || 'Error') : 'Error';
-      const message = isObject ? String(e.message) : String(e);
       if (g.__cw.phase === 'tests') {
+        const message = e !== null && typeof e === 'object' ? String(e.message) : String(e);
         result.testsBroken = 'Die Tests dieser Lektion enthalten einen Fehler: ' + message;
       } else {
-        const loc = isObject ? locateError(e, userLineCount) : null;
-        result.error = {
-          name: name,
-          message: isObject ? translateError(name, message) : 'Dein Code hat etwas „geworfen“ (throw): ' + show(e),
-          raw: isObject ? name + ': ' + message : String(e),
-          line: loc ? loc.line : null,
-          column: loc ? loc.column : null,
-        };
+        result.error = userError(e);
       }
+    }
+
+    /* d2) Asynchronen Nutzercode zu Ende laufen lassen (setTimeout, Promises, async) */
+    if (!result.syntaxError && !result.testsBroken) {
+      g.__cw.phase = 'user-async';
+      capturing = true; // Ausgaben aus Timern/Promises gehören noch zum Nutzercode
+      const done = await settle(timers, SETTLE_LIMIT_MS);
+      if (!done) {
+        const intervals = timers.intervals();
+        timers.clearAll();
+        result.logs.push({
+          type: 'warn',
+          text: intervals
+            ? 'Hinweis: Ein setInterval lief nach ' + SETTLE_LIMIT_MS / 1000 + ' Sekunden noch und wurde angehalten. Vergiss clearInterval nicht.'
+            : 'Hinweis: Ein Timer war nach ' + SETTLE_LIMIT_MS / 1000 + ' Sekunden noch nicht fertig und wurde angehalten. Nutze kürzere Wartezeiten.',
+        });
+      }
+      capturing = false;
+      takeSnapshot(); // Diagramm zeigt den Zustand NACH dem asynchronen Teil
     }
 
     /* e) Tests ausführen (nur wenn der Code ohne Fehler durchgelaufen ist) */
     if (testsSource && !result.error && !result.testsBroken) {
-      capturing = false;
-      result.tests = registered.map(function (t) {
+      g.__cw.phase = 'running-tests';
+      const sleep = function (ms) {
+        return new Promise(function (resolve) { (timers.real.setTimeout || setTimeout)(resolve, ms); });
+      };
+      const timeoutFailure = {
+        isTestFailure: true,
+        message: 'Der Test hat länger als ' + TEST_TIMEOUT_MS / 1000 + ' Sekunde auf ein Ergebnis gewartet.',
+        hint: 'Wird dein Promise erfüllt (resolve) und gibt deine async-Funktion etwas zurück? Hast du await vergessen?',
+      };
+      result.tests = [];
+      for (let i = 0; i < registered.length; i++) {
+        const t = registered[i];
+        testAsyncError = null;
         try {
-          t.fn();
-          return { name: t.name, ok: true };
+          const value = t.fn();
+          if (value && typeof value.then === 'function') {
+            await Promise.race([value, sleep(TEST_TIMEOUT_MS).then(function () { throw timeoutFailure; })]);
+          }
+          if (testAsyncError) throw testAsyncError;
+          result.tests.push({ name: t.name, ok: true });
         } catch (e) {
-          if (e && e.isTestFailure) return { name: t.name, ok: false, message: e.message, hint: e.hint };
+          if (e && e.isTestFailure) { result.tests.push({ name: t.name, ok: false, message: e.message, hint: e.hint }); continue; }
           const name = e && e.name ? String(e.name) : 'Error';
           const message = e && e.message !== undefined ? String(e.message) : String(e);
-          return { name: t.name, ok: false, message: translateError(name, message), hint: '' };
+          result.tests.push({ name: t.name, ok: false, message: translateError(name, message), hint: '' });
         }
-      });
+      }
+      timers.clearAll();
     }
+    currentAsyncError = null;
     return result;
   };
 

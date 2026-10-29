@@ -22,14 +22,29 @@ const lessons = require('../server/lessons');
 const acornSource = fs.readFileSync(path.join(ROOT, 'node_modules', 'acorn', 'dist', 'acorn.js'), 'utf8');
 const coreSource = fs.readFileSync(path.join(ROOT, 'public', 'js', 'core.js'), 'utf8');
 
+// Nicht abgefangene Promise-Fehler gehen an die gerade laufende Umgebung (wie im Worker)
+let activeCtx = null;
+process.on('unhandledRejection', (reason) => { if (activeCtx) activeCtx.CW.asyncError(reason); });
+
 /** Führt Code in einer frischen, isolierten vm-Umgebung aus (wie ein frischer Worker). */
-function run(code, tests) {
-  const ctx = vm.createContext({});
+async function run(code, tests) {
+  const ctx = vm.createContext({ setTimeout, clearTimeout, setInterval, clearInterval });
   vm.runInContext(acornSource, ctx);
   vm.runInContext(coreSource, ctx);
   ctx.__input = JSON.stringify({ code, tests });
-  const json = vm.runInContext('JSON.stringify(CW.runLesson(JSON.parse(__input)))', ctx, { timeout: 5000 });
-  return JSON.parse(json);
+  activeCtx = ctx;
+  try {
+    // Der synchrone Teil ist durch timeout begrenzt, der asynchrone durch das Rennen gegen 6 Sekunden.
+    const pending = vm.runInContext('CW.runLesson(JSON.parse(__input)).then(JSON.stringify)', ctx, { timeout: 5000 });
+    let timer;
+    const json = await Promise.race([
+      pending,
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Zeitlimit von 6 Sekunden überschritten')), 6000); }),
+    ]).finally(() => clearTimeout(timer));
+    return JSON.parse(json);
+  } finally {
+    activeCtx = null;
+  }
 }
 
 const { lessons: all, problems } = lessons.loadAll();
@@ -38,16 +53,17 @@ const fail = (msg) => { failures++; console.log('   ✗ ' + msg); };
 
 problems.forEach((p) => fail(p));
 
-all.forEach((lesson) => {
+(async () => {
+for (const lesson of all) {
   console.log(`\n${String(lesson.index).padStart(2, '0')} ${lesson.title}  (${lesson.id})`);
 
   /* 1. Musterlösung */
   let sol;
   try {
-    sol = run(lesson.solution, lesson.testsSource);
+    sol = await run(lesson.solution, lesson.testsSource);
   } catch (e) {
     fail('Musterlösung brach ab: ' + e.message);
-    return;
+    continue;
   }
   if (sol.syntaxError) fail(`Musterlösung hat einen Syntaxfehler (Zeile ${sol.syntaxError.line}): ${sol.syntaxError.raw}`);
   else if (sol.error) fail(`Musterlösung wirft einen Fehler: ${sol.error.raw}`);
@@ -64,10 +80,10 @@ all.forEach((lesson) => {
   /* 2. Startcode */
   let start;
   try {
-    start = run(lesson.starterCode, lesson.testsSource);
+    start = await run(lesson.starterCode, lesson.testsSource);
   } catch (e) {
     fail('Startcode brach ab: ' + e.message);
-    return;
+    continue;
   }
   if (start.syntaxError) fail(`Startcode hat einen Syntaxfehler (Zeile ${start.syntaxError.line}): ${start.syntaxError.raw}`);
   else if (start.error) fail(`Startcode wirft schon beim Start einen Fehler: ${start.error.raw}`);
@@ -76,7 +92,8 @@ all.forEach((lesson) => {
 
   /* 3. Hinweise der Lektion */
   if (!lesson.tip) fail('lektion.json hat keinen „tipp“.');
-});
+}
 
 console.log('\n' + (failures ? `✗ ${failures} Problem(e) gefunden.` : `✓ Alle ${all.length} Lektionen sind in Ordnung.`));
 process.exit(failures ? 1 : 0);
+})();
