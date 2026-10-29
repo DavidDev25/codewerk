@@ -19,23 +19,24 @@ function config() {
   };
 }
 
-/* ------------------------------------------------- Tagesbudget pro IP-Adresse
-   Schützt den API-Key, wenn Codewerk öffentlich erreichbar ist: Jede IP darf
-   pro Tag nur eine begrenzte Zahl von Tutor-Anfragen stellen. Die Zähler liegen
+/* ------------------------------------------- Tagesbudget pro Konto bzw. IP-Adresse
+   Schützt den API-Key, wenn Codewerk öffentlich erreichbar ist: Jedes Konto
+   (im persönlichen Modus: jede IP) darf pro Tag nur eine begrenzte Zahl von
+   Tutor-Anfragen stellen. Die Zähler liegen
    nur im Arbeitsspeicher und werden beim Tageswechsel komplett geleert – so
    wächst die Map nicht unbegrenzt. Nach einem Neustart beginnt die Zählung neu. */
-const dailyUsage = new Map(); // IP -> Anzahl Anfragen heute
+const dailyUsage = new Map(); // "user:<id>" bzw. IP -> Anzahl Anfragen heute
 let usageDay = '';
 
-function takeDailyBudget(ip, limit) {
+function takeDailyBudget(key, limit) {
   const today = new Date().toLocaleDateString('sv-SE'); // JJJJ-MM-TT in Serverzeit
   if (today !== usageDay) {
     dailyUsage.clear();
     usageDay = today;
   }
-  const used = dailyUsage.get(ip) || 0;
+  const used = dailyUsage.get(key) || 0;
   if (used >= limit) return false;
-  dailyUsage.set(ip, used + 1);
+  dailyUsage.set(key, used + 1);
   return true;
 }
 
@@ -170,7 +171,7 @@ function friendlyError(err, cfg, status, bodyText) {
  * Schickt die Anfrage an OmniRoute und streamt die Antwort als Server-Sent Events
  * an den Browser: {delta:"…"} … {done:true}  oder  {error:"…"}.
  */
-async function streamTutor({ messages, req, res }) {
+async function streamTutor({ messages, req, res, budgetKey }) {
   const cfg = config();
   res.status(200).set({
     'Content-Type': 'text/event-stream; charset=utf-8',
@@ -186,7 +187,7 @@ async function streamTutor({ messages, req, res }) {
   }
 
   // Als normale Tutor-Antwort senden (delta), damit sie freundlich statt als Fehler erscheint
-  if (!takeDailyBudget(req.ip, cfg.dailyLimit)) {
+  if (!takeDailyBudget(budgetKey || req.ip, cfg.dailyLimit)) {
     sse(res, { delta: 'Du hast dein tägliches Limit für den KI-Tutor erreicht. Morgen geht\'s weiter!' });
     sse(res, { done: true });
     return res.end();

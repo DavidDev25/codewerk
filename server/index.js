@@ -5,12 +5,13 @@
    Aufgaben:
      1. die Webseite ausliefern (public/) und Monaco/acorn/Schriften aus node_modules
      2. Lektionen bereitstellen (ohne Musterlösung!)
-     3. Fortschritt speichern (JSON im Volume)
+     3. Fortschritt speichern – im persönlichen Modus in data/progress.json,
+        im Konten-Modus pro Konto in data/codewerk.db (siehe accounts.js)
      4. Chat-Anfragen an OmniRoute weiterleiten (API-Key bleibt hier)
    ========================================================================== */
 const path = require('path');
 const express = require('express');
-const { rateLimit } = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 
 const ROOT = path.join(__dirname, '..');
 // .env laden, falls du ohne Docker startest (mit Docker übernimmt compose das)
@@ -19,6 +20,8 @@ try { process.loadEnvFile(path.join(ROOT, '.env')); } catch (e) { /* keine .env:
 const { basicAuth } = require('./auth');
 const lessons = require('./lessons');
 const { Storage } = require('./storage');
+const progress = require('./progress');
+const accounts = require('./accounts');
 const tutor = require('./tutor');
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -26,8 +29,24 @@ const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
 const nm = (...p) => path.join(ROOT, 'node_modules', ...p);
 
 async function main() {
-  const storage = new Storage(DATA_DIR);
-  await storage.init();
+  await require('fs').promises.mkdir(DATA_DIR, { recursive: true });
+
+  // Konten-Modus nur, wenn der GitHub-Login eingerichtet ist (GITHUB_CLIENT_ID/SECRET)
+  const accountsOn = accounts.enabled();
+  let db = null;
+  let storage = null;
+  if (accountsOn) {
+    const { Database } = require('./db');
+    db = new Database(DATA_DIR);
+    setInterval(() => db.removeExpiredSessions(), 60 * 60 * 1000).unref();
+  } else {
+    storage = new Storage(DATA_DIR);
+    await storage.init();
+  }
+
+  /** Wo liegt der Fortschritt dieser Anfrage? Gäste: nirgends (nur im Browser). */
+  const storeFor = (req) => (accountsOn ? (req.user ? db.progressFor(req.user.id) : null) : storage);
+  const isKnownLesson = (id) => Boolean(lessons.get(id));
 
   const app = express();
   app.disable('x-powered-by');
@@ -58,6 +77,7 @@ async function main() {
         "img-src 'self' data:",
         "worker-src 'self' blob:",
         "connect-src 'self'",
+        "form-action 'self'",
       ].join('; '),
     });
     next();
@@ -70,6 +90,20 @@ async function main() {
   app.use('/vendor/fonts', express.static(nm('@fontsource', 'jetbrains-mono', 'files'), longCache));
   app.get('/vendor/acorn/acorn.js', (req, res) => res.sendFile(nm('acorn', 'dist', 'acorn.js')));
   app.use(express.static(path.join(ROOT, 'public'), { maxAge: 0, etag: true }));
+
+  /* ---- Anmeldung und Konto ---- */
+  app.use(accounts.attachUser(db));
+  app.use(['/api', '/auth'], accounts.sameOriginOnly);
+  // Schutz vor massenhaften Login-Versuchen und Sitzungs-Spam
+  app.use('/auth', rateLimit({
+    windowMs: 60 * 1000,
+    limit: 30,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: 'Zu viele Anmeldeversuche. Warte bitte eine Minute.' },
+  }));
+  if (accountsOn) app.use(accounts.router({ db, dataDir: DATA_DIR, isKnownLesson }));
+  else app.get('/api/me', (req, res) => res.json({ accounts: false, user: null }));
 
   app.use('/api', express.json({ limit: '1mb' }));
 
@@ -85,59 +119,79 @@ async function main() {
   /* ---- Konfiguration (ohne Geheimnisse) ---- */
   app.get('/api/config', (req, res) => {
     const c = tutor.config();
-    res.json({ tutorConfigured: Boolean(c.apiKey && c.model), model: c.model || null });
+    res.json({
+      tutorConfigured: Boolean(c.apiKey && c.model),
+      model: c.model || null,
+      accounts: accountsOn,
+      user: req.user ? { login: req.user.login, name: req.user.name || req.user.login } : null,
+      tutorLocked: accountsOn && !req.user, // Gäste: Tutor nur mit Anmeldung
+    });
   });
 
   /* ---- Fortschritt ---- */
-  app.get('/api/progress', (req, res) => res.json(storage.get()));
+  // Gäste speichern im Browser; der Server lehnt ihre Schreibversuche freundlich ab.
+  const withStore = (handler) => async (req, res) => {
+    const store = storeFor(req);
+    if (!store) return res.status(401).json({ error: 'Als Gast wird dein Fortschritt nur in diesem Browser gespeichert. Melde dich an, um ihn im Konto zu sichern.' });
+    await handler(store, req, res);
+  };
 
-  app.put('/api/progress/lessons/:id', async (req, res) => {
-    if (!lessons.get(req.params.id)) return res.status(404).json({ error: 'Lektion nicht gefunden.' });
-    await storage.updateLesson(req.params.id, req.body || {});
+  app.get('/api/progress', withStore((store, req, res) => res.json(store.get())));
+
+  app.put('/api/progress/lessons/:id', withStore(async (store, req, res) => {
+    if (!isKnownLesson(req.params.id)) return res.status(404).json({ error: 'Lektion nicht gefunden.' });
+    await store.update((doc) => progress.updateLesson(doc, req.params.id, req.body || {}));
     res.json({ ok: true });
-  });
+  }));
 
-  app.post('/api/progress/lessons/:id/reset', async (req, res) => {
-    await storage.resetLesson(req.params.id);
+  app.post('/api/progress/lessons/:id/reset', withStore(async (store, req, res) => {
+    if (!isKnownLesson(req.params.id)) return res.status(404).json({ error: 'Lektion nicht gefunden.' });
+    await store.update((doc) => progress.resetLesson(doc, req.params.id));
     res.json({ ok: true });
-  });
+  }));
 
-  app.put('/api/progress/ui', async (req, res) => {
-    await storage.setUi(req.body || {});
+  app.put('/api/progress/ui', withStore(async (store, req, res) => {
+    await store.update((doc) => progress.setUi(doc, req.body || {}));
     res.json({ ok: true });
-  });
+  }));
 
-  app.post('/api/progress/event', async (req, res) => {
+  app.post('/api/progress/event', withStore(async (store, req, res) => {
     const b = req.body || {};
-    if (b.type === 'open') await storage.setLast(String(b.lessonId || ''));
-    await storage.addJournal(b);
+    await store.update((doc) => {
+      if (b.type === 'open' && isKnownLesson(b.lessonId)) progress.setLast(doc, b.lessonId);
+      progress.addJournal(doc, b);
+    });
     res.json({ ok: true });
-  });
+  }));
 
   /* ---- KI-Tutor ---- */
-  // Schutz vor Missbrauch des API-Keys: höchstens N Anfragen pro Minute und IP.
-  // Die Antwort ist JSON mit "error", weil tutor-chat.js genau dieses Feld anzeigt.
-  // (Zusätzlich gibt es in tutor.js ein Tagesbudget pro IP.)
+  // Schutz vor Missbrauch des API-Keys: höchstens N Anfragen pro Minute – pro Konto,
+  // im persönlichen Modus pro IP. Die Antwort ist JSON mit "error", weil
+  // tutor-chat.js genau dieses Feld anzeigt. (Zusätzlich: Tagesbudget in tutor.js.)
   const chatLimiter = rateLimit({
     windowMs: 60 * 1000,
     limit: Number(process.env.TUTOR_LIMIT_PER_MINUTE) || 15,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
+    keyGenerator: (req) => (req.user ? 'user:' + req.user.id : ipKeyGenerator(req.ip)),
     message: { error: 'Du stellst gerade sehr viele Fragen. Warte bitte eine Minute, dann geht es weiter.' },
   });
 
   app.post('/api/chat', chatLimiter, async (req, res) => {
+    if (accountsOn && !req.user) {
+      return res.status(401).json({ error: 'Der KI-Tutor ist nur mit Anmeldung verfügbar. Melde dich oben mit GitHub an – kostenlos.' });
+    }
     const payload = req.body || {};
     const { lessons: all } = lessons.loadAll();
     const lesson = all.find((l) => l.id === payload.lessonId);
     if (!lesson) return res.status(404).json({ error: 'Lektion nicht gefunden.' });
     let built;
     try {
-      built = tutor.buildMessages({ lesson, payload, journal: storage.get().journal, allLessons: all });
+      built = tutor.buildMessages({ lesson, payload, journal: storeFor(req).get().journal, allLessons: all });
     } catch (e) {
       return res.status(400).json({ error: e.message });
     }
-    await tutor.streamTutor({ messages: built.messages, req, res });
+    await tutor.streamTutor({ messages: built.messages, req, res, budgetKey: req.user ? 'user:' + req.user.id : req.ip });
   });
 
   app.use('/api', (req, res) => res.status(404).json({ error: 'Unbekannte Adresse.' }));
@@ -146,6 +200,9 @@ async function main() {
     console.log(`Codewerk läuft auf http://localhost:${PORT}`);
     const { lessons: l, problems } = lessons.loadAll();
     console.log(`${l.length} Lektionen geladen.`);
+    console.log(accountsOn
+      ? `Konten-Modus: Anmeldung mit GitHub, Gäste speichern im Browser (${accounts.config().publicUrl}).`
+      : 'Persönlicher Modus: ohne Anmeldung, Fortschritt in data/progress.json.');
     problems.forEach((p) => console.warn('Hinweis:', p));
     if (!process.env.BASIC_AUTH_PASSWORD) console.log('Hinweis: Kein Passwortschutz aktiv (BASIC_AUTH_PASSWORD ist leer).');
   });
