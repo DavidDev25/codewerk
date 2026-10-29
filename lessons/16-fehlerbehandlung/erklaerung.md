@@ -24,6 +24,13 @@ console.log(alterSetzen(30));
 Mit `try … catch` sagst du: „Probier das. Wenn es einen Fehler gibt, mach stattdessen das hier.“
 
 ```js
+function alterSetzen(alter) {
+  if (alter < 0) {
+    throw new Error("Das Alter kann nicht negativ sein.");
+  }
+  return alter;
+}
+
 try {
   alterSetzen(-5);
   console.log("Das wird nicht ausgegeben.");
