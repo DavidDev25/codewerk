@@ -1,6 +1,6 @@
 # Codewerk – deine persönliche JavaScript-Lernplattform
 
-Codewerk bringt dir JavaScript bei, von den Grundlagen bis zur objektorientierten Programmierung (OOP). Es gibt 15 kurze Lektionen. Jede hat eine kleine Erklärung, eine Aufgabe, automatische Tests, ein Diagramm deines Codes und einen KI-Tutor.
+Codewerk bringt dir JavaScript bei, von den Grundlagen über die objektorientierte Programmierung (OOP) bis zu asynchronem Code. Es gibt 21 kurze Lektionen in zwei Teilen: Teil 1 (Lektion 1–15) von Variablen bis zum ersten Abschlussprojekt, Teil 2 (Lektion 16–21) mit Fehlerbehandlung, Array-Methoden, Callbacks, Promises, async/await und einem zweiten Abschlussprojekt. Jede hat eine kleine Erklärung, eine Aufgabe, automatische Tests, ein Diagramm deines Codes und einen KI-Tutor.
 
 Dein Code und dein Fortschritt werden automatisch auf deinem Server gespeichert. Beim nächsten Öffnen geht es genau dort weiter, wo du aufgehört hast.
 
@@ -53,7 +53,7 @@ docker compose ps
 docker compose logs --tail 20
 ```
 
-In den Logs steht `15 Lektionen geladen.`
+In den Logs steht `21 Lektionen geladen.`
 
 > **Wichtig:** Basic Auth schickt das Passwort bei normalem `http` unverschlüsselt. Wenn du Codewerk über das Internet erreichbar machst, setze einen Reverse Proxy mit HTTPS davor (z. B. Caddy, Nginx Proxy Manager oder Traefik).
 
@@ -84,6 +84,19 @@ Der Tutor kennt die Lektion, deinen aktuellen Code, die letzte Ausgabe, die Test
 Läuft OmniRoute direkt auf dem Server, muss es auf `0.0.0.0` lauschen (nicht nur auf `127.0.0.1`). Sonst kommt der Container nicht heran. Eine Firewall darf den Docker-Verkehr zum OmniRoute-Port nicht blockieren.
 
 Nach einer Änderung an der `.env` brauchst du: `docker compose up -d`
+
+**Schutz vor Missbrauch (wenn Codewerk öffentlich erreichbar ist)**
+
+Jede Frage an den Tutor kostet über deinen API-Key Geld bzw. Kontingent. Damit niemand das ausnutzt, gibt es zwei Grenzen pro IP-Adresse:
+
+| Einstellung in `.env` | Standard | Was passiert, wenn sie erreicht ist |
+| --- | --- | --- |
+| `TUTOR_LIMIT_PER_MINUTE` | 15 | Der Server antwortet mit „Du stellst gerade sehr viele Fragen …“ (HTTP 429). Nach einer Minute geht es weiter. |
+| `TUTOR_LIMIT_PER_DAY` | 50 | Der Tutor antwortet freundlich „Du hast dein tägliches Limit … erreicht. Morgen geht's weiter!“ |
+
+Die Tageszähler liegen nur im Arbeitsspeicher. Nach einem Neustart beginnen sie wieder bei 0.
+
+**Wichtig bei einem Reverse-Proxy:** Läuft vor Codewerk ein Proxy (nginx, Caddy, Traefik), kommt jede Anfrage scheinbar von der Adresse des Proxys. Dann würden sich **alle** Besucher dieselben Grenzen teilen. Trage deshalb in der `.env` `TRUST_PROXY=1` ein (1 = ein Proxy davor). Ohne Proxy bleibt `TRUST_PROXY` leer – sonst könnte jeder seine IP im Header `X-Forwarded-For` fälschen und die Grenzen umgehen.
 
 ---
 
@@ -151,10 +164,16 @@ Ein Absatz mit **fett** und `code`.
 Ein Alltagsbeispiel in einer farbigen Box.
 :::
 
+| Spalte | Spalte |
+| --- | --- |
+| Tabellen | gehen auch |
+
 ```js
 console.log("Dieser Block bekommt einen Knopf 'Ausprobieren'");
 ```
 ````
+
+Jeder `js`-Block läuft beim „Ausprobieren“ **für sich allein**. Was ein Beispiel braucht (z. B. eine Funktion), muss also im selben Block stehen.
 
 ### Tests schreiben (`tests.js`)
 
@@ -182,9 +201,20 @@ Der zweite Wert in `expect(wert, tipp)` ist optional. Er erscheint unter der Feh
 | `.not.…` | jedes Prüfwerkzeug umdrehen, z. B. `.not.toBe(5)` |
 | `output()` | Array der `console.log`-Ausgaben des Nutzercodes |
 | `source()` | der Quelltext des Nutzercodes (z. B. `toMatch(/#saldo/)`) |
-| `capture(() => …)` | fängt die `console.log`-Ausgaben eines Aufrufs ab |
+| `capture(() => …)` | fängt die `console.log`-Ausgaben eines Aufrufs ab; mit einer `async`-Funktion: `await capture(async () => …)` |
+| `wait(ms)` | in `async`-Tests eine Weile warten: `await wait(100)` |
 
-Gute Tests haben ein **verständliches deutsches `test('…')`**, einen **kleinen Tipp** und prüfen jeweils **eine** Sache.
+**Asynchroner Code:** Codewerk wartet nach dem Ausführen, bis alle Timer und Promises erledigt sind (höchstens 2 Sekunden). Ausgaben aus `setTimeout` oder `await` erscheinen deshalb ganz normal. Tests dürfen `async` sein:
+
+```js
+test('holen() liefert 42', async () => {
+  expect(await holen(), 'Gib das Ergebnis mit return zurück.').toBe(42);
+});
+```
+
+Ein einzelner `async`-Test darf höchstens 1 Sekunde warten. Halte Wartezeiten in Lektionen deshalb kurz (z. B. 50–300 ms).
+
+Gute Tests haben ein **verständliches deutsches `test('…')`**, einen **kleinen Tipp** und prüfen jeweils **eine** Sache. Wenn ein Test mit `source()` den Quelltext prüft, entferne vorher die Kommentare – sonst bestehen Platzhalter wie `// 1. async function …` im Startcode den Test schon.
 
 ---
 
@@ -237,7 +267,7 @@ codewerk/
 │     ├─ tutor-chat.js     Chat mit Streaming
 │     ├─ editor.js         Monaco (selbst gehostet)
 │     └─ markdown.js, api.js, theme-init.js
-├─ lessons/                die 15 Lektionen (+ _vorlage)
+├─ lessons/                die 21 Lektionen (+ _vorlage)
 ├─ scripts/verify-solutions.js   prüft alle Musterlösungen
 ├─ Dockerfile, docker-compose.yml, .env.example
 └─ package.json            feste Paketversionen

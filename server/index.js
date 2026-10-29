@@ -10,6 +10,7 @@
    ========================================================================== */
 const path = require('path');
 const express = require('express');
+const { rateLimit } = require('express-rate-limit');
 
 const ROOT = path.join(__dirname, '..');
 // .env laden, falls du ohne Docker startest (mit Docker übernimmt compose das)
@@ -30,6 +31,14 @@ async function main() {
 
   const app = express();
   app.disable('x-powered-by');
+
+  // Hinter einem Reverse-Proxy (nginx, Caddy, Traefik) kommt jede Anfrage von der
+  // Adresse des Proxys. Erst mit TRUST_PROXY nimmt Express die echte Besucher-IP
+  // aus X-Forwarded-For – sonst würden sich alle Besucher die Tutor-Limits teilen.
+  // Werte: Anzahl der Proxys (meist 1) oder z. B. "loopback". Ohne Proxy: leer lassen.
+  const trustProxy = process.env.TRUST_PROXY;
+  if (trustProxy) app.set('trust proxy', /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy);
+
   app.use(basicAuth);
 
   // Gesundheitscheck (ohne Passwort erreichbar, siehe auth.js)
@@ -106,7 +115,18 @@ async function main() {
   });
 
   /* ---- KI-Tutor ---- */
-  app.post('/api/chat', async (req, res) => {
+  // Schutz vor Missbrauch des API-Keys: höchstens N Anfragen pro Minute und IP.
+  // Die Antwort ist JSON mit "error", weil tutor-chat.js genau dieses Feld anzeigt.
+  // (Zusätzlich gibt es in tutor.js ein Tagesbudget pro IP.)
+  const chatLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: Number(process.env.TUTOR_LIMIT_PER_MINUTE) || 15,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: 'Du stellst gerade sehr viele Fragen. Warte bitte eine Minute, dann geht es weiter.' },
+  });
+
+  app.post('/api/chat', chatLimiter, async (req, res) => {
     const payload = req.body || {};
     const { lessons: all } = lessons.loadAll();
     const lesson = all.find((l) => l.id === payload.lessonId);
