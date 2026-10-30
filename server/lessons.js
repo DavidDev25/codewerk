@@ -47,9 +47,11 @@ function loadAll() {
     }
     try {
       const meta = JSON.parse(read(dir, 'lektion.json'));
+      // Die Nummer kommt aus dem Ordnernamen („00-…“ wird Lektion 0), sonst wird hochgezählt.
+      const number = Number.parseInt(name, 10);
       lessons.push({
         id: name,
-        index: lessons.length + 1,
+        index: Number.isNaN(number) ? lessons.length + 1 : number,
         title: meta.titel || name,
         minutes: Number(meta.minuten) || 15,
         summary: meta.kurz || '',

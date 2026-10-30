@@ -418,6 +418,18 @@ a.btn { text-decoration: none; }
   .quick .btn { font-size: .78rem; padding: .35em .5em; }
 }
 
+.tour { position: fixed; inset: 0; z-index: 70; }
+.tour[hidden] { display: none; }
+.tour.is-centered { background: rgba(10, 20, 20, .55); }
+.tour-spot { position: fixed; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(10, 20, 20, .55); outline: 3px solid var(--accent); outline-offset: 2px; transition: top .2s, left .2s, width .2s, height .2s; pointer-events: none; }
+.tour-spot[hidden] { display: none; }
+.tour-card { position: fixed; width: min(24rem, calc(100vw - 24px)); background: var(--surface); color: var(--ink); border: 1.5px solid var(--line); border-radius: var(--radius); box-shadow: 0 14px 40px rgba(0, 0, 0, .3); padding: 18px 20px 14px; }
+.tour-title { font-size: 1.1rem; margin: .2em 0 .4em; }
+.tour-text { margin: 0 0 14px; line-height: 1.55; }
+.tour-actions { display: flex; align-items: center; gap: 8px; }
+.tour-actions [hidden] { display: none; }
+body.tour-open { overflow: hidden; }
+
 @media (max-width: 600px) {
   .icon-btn svg { display: block; }
   .icon-btn .btn-label { display: none; }

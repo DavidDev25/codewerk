@@ -4,6 +4,7 @@ import { loadMonaco, createEditor } from './editor.js';
 import { runCode, TIMEOUT_SECONDS } from './runner.js';
 import { createDiagram } from './diagram.js';
 import { createTutor } from './tutor-chat.js';
+import { createTour, tourSeen } from './tour.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -134,7 +135,7 @@ function renderLessonList() {
 function renderLessonTexts() {
   const l = state.lesson;
   $('#lesson-title').textContent = l.title;
-  $('#lesson-counter').textContent = `Lektion ${l.index} von ${state.lessons.length} · ca. ${l.minutes} Min.`;
+  $('#lesson-counter').textContent = `Lektion ${l.index} von ${state.lessons[state.lessons.length - 1].index} · ca. ${l.minutes} Min.`;
   document.title = `${l.index}. ${l.title} – Codewerk`;
   $('#tab-verstehen').innerHTML = renderMarkdown(l.explanation, { runnable: true }) +
     '<div class="next-hint"><button class="btn primary" type="button" data-goto="aufgabe">Weiter zur Aufgabe</button></div>';
@@ -398,7 +399,7 @@ function renderNextStep() {
   if (!l) { el.innerHTML = ''; return; }
   const lp = state.progress.lessons[l.id];
   const info = classify(state.last && state.last.result);
-  const isLast = l.index === state.lessons.length;
+  const isLast = l.id === state.lessons[state.lessons.length - 1].id;
   let cls = 'is-info';
   let html;
   const nextBtn = isLast ? '' : '<button type="button" class="btn primary" data-action="next">Nächste Lektion</button>';
@@ -679,9 +680,19 @@ async function init() {
   wireAccount();
   renderProgress();
 
+  const firstVisit = !progress.lastLessonId;
   const wanted = state.lessons.find((l) => l.id === progress.lastLessonId) || state.lessons[0];
   await openLesson(wanted.id, { initial: true });
   renderProgress();
+
+  const tour = createTour({
+    setView,
+    setLeftTab: (t) => { setLeftTab(t); renderNextStep(); },
+    setResultTab,
+    needsLogin: !!(config.accounts && !config.user),
+  });
+  $('#btn-tour').addEventListener('click', () => tour.start());
+  if (firstVisit && !tourSeen()) tour.start();
 }
 
 init().catch((e) => showFatal(e.message || String(e)));
