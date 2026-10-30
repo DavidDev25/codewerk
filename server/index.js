@@ -75,6 +75,9 @@ async function main() {
     res.set({
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'no-referrer',
+      'X-Frame-Options': 'DENY',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+      'Cross-Origin-Opener-Policy': 'same-origin',
       'Content-Security-Policy': [
         "default-src 'self'",
         "script-src 'self' 'unsafe-eval'", // 'unsafe-eval': der Worker führt den Übungscode per eval aus
@@ -84,6 +87,9 @@ async function main() {
         "worker-src 'self' blob:",
         "connect-src 'self'",
         "form-action 'self'",
+        "frame-ancestors 'none'", // nicht in fremde Seiten einbettbar (Clickjacking)
+        "object-src 'none'",
+        "base-uri 'self'",
       ].join('; '),
     });
     next();
