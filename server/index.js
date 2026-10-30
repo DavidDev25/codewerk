@@ -11,6 +11,7 @@
    ========================================================================== */
 const path = require('path');
 const express = require('express');
+const compression = require('compression');
 const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 
 const ROOT = path.join(__dirname, '..');
@@ -58,6 +59,11 @@ async function main() {
   const trustProxy = process.env.TRUST_PROXY;
   if (trustProxy) app.set('trust proxy', /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy);
 
+  // gzip für alles außer dem Tutor-Stream (Monaco: ~9 MB → ~2,3 MB). Hinter Apache mit
+  // mod_deflate ändert das nichts, ohne Proxy spart es viel. /api/chat bleibt unkomprimiert,
+  // sonst kämen die Antworten nicht Wort für Wort an.
+  app.use(compression({ filter: (req, res) => !req.path.startsWith('/api/chat') && compression.filter(req, res) }));
+
   app.use(basicAuth);
 
   // Gesundheitscheck (ohne Passwort erreichbar, siehe auth.js)
@@ -86,6 +92,9 @@ async function main() {
   /* ---- Statische Dateien ---- */
   const longCache = { maxAge: '7d', immutable: true };
   app.use('/vendor/monaco', express.static(nm('monaco-editor', 'min'), longCache));
+  // Source-Maps, auf die Monaco verweist (nur für die Entwicklerwerkzeuge des Browsers)
+  app.use('/vendor/min-maps', express.static(nm('monaco-editor', 'min-maps'), longCache));
+  app.use('/vendor/monaco/min-maps', express.static(nm('monaco-editor', 'min-maps'), longCache));
   app.use('/vendor/fonts', express.static(nm('@fontsource', 'atkinson-hyperlegible', 'files'), longCache));
   app.use('/vendor/fonts', express.static(nm('@fontsource', 'jetbrains-mono', 'files'), longCache));
   app.get('/vendor/acorn/acorn.js', (req, res) => res.sendFile(nm('acorn', 'dist', 'acorn.js')));

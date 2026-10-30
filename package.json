@@ -11,6 +11,7 @@
     "@fontsource/atkinson-hyperlegible": "5.1.1",
     "@fontsource/jetbrains-mono": "5.1.1",
     "acorn": "8.14.0",
+    "compression": "1.8.2",
     "express": "4.22.3",
     "express-rate-limit": "8.7.1",
     "monaco-editor": "0.52.2"

@@ -146,10 +146,10 @@ function renderLessonTexts() {
   $('#btn-tip').setAttribute('aria-expanded', 'false');
 }
 
-async function openLesson(id, { initial = false } = {}) {
+async function openLesson(id, { initial = false, preloaded = null } = {}) {
   await flushSave();
   let lesson;
-  try { lesson = await api.lesson(id); } catch (e) { showFatal('Lektion konnte nicht geladen werden: ' + e.message); return; }
+  try { lesson = preloaded && preloaded.id === id ? preloaded : await api.lesson(id); } catch (e) { showFatal('Lektion konnte nicht geladen werden: ' + e.message); return; }
   state.lesson = lesson;
   state.last = null;
   const saved = state.progress.lessons[id];
@@ -632,6 +632,8 @@ async function handleLoginReturn(config) {
 }
 
 async function init() {
+  const monacoReady = loadMonaco();
+  monacoReady.catch(() => {});
   let config, lessonInfo, progress;
   try {
     config = await api.config();
@@ -650,8 +652,18 @@ async function init() {
   if (!state.lessons.length) return showFatal('Es wurden keine Lektionen gefunden. Prüfe den Ordner „lessons“.');
   if (lessonInfo.problems && lessonInfo.problems.length) $('#lesson-problems').textContent = lessonInfo.problems.join(' ');
 
+  const firstVisit = !progress.lastLessonId;
+  const wanted = state.lessons.find((l) => l.id === progress.lastLessonId) || state.lessons[0];
+  let preloaded = null;
   try {
-    state.monaco = await loadMonaco();
+    preloaded = await api.lesson(wanted.id);
+    state.lesson = preloaded;
+    renderLessonTexts();
+    renderProgress();
+  } catch (e) { }
+
+  try {
+    state.monaco = await monacoReady;
   } catch (e) {
     return showFatal(e.message);
   }
@@ -680,9 +692,7 @@ async function init() {
   wireAccount();
   renderProgress();
 
-  const firstVisit = !progress.lastLessonId;
-  const wanted = state.lessons.find((l) => l.id === progress.lastLessonId) || state.lessons[0];
-  await openLesson(wanted.id, { initial: true });
+  await openLesson(wanted.id, { initial: true, preloaded });
   renderProgress();
 
   const tour = createTour({
