@@ -5,7 +5,8 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "pruefen": "node scripts/verify-solutions.js"
+    "pruefen": "node scripts/verify-solutions.js",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"test/**/*.test.js\" \"test/**/*.test.mjs\""
   },
   "dependencies": {
     "@fontsource/atkinson-hyperlegible": "5.1.1",

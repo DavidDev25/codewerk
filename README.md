@@ -166,6 +166,8 @@ docker compose exec codewerk npm run pruefen
 
 Das Skript lässt für **jede** Lektion die Musterlösung gegen ihre Tests laufen. Es meldet auch, wenn der Startcode schon alles besteht oder abstürzt. Ohne Docker: `npm run pruefen`.
 
+Für Änderungen an der Plattform selbst gibt es zusätzlich `npm test` (Ordner `test/`, Node-Test-Runner, keine Zusatzpakete). Die Tests starten den echten Server gegen ein nachgebautes OmniRoute und prüfen u. a. Sicherheits-Header, Lektionsnummern, dass die Musterlösung nie an den Browser geht und dass der Tutor-Stream unkomprimiert Wort für Wort ankommt.
+
 **Schritt 4: Seite im Browser neu laden.** Die Lektion ist da. Es ist kein Neustart nötig, denn der Ordner `lessons` ist in den Container eingebunden und wird bei jeder Anfrage neu gelesen.
 
 ### Markdown in `erklaerung.md` und `aufgabe.md`
