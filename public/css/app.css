@@ -430,6 +430,18 @@ a.btn { text-decoration: none; }
 .tour-actions [hidden] { display: none; }
 body.tour-open { overflow: hidden; }
 
+.tutor-note { margin: 8px 0 0; }
+.tutor-note a { color: inherit; }
+.legal-links { display: flex; gap: 14px; justify-content: center; padding: 10px 18px 16px; }
+.legal-links a { color: var(--muted); }
+body.legal-body { display: block; height: auto; min-height: 100%; }
+.legal { max-width: 46rem; margin: 0 auto; padding: 28px 18px 56px; }
+.legal-back { display: inline-block; margin-bottom: 18px; color: var(--accent); font-weight: 700; }
+.legal h1 { font-size: 1.7rem; margin-bottom: .8em; }
+.legal h2 { font-size: 1.12rem; margin: 1.6em 0 .5em; }
+.legal a { color: var(--accent); }
+.legal-updated { margin-top: 2em; }
+
 @media (max-width: 600px) {
   .icon-btn svg { display: block; }
   .icon-btn .btn-label { display: none; }
