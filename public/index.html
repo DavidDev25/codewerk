@@ -40,15 +40,15 @@
       </div>
 
       <div class="pane-body">
-        <article class="tab-panel prose" id="tab-verstehen" role="tabpanel" aria-labelledby="tabbtn-verstehen"></article>
+        <div class="tab-panel prose" id="tab-verstehen" role="tabpanel" aria-labelledby="tabbtn-verstehen"></div>
 
-        <article class="tab-panel" id="tab-aufgabe" role="tabpanel" aria-labelledby="tabbtn-aufgabe" hidden>
+        <div class="tab-panel" id="tab-aufgabe" role="tabpanel" aria-labelledby="tabbtn-aufgabe" hidden>
           <div class="prose" id="task-text"></div>
           <div class="tip-box">
             <button id="btn-tip" class="btn" type="button" aria-expanded="false">Tipp anzeigen</button>
             <div id="tip-text" class="callout callout-tipp" hidden></div>
           </div>
-        </article>
+        </div>
 
         <section class="tab-panel tutor" id="tab-tutor" role="tabpanel" aria-labelledby="tabbtn-tutor" hidden>
           <div id="tutor-setup" class="notice notice-warn" hidden></div>
@@ -87,10 +87,12 @@
 
       <div class="card results-card">
         <div id="nextstep" class="nextstep" role="status"></div>
-        <div class="tabs small-tabs" role="tablist" aria-label="Ergebnis">
-          <button class="tab" role="tab" data-rtab="pruefung" id="rtabbtn-pruefung" aria-controls="rtab-pruefung">Prüfung <span class="badge" id="badge-pruefung"></span></button>
-          <button class="tab" role="tab" data-rtab="ausgabe" id="rtabbtn-ausgabe" aria-controls="rtab-ausgabe">Ausgabe <span class="badge" id="badge-ausgabe"></span></button>
-          <button class="tab" role="tab" data-rtab="diagramm" id="rtabbtn-diagramm" aria-controls="rtab-diagramm">Diagramm</button>
+        <div class="tabs small-tabs">
+          <div class="tablist" role="tablist" aria-label="Ergebnis">
+            <button class="tab" role="tab" data-rtab="pruefung" id="rtabbtn-pruefung" aria-controls="rtab-pruefung">Prüfung <span class="badge" id="badge-pruefung"></span></button>
+            <button class="tab" role="tab" data-rtab="ausgabe" id="rtabbtn-ausgabe" aria-controls="rtab-ausgabe">Ausgabe <span class="badge" id="badge-ausgabe"></span></button>
+            <button class="tab" role="tab" data-rtab="diagramm" id="rtabbtn-diagramm" aria-controls="rtab-diagramm">Diagramm</button>
+          </div>
           <button id="btn-expand" class="btn ghost small expand" type="button" aria-pressed="false">Ergebnis vergrößern</button>
         </div>
         <div class="results-body">

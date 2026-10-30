@@ -137,9 +137,9 @@ function renderLessonTexts() {
   $('#lesson-title').textContent = l.title;
   $('#lesson-counter').textContent = `Lektion ${l.index} von ${state.lessons[state.lessons.length - 1].index} · ca. ${l.minutes} Min.`;
   document.title = `${l.index}. ${l.title} – Codewerk`;
-  $('#tab-verstehen').innerHTML = renderMarkdown(l.explanation, { runnable: true }) +
+  $('#tab-verstehen').innerHTML = '<h2 class="sr-only">Erklärung</h2>' + renderMarkdown(l.explanation, { runnable: true }) +
     '<div class="next-hint"><button class="btn primary" type="button" data-goto="aufgabe">Weiter zur Aufgabe</button></div>';
-  $('#task-text').innerHTML = renderMarkdown(l.task);
+  $('#task-text').innerHTML = '<h2 class="sr-only">Aufgabe</h2>' + renderMarkdown(l.task);
   $('#tip-text').innerHTML = '<div class="callout-title">Tipp</div>' + renderMarkdown(l.tip || 'Für diese Lektion gibt es keinen Tipp.');
   $('#tip-text').hidden = true;
   $('#btn-tip').textContent = 'Tipp anzeigen';

@@ -144,6 +144,7 @@ code { font-size: .88em; background: var(--surface-2); border: 1px solid var(--l
 }
 .tab:hover { color: var(--ink); }
 .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); background: var(--surface); }
+.tablist { display: flex; gap: 4px; }
 .small-tabs .tab { font-size: .85rem; min-height: 40px; }
 .small-tabs .expand { margin-left: auto; align-self: center; margin-bottom: 4px; }
 .pane-right.is-expanded { grid-template-rows: minmax(150px, 30%) minmax(0, 1fr); }

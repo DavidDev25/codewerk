@@ -63,8 +63,8 @@ export function renderMarkdown(src, opts) {
       while (i < lines.length && !/^:::\s*$/.test(lines[i])) inner.push(lines[i++]);
       i++;
       const name = m[1].toLowerCase();
-      out.push('<aside class="callout callout-' + escapeHtml(name) + '"><div class="callout-title">' +
-        escapeHtml(CALLOUT_TITLES[name] || name) + '</div>' + renderMarkdown(inner.join('\n'), opts) + '</aside>');
+      out.push('<div class="callout callout-' + escapeHtml(name) + '" role="note"><div class="callout-title">' +
+        escapeHtml(CALLOUT_TITLES[name] || name) + '</div>' + renderMarkdown(inner.join('\n'), opts) + '</div>');
       continue;
     }
 
