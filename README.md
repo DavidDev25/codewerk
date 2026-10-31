@@ -1,6 +1,6 @@
 # Codewerk – deine persönliche JavaScript-Lernplattform
 
-Codewerk bringt dir JavaScript bei, von den Grundlagen über die objektorientierte Programmierung (OOP) bis zu asynchronem Code und JavaScript im Browser. Es gibt eine Einstiegslektion (Lektion 0 „So funktioniert Codewerk“) und 67 kurze Lektionen in sechs Kapiteln. Profiwissen steht jeweils dort, wo es fachlich hingehört:
+Codewerk bringt dir JavaScript bei, von den Grundlagen über die objektorientierte Programmierung (OOP) bis zu asynchronem Code, JavaScript im Browser und Node.js. Es gibt eine Einstiegslektion (Lektion 0 „So funktioniert Codewerk“) und 74 kurze Lektionen in sieben Kapiteln. Profiwissen steht jeweils dort, wo es fachlich hingehört:
 
 | Kapitel | Lektionen | Inhalt |
 | --- | --- | --- |
@@ -10,6 +10,7 @@ Codewerk bringt dir JavaScript bei, von den Grundlagen über die objektorientier
 | Teil 4 · Fortgeschritten | 48–55 | Module, Iteratoren & Generatoren, Async-Iteratoren & Iterator-Helfer, reguläre Ausdrücke, Datum & `Intl`, Symbol/Proxy/Reflect, WeakMap & Speicherlecks, Abschlussprojekt |
 | Teil 5 · Qualität | 56–58 | Debugging, eigene Tests (mit Mutationstests geprüft), JSDoc & TypeScript-Einstieg |
 | Teil 6 · Browser | 59–67 | DOM, Elemente erzeugen (und XSS vermeiden), Events, Event-Phasen/Tastatur/Barrierefreiheit, debounce & throttle, Formulare, `localStorage`, URLs & Routing, To-do-App |
+| Teil 7 · Node.js | 68–74 | `process` (argv, env, Exit-Code, nextTick), `require`/`module.exports` und ES-Module in Node, `fs` & `path`, `EventEmitter`, HTTP-Server mit `node:http`, npm/`package.json`/SemVer, Abschlussprojekt REST-API |
 
 Jede Lektion hat eine kleine Erklärung, eine Aufgabe, automatische Tests, ein Diagramm deines Codes und einen KI-Tutor.
 
@@ -150,6 +151,8 @@ Dein Code läuft sicher in einem Web Worker, getrennt von der Seite. Nach 5 Seku
 
 ---
 
+**Node.js-Lektionen (Teil 7)** laufen ebenfalls komplett im Browser-Worker, nie auf dem Server. `public/js/node-runtime.js` bildet Node nach: `require`/`module.exports` (CommonJS) und `import` mit Node-Regeln (Erkennung, `"type"` in `package.json`, `.mjs`/`.cjs`, `node:`-Präfix, JSON per `require`, `index.js`), `fs` und `fs/promises` als Dateisystem im Speicher (vorbelegt mit den Dateien der Lektion, Fehlercodes wie `ENOENT`), `path`, `events`, `http` (Anfragen werden simuliert, auch per `fetch("http://localhost:3000/…")`), `process` (argv, env, exitCode, exit, nextTick vor Promises, stdout.write), `util` und `timers/promises`. Unter **Ausgabe** zeigt Codewerk nach dem Lauf, welche Dateien das Programm angelegt, geändert oder gelöscht hat. npm-Pakete gibt es nicht; ein `require("express")` erklärt, warum.
+
 ## 4. Eigene Lektionen hinzufügen
 
 Jede Lektion ist ein Ordner in `lessons/`. Die Reihenfolge ergibt sich aus dem Ordnernamen, deshalb stehen vorne Zahlen (`16-…`, `17-…`). Die Zahl ist auch die angezeigte Lektionsnummer: `00-so-funktioniert-codewerk` wird „Lektion 0“. Ordner ohne Zahl werden hinten weitergezählt, Ordner mit `_` am Anfang (wie `_vorlage`) ignoriert.
@@ -157,7 +160,7 @@ Jede Lektion ist ein Ordner in `lessons/`. Die Reihenfolge ergibt sich aus dem O
 **Schritt 1: Vorlage kopieren**
 
 ```bash
-cp -r lessons/_vorlage lessons/68-mein-thema
+cp -r lessons/_vorlage lessons/75-mein-thema
 ```
 
 In `lektion.json` legt `kapitel` fest, unter welcher Überschrift die Lektion in der Liste erscheint. Lektionen eines Kapitels müssen direkt hintereinander stehen, und die Nummern müssen lückenlos sein (beides prüft `npm test`).
@@ -168,7 +171,7 @@ In `lektion.json` legt `kapitel` fest, unter welcher Überschrift die Lektion in
 
 | Datei | Inhalt |
 | --- | --- |
-| `lektion.json` | `titel`, `kapitel`, `minuten`, `kurz` (ein Satz), `tipp` |
+| `lektion.json` | `titel`, `kapitel`, `minuten`, `kurz` (ein Satz), `tipp`; für Node-Lektionen zusätzlich `"laufzeit": "node"`, optional `"argumente"` (→ `process.argv`) und `"umgebung"` (→ `process.env`) |
 | `erklaerung.md` | Erklärung mit Alltagsbeispiel |
 | `aufgabe.md` | die Aufgabe in kleinen Schritten |
 | `start.js` | Startcode im Editor. Er sollte ohne Fehler laufen, aber noch nicht alle Tests bestehen |
@@ -241,6 +244,8 @@ Der zweite Wert in `expect(wert, tipp)` ist optional. Er erscheint unter der Feh
 | `.not.…` | jedes Prüfwerkzeug umdrehen, z. B. `.not.toBe(5)` |
 | `output()` | Array der `console.log`-Ausgaben des Nutzercodes |
 | `source()` | der Quelltext des Nutzercodes (z. B. `toMatch(/#saldo/)`); bei mehreren Dateien `source('rechner.js')`, ohne Namen die Startdatei |
+| `node.anfrage('POST', '/notizen', { text: 'x' })` | *(nur Node-Lektionen)* schickt eine Anfrage an den laufenden Server, Objekte werden als JSON gesendet. Ergebnis: `{ status, headers, text, json() }` |
+| `node.datei('pfad')`, `node.fs`, `node.process`, `node.require('node:events')`, `node.serverLaeuft()` | *(nur Node-Lektionen)* Dateiinhalt nach dem Lauf (oder `null`), das Dateisystem, `process`, eingebaute Module, läuft ein Server? |
 | `modul('rechner.js')` | *(nur bei mehreren Dateien)* der Namensraum eines Moduls mit allen Exporten, z. B. `modul('rechner.js').addiere(1, 2)`. Top-Level-Variablen sind in Modulen nicht global, Tests holen sie sich so |
 | `capture(() => …)` | fängt die `console.log`-Ausgaben eines Aufrufs ab; mit einer `async`-Funktion: `await capture(async () => …)` |
 | `wait(ms)` | in `async`-Tests eine Weile warten: `await wait(100)` |

@@ -1,0 +1,10 @@
+{
+  "titel": "Abschlussprojekt: Notiz-API",
+  "kapitel": "Teil 7 · Node.js",
+  "minuten": 45,
+  "kurz": "Eine echte kleine REST-API mit ES-Modulen: Notizen anlegen, lesen, suchen, abhaken und löschen, mit Anfrage-Body, Statuscodes, Fehlerbehandlung und Speicherung in einer JSON-Datei.",
+  "laufzeit": "node",
+  "umgebung": { "PORT": "3000" },
+  "dateien": ["main.js", "speicher.js", "package.json", "daten/notizen.json"],
+  "tipp": "Den Body liest du mit let text = \"\"; for await (const teil of req) text += teil; und dann JSON.parse in try/catch. Für /notizen/3 hilft /^\\/notizen\\/(\\d+)$/.exec(url.pathname). Bei DELETE: res.writeHead(204); res.end(); ohne Inhalt."
+}

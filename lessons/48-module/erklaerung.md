@@ -137,6 +137,6 @@ Das Prinzip ist dasselbe: privat drinnen, öffentlich nur das Nötige. Du triffs
 | --- | --- |
 | „rechner.js exportiert nichts mit dem Namen …“ | Tippfehler im Import oder `export` vergessen |
 | „… hat keinen Standard-Export“ | `import x from` statt `import { x } from` |
-| „Im Browser braucht der Pfad die Endung .js“ | `"./rechner"` statt `"./rechner.js"` |
+| „Bei import braucht der Pfad die Endung .js“ | `"./rechner"` statt `"./rechner.js"` |
 | „… ist kein Pfad zu einer Datei“ | `"rechner.js"` ohne `./` davor |
 | „Importierte Werte sind schreibgeschützt“ | du hast einem importierten Namen etwas zugewiesen |

@@ -208,6 +208,9 @@ async function openLesson(id, { initial = false, preloaded = null } = {}) {
 }
 
 const isMultiFile = () => !!(state.lesson && state.lesson.starterFiles);
+const nodeJob = () => (state.lesson && state.lesson.runtime === 'node' ? { args: state.lesson.nodeArgs || [], env: state.lesson.nodeEnv || {} } : undefined);
+const LANGUAGES = { js: 'javascript', mjs: 'javascript', cjs: 'javascript', json: 'json', md: 'markdown', html: 'html', css: 'css' };
+const languageOf = (name) => LANGUAGES[name.split('.').pop()] || 'plaintext';
 
 function savedFiles(code) {
   try {
@@ -234,6 +237,7 @@ function renderFileTabs() {
   const bar = $('#file-tabs');
   bar.hidden = !state.files;
   $('#editor-file').hidden = !!state.files;
+  $('#runtime-badge').hidden = !nodeJob();
   if (!state.files) { bar.replaceChildren(); return; }
   bar.replaceChildren(...[...state.files.models.keys()].map((name) => {
     const b = document.createElement('button');
@@ -277,7 +281,7 @@ function setEditorContent(code) {
     Object.keys(lesson.starterFiles).forEach((name) => {
       const text = saved && typeof saved[name] === 'string' ? saved[name] : lesson.starterFiles[name];
       const uri = state.monaco.Uri.parse('file:///' + lesson.id + '/' + name);
-      const model = state.monaco.editor.createModel(text, 'javascript', uri);
+      const model = state.monaco.editor.createModel(text, languageOf(name), uri);
       model.onDidChangeContent(onEditorChange);
       models.set(name, model);
     });
@@ -400,7 +404,7 @@ async function run({ auto = false } = {}) {
   await flushSave();
 
   const code = currentCode();
-  const job = state.files ? { files: currentFiles(), entry: state.lesson.entry } : { code };
+  const job = state.files ? { files: currentFiles(), entry: state.lesson.entry, node: nodeJob() } : { code };
   const lessonId = state.lesson.id;
   const result = isPageLesson() ? await runPageLesson(job, lessonId) : await runCode({ ...job, tests: state.lesson.testsSource });
   state.last = { result, code };
@@ -525,6 +529,13 @@ function renderConsole(result, info) {
   } else if (!result.syntaxError && !result.error && !result.timeout) {
     parts.push('<div class="empty"><p>Keine Ausgabe.</p><p class="muted">Mit <code>console.log(…)</code> kannst du Werte anzeigen.</p></div>');
   }
+  if (result.fsChanges && result.fsChanges.length) {
+    const label = { neu: 'neu', 'geändert': 'geändert', 'gelöscht': 'gelöscht' };
+    parts.push('<details class="fs-changes" open><summary>Dateien nach dem Lauf (' + result.fsChanges.length + ')</summary>' +
+      result.fsChanges.map((f) => `<div class="fs-file"><div class="fs-name"><code>${escapeHtml(f.path)}</code> <span class="fs-status fs-${escapeHtml(f.status)}">${label[f.status] || ''}</span></div>` +
+        (f.status === 'gelöscht' ? '' : `<pre tabindex="0"><code>${escapeHtml(f.content.length > 2000 ? f.content.slice(0, 2000) + '\n…' : f.content)}</code></pre>`) + '</div>').join('') +
+      '<p class="muted small">Das Dateisystem liegt nur im Speicher. Jeder Lauf startet wieder mit den Dateien aus dem Editor.</p></details>');
+  }
   el.innerHTML = parts.join('');
 }
 
@@ -603,7 +614,9 @@ async function trySnippet(button) {
   button.disabled = true;
   const result = isPageLesson()
     ? await runInPage({ code: button.dataset.code, tests: null, page: state.lesson.page }, null)
-    : await runCode({ code: button.dataset.code, tests: null });
+    : nodeJob()
+      ? await runCode({ files: { ...state.lesson.starterFiles, [state.lesson.entry]: button.dataset.code }, entry: state.lesson.entry, node: nodeJob(), tests: null })
+      : await runCode({ code: button.dataset.code, tests: null });
   button.disabled = false;
   let html;
   if (result.timeout) html = '<div class="log log-error">Das hat zu lange gedauert.</div>';

@@ -100,6 +100,7 @@ function buildSystemPrompt({ lesson, payload, journal, allLessons, mode }) {
 
   parts.push(`LEKTION: „${lesson.title}“ (${lesson.index} von ${allLessons.length})\n\nAUFGABE:\n${lesson.task}`);
   parts.push(`TIPP AUS DER LEKTION (zum Anstupsen nutzbar):\n${lesson.tip || '(keiner)'}`);
+  if (lesson.runtime === 'node') parts.push('LAUFZEIT: Node.js, im Browser nachgebildet. Eingebaut sind fs (Dateien im Speicher, vorbelegt mit den Dateien der Lektion), path, events, http (Anfragen werden simuliert, auch per fetch an localhost), process und util. npm-Pakete gibt es nicht.');
   if (lesson.page) parts.push(`HTML DER SEITE (der Code der Person läuft im Browser auf dieser Seite und kann sie per DOM verändern):\n\`\`\`html\n${lesson.page}\n\`\`\``);
   parts.push(`GEHEIME MUSTERLÖSUNG – NIEMALS ZEIGEN, NICHT ZITIEREN, NICHT UMSCHREIBEN. Nur dafür da, damit du Hinweise in die richtige Richtung geben kannst:\n${codeBlock(lesson.solution)}`);
   parts.push(`AKTUELLER CODE DER PERSON:\n${codeBlock(payload.code)}`);

@@ -1,0 +1,4 @@
+Der Code läuft leise,
+Zeile um Zeile,
+bis der Test
+endlich grün wird.

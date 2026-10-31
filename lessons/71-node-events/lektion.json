@@ -1,0 +1,8 @@
+{
+  "titel": "Events mit EventEmitter",
+  "kapitel": "Teil 7 · Node.js",
+  "minuten": 20,
+  "kurz": "Fast alles in Node meldet sich per Event: Server, Dateiströme, Prozesse. Mit EventEmitter baust du eigene Klassen, die Ereignisse auslösen, und lernst on, once, off, emit und das besondere error-Event.",
+  "laufzeit": "node",
+  "tipp": "class Kasse extends EventEmitter { … } und im constructor zuerst super(); aufrufen. Ein Event löst du mit this.emit(\"bezahlt\", { betrag, summe: this.summe }) aus. Für den ungültigen Betrag: this.emit(\"error\", new Error(\"Ungültiger Betrag\")); return;"
+}

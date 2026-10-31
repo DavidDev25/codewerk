@@ -21,6 +21,7 @@ const lessons = require('../server/lessons');
 
 const acornSource = fs.readFileSync(path.join(ROOT, 'node_modules', 'acorn', 'dist', 'acorn.js'), 'utf8');
 const coreSource = fs.readFileSync(path.join(ROOT, 'public', 'js', 'core.js'), 'utf8');
+const nodeSource = fs.readFileSync(path.join(ROOT, 'public', 'js', 'node-runtime.js'), 'utf8');
 
 // Nicht abgefangene Promise-Fehler gehen an die gerade laufende Umgebung (wie im Worker)
 let activeCtx = null;
@@ -31,7 +32,7 @@ process.on('unhandledRejection', (reason) => { if (activeCtx) activeCtx.CW.async
  * frischer Worker), bei Browser-Lektionen (seite.html) ein jsdom-Fenster mit der Seite
  * (wie das iframe im Browser, inklusive Schleifenschutz und Ersatz-localStorage).
  */
-async function run(source, tests, page, entry) {
+async function run(source, tests, page, entry, node) {
   let ctx;
   let evaluate;
   if (typeof page === 'string') {
@@ -50,10 +51,11 @@ async function run(source, tests, page, entry) {
     });
     vm.runInContext(acornSource, ctx);
     vm.runInContext(coreSource, ctx);
+    vm.runInContext(nodeSource, ctx);
     evaluate = (src) => vm.runInContext(src, ctx, { timeout: 5000 });
   }
   const job = typeof source === 'string' ? { code: source } : { files: source, entry };
-  ctx.__input = JSON.stringify({ ...job, tests, loopGuard: typeof page === 'string' });
+  ctx.__input = JSON.stringify({ ...job, tests, node, loopGuard: typeof page === 'string' });
   activeCtx = ctx;
   try {
     // Der synchrone Teil ist durch timeout (vm) bzw. den Schleifenschutz (jsdom) begrenzt,
@@ -70,6 +72,8 @@ async function run(source, tests, page, entry) {
   }
 }
 
+const nodeJob = (lesson) => (lesson.runtime === 'node' ? { args: lesson.nodeArgs, env: lesson.nodeEnv } : undefined);
+
 const { lessons: all, problems } = lessons.loadAll();
 let failures = 0;
 const fail = (msg) => { failures++; console.log('   ✗ ' + msg); };
@@ -83,7 +87,7 @@ for (const lesson of all) {
   /* 1. Musterlösung */
   let sol;
   try {
-    sol = await run(lesson.solutionFiles || lesson.solution, lesson.testsSource, lesson.page, lesson.entry);
+    sol = await run(lesson.solutionFiles || lesson.solution, lesson.testsSource, lesson.page, lesson.entry, nodeJob(lesson));
   } catch (e) {
     fail('Musterlösung brach ab: ' + e.message);
     continue;
@@ -103,7 +107,7 @@ for (const lesson of all) {
   /* 2. Startcode */
   let start;
   try {
-    start = await run(lesson.starterFiles || lesson.starterCode, lesson.testsSource, lesson.page, lesson.entry);
+    start = await run(lesson.starterFiles || lesson.starterCode, lesson.testsSource, lesson.page, lesson.entry, nodeJob(lesson));
   } catch (e) {
     fail('Startcode brach ab: ' + e.message);
     continue;

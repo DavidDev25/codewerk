@@ -1,0 +1,4 @@
+[
+  { "id": 1, "text": "Tee kaufen", "erledigt": false },
+  { "id": 2, "text": "Node.js lernen", "erledigt": true }
+]

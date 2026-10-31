@@ -790,28 +790,69 @@
     return e;
   }
 
+  const PROJECT_DIR = '/projekt/';
+
+  function projectPath(from, spec) {
+    const parts = spec.indexOf(PROJECT_DIR) === 0 ? [] : from.split('/');
+    if (spec.indexOf(PROJECT_DIR) === 0) spec = spec.slice(PROJECT_DIR.length);
+    else parts.pop();
+    spec.split('/').forEach(function (p) {
+      if (p === '..') parts.pop();
+      else if (p !== '.' && p !== '') parts.push(p);
+    });
+    return parts.join('/');
+  }
+
   function resolveModule(from, spec, files) {
     spec = String(spec);
     if (!/^\.\.?\//.test(spec)) {
       throw new Error('„' + spec + '“ ist kein Pfad zu einer Datei. Eigene Dateien importierst du mit ./ davor, z. B. „./' + spec.replace(/^\/+/, '') + '“.');
     }
-    const parts = from.split('/');
-    parts.pop();
-    spec.split('/').forEach(function (p) {
-      if (p === '..') parts.pop();
-      else if (p !== '.' && p !== '') parts.push(p);
-    });
-    const name = parts.join('/');
+    const name = projectPath(from, spec);
     if (Object.prototype.hasOwnProperty.call(files, name)) return name;
     if (Object.prototype.hasOwnProperty.call(files, name + '.js')) {
-      throw new Error('Im Browser braucht der Pfad die Endung .js: Schreibe „' + spec + '.js“ statt „' + spec + '“.');
+      throw new Error('Bei import braucht der Pfad die Endung .js: Schreibe „' + spec + '.js“ statt „' + spec + '“.');
     }
     throw new Error('Die Datei „' + spec + '“ gibt es nicht (gesucht von ' + from + ' aus). Vorhanden: ' + Object.keys(files).join(', ') + '.');
+  }
+
+  function packageMessage(spec) {
+    const name = String(spec).split('/').slice(0, String(spec).charAt(0) === '@' ? 2 : 1).join('/');
+    return 'Das Paket „' + name + '“ müsste erst mit npm installiert werden (npm install ' + name + '). Das geht in Codewerk nicht. ' +
+      'Eingebaut sind: fs, path, events, http, process, util. Eigene Dateien lädst du mit ./ davor.';
+  }
+
+  function stripHashbang(source, edits) {
+    if (source.indexOf('#!') !== 0) return;
+    const end = source.indexOf('\n') === -1 ? source.length : source.indexOf('\n');
+    edits.push({ at: 0, end: end, text: blank(source.slice(0, end)) });
+  }
+
+  function compileCommonJs(name, source, options) {
+    const ast = root.acorn.parse(source, { ecmaVersion: 'latest', sourceType: 'script', allowReturnOutsideFunction: true, locations: true });
+    const edits = options.loopGuard ? loopEdits(ast) : [];
+    stripHashbang(source, edits);
+    return {
+      name: name, kind: 'cjs', ast: ast, body: applyEdits(source, edits),
+      exports: [], requests: [], imports: [], stars: [], lines: source.split('\n').length, async: false,
+    };
+  }
+
+  function looksLikeEsm(source) {
+    try {
+      const ast = root.acorn.parse(source, { ecmaVersion: 'latest', sourceType: 'module' });
+      let meta = false;
+      walkAll(ast, function (node) { if (node.type === 'MetaProperty' && node.meta.name === 'import') meta = true; });
+      return meta || hasTopLevelAwait(ast) || ast.body.some(function (node) { return /^(Import|Export)/.test(node.type); });
+    } catch (e) {
+      return /^\s*(import\s*[\w{*'"]|export\s)/m.test(source);
+    }
   }
 
   function compileModule(name, source, files, options) {
     const ast = root.acorn.parse(source, { ecmaVersion: 'latest', sourceType: 'module', locations: true });
     const edits = options.loopGuard ? loopEdits(ast) : [];
+    stripHashbang(source, edits);
     const exports = [];
     const requests = [];
     const imports = [];
@@ -819,7 +860,10 @@
     let counter = 0;
     const request = function (node) {
       let target;
-      try { target = resolveModule(name, node.source.value, files); } catch (e) { throw linkError(name, node.source, e.message); }
+      const spec = String(node.source.value);
+      if (options.node && options.node.isBuiltin(spec)) target = 'node:' + options.node.canonical(spec);
+      else if (options.node && !/^\.\.?\//.test(spec)) throw linkError(name, node.source, packageMessage(spec));
+      else try { target = resolveModule(name, spec, files); } catch (e) { throw linkError(name, node.source, e.message); }
       const local = '__cwM' + (counter++);
       requests.push({ local: local, target: target });
       return { local: local, target: target };
@@ -883,6 +927,7 @@
 
     return {
       name: name,
+      kind: 'esm',
       ast: ast,
       body: applyEdits(source, edits),
       exports: exports,
@@ -905,12 +950,14 @@
     return names;
   }
 
-  function checkLinks(modules) {
+  function checkLinks(modules, options) {
     Object.keys(modules).forEach(function (name) {
       const m = modules[name];
       const check = function (target, wanted, node) {
-        if (!modules[target]) throw linkError(name, node, target + ' ist keine JavaScript-Datei und lässt sich nicht importieren.');
-        const available = exportedNames(modules, target, []);
+        const builtin = target.indexOf('node:') === 0;
+        if (!builtin && !modules[target]) throw linkError(name, node, target + ' ist keine JavaScript-Datei und lässt sich nicht importieren.');
+        if (!builtin && modules[target].kind === 'cjs') return;
+        const available = builtin ? options.node.builtinNames(target) : exportedNames(modules, target, []);
         if (available.indexOf(wanted) !== -1) return;
         let message = target + ' exportiert nichts mit dem Namen „' + wanted + '“.';
         if (wanted === 'default') message = target + ' hat keinen Standard-Export (export default). Benannte Exporte importierst du mit geschweiften Klammern: import { … } from …';
@@ -924,6 +971,10 @@
   }
 
   function moduleSource(m, isAsync, snapshot) {
+    if (m.kind === 'cjs') {
+      const wrapper = '(function (exports, require, module, __filename, __dirname) {';
+      return { prefix: wrapper, code: wrapper + m.body + '\n;' + (snapshot || '') + '\n})\n//# sourceURL=' + MODULE_URL + m.name };
+    }
     const getters = m.exports.map(function (e) {
       return JSON.stringify(e.name) + ':function(){return ' + e.get + ';}';
     }).join(',');
@@ -937,23 +988,47 @@
   }
 
   CW.compileModules = function compileModules(files, entry, options) {
+    options = options || {};
+    const node = options.node;
     const modules = {};
-    const names = Object.keys(files).filter(function (n) { return /\.m?js$/.test(n); });
+    const names = Object.keys(files).filter(function (n) { return node ? /\.(m?js|cjs)$/.test(n) : /\.m?js$/.test(n); });
     if (!Object.prototype.hasOwnProperty.call(files, entry)) {
       return { syntaxError: { file: entry, line: 1, column: 1, message: 'Die Startdatei „' + entry + '“ fehlt.', raw: 'missing entry ' + entry } };
     }
+    let packageType = null;
+    if (node && typeof files['package.json'] === 'string') {
+      try {
+        const pkg = JSON.parse(files['package.json']);
+        packageType = pkg && typeof pkg.type === 'string' ? pkg.type : null;
+      } catch (e) {
+        const message = 'package.json ist kein gültiges JSON: ' + e.message + '. Häufig: ein Komma zu viel am Ende oder Text ohne "Anführungszeichen".';
+        return { syntaxError: { file: 'package.json', line: 1, column: 1, message: message, raw: String(e.message) } };
+      }
+    }
+    const kindOf = function (name) {
+      if (!node || /\.mjs$/.test(name)) return 'esm';
+      if (/\.cjs$/.test(name)) return 'cjs';
+      if (packageType === 'module') return 'esm';
+      if (packageType === 'commonjs') return 'cjs';
+      return looksLikeEsm(String(files[name])) ? 'esm' : 'cjs';
+    };
     for (let i = 0; i < names.length; i++) {
       const name = names[i];
+      const kind = kindOf(name);
       try {
-        modules[name] = compileModule(name, String(files[name]), files, options || {});
+        modules[name] = kind === 'cjs' ? compileCommonJs(name, String(files[name]), options) : compileModule(name, String(files[name]), files, options);
       } catch (e) {
         if (e && e.cwLink) return { syntaxError: { file: e.cwLink.file, line: e.cwLink.line, column: e.cwLink.column, message: e.message, raw: e.message } };
-        if (e && e.loc) return { syntaxError: { file: name, line: e.loc.line, column: e.loc.column + 1, message: translateSyntax(e.message), raw: String(e.message) } };
-        return { syntaxError: { file: name, line: 1, column: 1, message: translateSyntax(e && e.message), raw: String(e && e.message) } };
+        let message = translateSyntax(e && e.message);
+        if (kind === 'cjs' && /^'import' and 'export' may appear only/.test(String(e && e.message))) {
+          message = name + ' ist eine CommonJS-Datei (in package.json steht "type": "commonjs"). Nutze dort require(…) und module.exports, oder stelle auf "type": "module" um.';
+        }
+        if (e && e.loc) return { syntaxError: { file: name, line: e.loc.line, column: e.loc.column + 1, message: message, raw: String(e.message) } };
+        return { syntaxError: { file: name, line: 1, column: 1, message: message, raw: String(e && e.message) } };
       }
     }
     try {
-      checkLinks(modules);
+      checkLinks(modules, options);
     } catch (e) {
       return { syntaxError: { file: e.cwLink.file, line: e.cwLink.line, column: e.cwLink.column, message: e.message, raw: e.message } };
     }
@@ -961,14 +1036,106 @@
     return { files: files, modules: modules, entry: entry, async: isAsync };
   };
 
-  function createLoader(g, compiled, snapshotCode) {
+  function createLoader(g, compiled, snapshotCode, nodeEnv) {
     const records = {};
     const sources = {};
+    const builtinCache = {};
+    const jsonCache = {};
     Object.keys(compiled.modules).forEach(function (name) {
       const built = moduleSource(compiled.modules[name], compiled.async, name === compiled.entry ? snapshotCode : '');
       sources[name] = { prefix: built.prefix.length, lines: compiled.modules[name].lines };
-      records[name] = { fn: (0, g.eval)(built.code), ns: null, state: 'new', result: null };
+      records[name] = { kind: compiled.modules[name].kind, fn: (0, g.eval)(built.code), ns: null, state: 'new', result: null, module: null };
     });
+
+    const fullPath = function (name) { return PROJECT_DIR + name; };
+    const dirOf = function (name) { const p = fullPath(name); return p.slice(0, p.lastIndexOf('/')); };
+
+    function notFound(message) {
+      const e = new Error(message);
+      e.code = 'MODULE_NOT_FOUND';
+      return e;
+    }
+
+    function builtinNamespace(name) {
+      if (builtinCache[name]) return builtinCache[name];
+      const value = nodeEnv.builtin(name);
+      const ns = Object.create(null);
+      nodeEnv.builtinNames(name).sort().forEach(function (key) {
+        Object.defineProperty(ns, key, { enumerable: true, get: function () { return key === 'default' ? value : value[key]; } });
+      });
+      Object.defineProperty(ns, Symbol.toStringTag, { value: 'Module' });
+      builtinCache[name] = ns;
+      return ns;
+    }
+
+    function readJson(name) {
+      if (!Object.prototype.hasOwnProperty.call(jsonCache, name)) {
+        try { jsonCache[name] = JSON.parse(compiled.files[name]); } catch (e) { throw new SyntaxError(name + ' ist kein gültiges JSON: ' + e.message); }
+      }
+      return jsonCache[name];
+    }
+
+    function resolveRequire(from, spec) {
+      const base = projectPath(from, spec);
+      const has = function (n) { return Object.prototype.hasOwnProperty.call(compiled.files, n); };
+      const candidates = [base, base + '.js', base + '.json', base + '.cjs', base + '/index.js', base + '/index.json'];
+      for (let i = 0; i < candidates.length; i++) if (candidates[i] && has(candidates[i])) return candidates[i];
+      throw notFound('Das Modul „' + spec + '“ wurde nicht gefunden (gesucht von ' + from + ' aus). Vorhanden: ' + Object.keys(compiled.files).join(', ') + '.');
+    }
+
+    function makeRequire(from) {
+      const require = function (spec) {
+        if (typeof spec !== 'string') throw new TypeError('require(…) braucht den Namen oder Pfad als Text, z. B. require("./rechner.js").');
+        if (nodeEnv && nodeEnv.isBuiltin(spec)) return nodeEnv.builtin(spec);
+        if (!/^(\.\.?(\/|$)|\/)/.test(spec)) throw notFound(packageMessage(spec));
+        const target = resolveRequire(from, spec);
+        if (/\.json$/.test(target)) return readJson(target);
+        if (!records[target]) throw new Error(target + ' ist keine JavaScript-Datei und lässt sich nicht mit require laden.');
+        if (records[target].kind === 'cjs') return requireCommonJs(target);
+        if (compiled.async) throw new Error('require(…) kann ' + target + ' nicht laden, weil dort await ganz oben steht. Nutze stattdessen await import(…).');
+        return evaluate(target);
+      };
+      require.resolve = function (spec) { return nodeEnv && nodeEnv.isBuiltin(spec) ? spec : fullPath(resolveRequire(from, spec)); };
+      require.cache = {};
+      Object.defineProperty(require, 'main', { get: function () { return records[compiled.entry] && records[compiled.entry].module; } });
+      return require;
+    }
+
+    function requireCommonJs(name) {
+      const record = records[name];
+      if (record.module) return record.module.exports;
+      const module = { id: name === compiled.entry ? '.' : fullPath(name), filename: fullPath(name), path: dirOf(name), exports: {}, loaded: false, children: [] };
+      record.module = module;
+      record.state = 'evaluating';
+      try {
+        record.fn.call(module.exports, module.exports, makeRequire(name), module, fullPath(name), dirOf(name));
+      } finally {
+        record.state = 'done';
+      }
+      module.loaded = true;
+      record.settled = true;
+      return module.exports;
+    }
+
+    function commonJsNamespace(name) {
+      const record = records[name];
+      const exportsValue = requireCommonJs(name);
+      if (record.ns) return record.ns;
+      const ns = Object.create(null);
+      const keys = exportsValue && (typeof exportsValue === 'object' || typeof exportsValue === 'function') ? Object.keys(exportsValue) : [];
+      keys.concat('default').sort().forEach(function (key) {
+        Object.defineProperty(ns, key, { enumerable: true, get: function () { return key === 'default' ? record.module.exports : record.module.exports[key]; } });
+      });
+      Object.defineProperty(ns, Symbol.toStringTag, { value: 'Module' });
+      record.ns = ns;
+      return ns;
+    }
+
+    function importModule(name) {
+      if (name.indexOf('node:') === 0) return builtinNamespace(name);
+      if (records[name].kind === 'cjs') return commonJsNamespace(name);
+      return evaluate(name);
+    }
 
     function namespace(record) {
       if (!record.ns) {
@@ -995,16 +1162,20 @@
       };
       const dynamicImport = function (spec) {
         return Promise.resolve().then(function () {
+          if (nodeEnv && nodeEnv.isBuiltin(spec)) return builtinNamespace('node:' + nodeEnv.canonical(spec));
+          if (nodeEnv && !/^\.\.?\//.test(String(spec))) throw notFound(packageMessage(spec));
           let target;
           try { target = resolveModule(name, spec, compiled.files); } catch (e) { throw new TypeError(e.message); }
           if (!records[target]) throw new TypeError(target + ' ist keine JavaScript-Datei und lässt sich nicht importieren.');
-          return evaluate(target);
+          return importModule(target);
         });
       };
-      const meta = { url: 'file:///' + name };
+      const meta = nodeEnv
+        ? { url: 'file://' + fullPath(name), filename: fullPath(name), dirname: dirOf(name) }
+        : { url: 'file:///' + name };
       let value;
       try {
-        value = record.fn.call(undefined, evaluate, define, dynamicImport, meta);
+        value = record.fn.call(undefined, importModule, define, dynamicImport, meta);
       } finally {
         record.state = 'done';
       }
@@ -1030,10 +1201,13 @@
 
     return {
       sources: sources,
-      start: function () { return evaluate(compiled.entry); },
+      start: function () {
+        return records[compiled.entry].kind === 'cjs' ? requireCommonJs(compiled.entry) : evaluate(compiled.entry);
+      },
       module: function (spec) {
         const name = String(spec).replace(/^\.\//, '');
         if (!records[name]) throw new Error('Die Datei „' + spec + '“ gibt es nicht. Vorhanden: ' + Object.keys(records).join(', ') + '.');
+        if (records[name].kind === 'cjs') return requireCommonJs(name);
         return records[name].settled ? records[name].ns : evaluate(name);
       },
     };
@@ -1116,8 +1290,11 @@
     let declarations = [];
     let guarded = null;
     let compiled = null;
+    const nodeEnv = files && options.node && CW.createNodeEnv
+      ? CW.createNodeEnv(g, { files: files, entry: entry, args: options.node.args, env: options.node.env })
+      : null;
     if (files) {
-      compiled = CW.compileModules(files, entry, { loopGuard: !!options.loopGuard });
+      compiled = CW.compileModules(files, entry, { loopGuard: !!options.loopGuard, node: nodeEnv });
       if (compiled.syntaxError) {
         result.syntaxError = compiled.syntaxError;
         return result;
@@ -1224,7 +1401,7 @@
     let entryPromise = null;
     if (compiled) {
       try {
-        loader = createLoader(g, compiled, snapshotCall);
+        loader = createLoader(g, compiled, snapshotCall, nodeEnv);
       } catch (e) {
         result.syntaxError = { file: entry, line: 1, column: 1, message: translateSyntax(e && e.message), raw: String(e && e.message) };
         return result;
@@ -1238,7 +1415,7 @@
       program = (guarded || STRICT_PREFIX + code) + '\n;' + snapshotCall + '\n';
     }
     if (testsSource) {
-      program += ';__cw.phase="tests";\n;(function(){ const { test, expect, output, source, capture, wait, modul } = __cw.api;\n' +
+      program += ';__cw.phase="tests";\n;(function(){ const { test, expect, output, source, capture, wait, modul' + (nodeEnv ? ', node' : '') + ' } = __cw.api;\n' +
         testsSource + '\n})();\n';
     }
     program += '//# sourceURL=' + SOURCE_NAME;
@@ -1261,17 +1438,25 @@
 
     let testAsyncError = null;
     function onAsyncError(e) {
+      if (e && e.__cwExit) return;
       if (g.__cw.phase === 'running-tests') { if (!testAsyncError) testAsyncError = e; return; }
       if (!result.error) result.error = userError(e);
     }
     currentAsyncError = onAsyncError;
     const timers = watchTimers(g, onAsyncError);
     g.fetch = practiceFetch(g);
+    if (nodeEnv) {
+      nodeEnv.install(timers, push, onAsyncError);
+      g.fetch = nodeEnv.wrapFetch(g.fetch);
+      g.__cw.api.node = nodeEnv.testApi;
+    }
 
     try {
       (0, g.eval)(program);
     } catch (e) {
-      if (g.__cw.phase === 'tests') {
+      if (e && e.__cwExit) {
+        if (g.__cw.phase === 'user') capturing = false;
+      } else if (g.__cw.phase === 'tests') {
         const message = e !== null && typeof e === 'object' ? String(e.message) : String(e);
         result.testsBroken = 'Die Tests dieser Lektion enthalten einen Fehler: ' + message;
       } else {
@@ -1289,6 +1474,7 @@
         ]);
       }
       capturing = true;
+      if (nodeEnv) nodeEnv.drainTicks();
       const done = await settle(timers, SETTLE_LIMIT_MS);
       if (!done) {
         const intervals = timers.intervals();
@@ -1299,6 +1485,12 @@
             ? 'Hinweis: Ein setInterval lief nach ' + SETTLE_LIMIT_MS / 1000 + ' Sekunden noch und wurde angehalten. Vergiss clearInterval nicht.'
             : 'Hinweis: Ein Timer war nach ' + SETTLE_LIMIT_MS / 1000 + ' Sekunden noch nicht fertig und wurde angehalten. Nutze kürzere Wartezeiten.',
         });
+      }
+      if (nodeEnv) {
+        nodeEnv.flush();
+        result.fsChanges = nodeEnv.changes();
+        const exitCode = nodeEnv.exitCode();
+        if (exitCode) result.logs.push({ type: 'warn', text: 'Das Programm endet mit Exit-Code ' + exitCode + ' (alles außer 0 bedeutet: Fehler).' });
       }
       capturing = false;
       takeSnapshot();

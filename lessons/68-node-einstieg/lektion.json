@@ -1,0 +1,10 @@
+{
+  "titel": "Node.js & process",
+  "kapitel": "Teil 7 · Node.js",
+  "minuten": 15,
+  "kurz": "JavaScript ohne Browser: Was Node.js ist, wie ein Programm im Terminal startet und wie es mit process.argv, process.env und dem Exit-Code mit der Außenwelt spricht.",
+  "laufzeit": "node",
+  "argumente": ["Mara", "2"],
+  "umgebung": { "GRUSS": "Moin" },
+  "tipp": "const [name, anzahlText] = process.argv.slice(2); holt die Argumente. const gruss = process.env.GRUSS ?? \"Hallo\"; liest die Umgebungsvariable. Fehlt der Name: console.error(…) und process.exitCode = 1;"
+}

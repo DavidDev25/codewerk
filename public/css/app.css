@@ -218,6 +218,14 @@ pre code { background: none; border: 0; padding: 0; font-size: inherit; }
 .file-tabs .has-error { color: var(--bad); }
 .file-tabs .has-error::after { content: " ●" / ""; }
 .file-tabs .tab:not(.has-error) .file-error-label { display: none; }
+.runtime-badge { font-size: .78rem; font-weight: 700; padding: .15em .6em; border-radius: 999px; background: var(--accent-soft); color: var(--ink); }
+.fs-changes { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+.fs-changes summary { font-weight: 700; cursor: pointer; }
+.fs-file { margin-top: 10px; }
+.fs-file pre { margin: 6px 0 0; max-height: 14em; overflow: auto; }
+.fs-status { font-size: .78rem; font-weight: 700; padding: .1em .5em; border-radius: 999px; background: var(--surface-2); }
+.fs-neu { color: var(--ok); }
+.fs-gelöscht { color: var(--bad); }
 .run { min-width: 12em; }
 #save-state.is-error { color: var(--bad); font-weight: 700; }
 

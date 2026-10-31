@@ -14,6 +14,10 @@
      dateien/       (optional, statt start.js) mehrere Startdateien als echte
                     ES-Module, Einstieg ist main.js (oder "einstieg" in lektion.json)
      loesung/       (optional, statt loesung.js) die Musterlösung als Dateien
+     "laufzeit": "node" in lektion.json macht daraus eine Node.js-Lektion: Der Code
+                    läuft in einem nachgebildeten Node im Browser-Worker (fs im Speicher,
+                    http simuliert), nie auf dem Server. "argumente" und "umgebung"
+                    füllen process.argv und process.env.
 
    Die Ordner werden bei JEDER Anfrage neu gelesen. Eine neue Lektion ist also
    sofort da, sobald du den Ordner angelegt hast – ohne Neustart.
@@ -93,6 +97,7 @@ function loadAll() {
       const starterFiles = has('dateien') ? readFiles(path.join(dir, 'dateien'), entry, order) : null;
       const solutionFiles = has('loesung') ? readFiles(path.join(dir, 'loesung'), entry, order) : null;
       if (!starterFiles !== !solutionFiles) throw new Error('dateien/ und loesung/ gehören zusammen');
+      if (meta.laufzeit === 'node' && !starterFiles) throw new Error('Node.js-Lektionen brauchen dateien/ und loesung/');
       lessons.push({
         id: name,
         index: Number.isNaN(number) ? lessons.length + 1 : number,
@@ -107,6 +112,9 @@ function loadAll() {
         // Optional: mehrere Dateien als echte ES-Module (Datei-Reiter im Editor)
         starterFiles,
         entry: starterFiles ? entry : null,
+        runtime: meta.laufzeit === 'node' ? 'node' : null,
+        nodeArgs: Array.isArray(meta.argumente) ? meta.argumente.map(String) : [],
+        nodeEnv: meta.umgebung && typeof meta.umgebung === 'object' ? meta.umgebung : {},
         testsSource: read(dir, 'tests.js'),
         solution: solutionFiles ? joinFiles(solutionFiles) : read(dir, 'loesung.js'),
         solutionFiles,
@@ -129,7 +137,7 @@ function publicView(lesson) {
 function list() {
   const { lessons, problems } = loadAll();
   return {
-    lessons: lessons.map((l) => ({ id: l.id, index: l.index, chapter: l.chapter, title: l.title, minutes: l.minutes, summary: l.summary, browser: l.page !== null })),
+    lessons: lessons.map((l) => ({ id: l.id, index: l.index, chapter: l.chapter, title: l.title, minutes: l.minutes, summary: l.summary, browser: l.page !== null, node: l.runtime === 'node' })),
     problems,
     renames: RENAMES, // damit der Browser auch Gast-Fortschritt umschreiben kann
   };

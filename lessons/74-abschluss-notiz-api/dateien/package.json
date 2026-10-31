@@ -1,0 +1,10 @@
+{
+  "name": "notiz-api",
+  "version": "1.0.0",
+  "description": "Eine kleine REST-API für Notizen",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js"
+  }
+}

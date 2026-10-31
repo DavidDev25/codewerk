@@ -1,4 +1,4 @@
-importScripts('/vendor/acorn/acorn.js', '/js/core.js');
+importScripts('/vendor/acorn/acorn.js', '/js/core.js', '/js/node-runtime.js');
 
 ['fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'importScripts', 'indexedDB',
   'caches', 'BroadcastChannel', 'SharedWorker', 'Worker'].forEach(function (name) {
