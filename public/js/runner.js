@@ -78,7 +78,9 @@ export function runInPage(job, host, onLive) {
     frame.srcdoc = pageDocument(job.page || '');
     if (host) host.replaceChildren(frame);
     else {
-      frame.hidden = true;
+      frame.className = 'preview-frame preview-frame-unsichtbar';
+      frame.setAttribute('aria-hidden', 'true');
+      frame.tabIndex = -1;
       document.body.appendChild(frame);
     }
   });

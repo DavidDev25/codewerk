@@ -1,14 +1,15 @@
 # Codewerk – deine persönliche JavaScript-Lernplattform
 
-Codewerk bringt dir JavaScript bei, von den Grundlagen über die objektorientierte Programmierung (OOP) bis zu asynchronem Code und JavaScript im Browser. Es gibt eine Einstiegslektion (Lektion 0 „So funktioniert Codewerk“) und 49 kurze Lektionen in fünf Kapiteln, jedes mit einem Abschlussprojekt:
+Codewerk bringt dir JavaScript bei, von den Grundlagen über die objektorientierte Programmierung (OOP) bis zu asynchronem Code und JavaScript im Browser. Es gibt eine Einstiegslektion (Lektion 0 „So funktioniert Codewerk“) und 67 kurze Lektionen in sechs Kapiteln. Profiwissen steht jeweils dort, wo es fachlich hingehört:
 
 | Kapitel | Lektionen | Inhalt |
 | --- | --- | --- |
-| Teil 1 · Grundlagen | 1–21 | Variablen, Datentypen, Funktionen, Bedingungen, Strings, Zahlen, Arrow-Funktionen, Arrays, Schleifen, Objekte, Referenzen, Destructuring, `?.`/`??`, Closures, Array-Methoden, JSON, Map & Set, Rekursion |
-| Teil 2 · Objektorientierung | 22–32 | `this`, Klassen, `#private`, Getter/Setter, Vererbung, `super`, Polymorphie, Komposition, Prototypen |
-| Teil 3 · Fehler & Asynchron | 33–38 | Fehlerbehandlung, Callbacks & Timer, Promises, async/await, `fetch` mit eingebauter Übungs-API |
-| Teil 4 · Fortgeschritten | 39–43 | Module, Iteratoren & Generatoren, reguläre Ausdrücke, Datum & `Intl` |
-| Teil 5 · Browser | 44–49 | DOM, Elemente erzeugen (und XSS vermeiden), Events, Formulare, `localStorage`, To-do-App |
+| Teil 1 · Grundlagen | 1–26 | Variablen, Datentypen, Funktionen, Bedingungen, Strings, Zahlen, Genauigkeit & BigInt, Arrow-Funktionen, Arrays, Schleifen, Objekte, Referenzen, Destructuring, Tagged Templates, `?.`/`??`, Closures, Array-Methoden, Unveränderlichkeit, Objekte durchlaufen, JSON, Map & Set, Gruppieren & Mengen, Rekursion, Currying/Komposition/Memoization, Abschlussprojekt |
+| Teil 2 · Objektorientierung | 27–38 | `this`, Klassen, `#private`, Getter/Setter, Vererbung, `super`, Polymorphie, Komposition, Prototypen, Entwurfsmuster (Observer, Factory), Abschlussprojekt |
+| Teil 3 · Fehler & Asynchron | 39–47 | Fehlerbehandlung, eigene Fehlerklassen & `cause`, Callbacks & Timer, Promises, Event Loop, async/await, `fetch`, `allSettled`/`race`/`any` & `AbortController`, Abschlussprojekt |
+| Teil 4 · Fortgeschritten | 48–55 | Module, Iteratoren & Generatoren, Async-Iteratoren & Iterator-Helfer, reguläre Ausdrücke, Datum & `Intl`, Symbol/Proxy/Reflect, WeakMap & Speicherlecks, Abschlussprojekt |
+| Teil 5 · Qualität | 56–58 | Debugging, eigene Tests (mit Mutationstests geprüft), JSDoc & TypeScript-Einstieg |
+| Teil 6 · Browser | 59–67 | DOM, Elemente erzeugen (und XSS vermeiden), Events, Event-Phasen/Tastatur/Barrierefreiheit, debounce & throttle, Formulare, `localStorage`, URLs & Routing, To-do-App |
 
 Jede Lektion hat eine kleine Erklärung, eine Aufgabe, automatische Tests, ein Diagramm deines Codes und einen KI-Tutor.
 
@@ -156,7 +157,7 @@ Jede Lektion ist ein Ordner in `lessons/`. Die Reihenfolge ergibt sich aus dem O
 **Schritt 1: Vorlage kopieren**
 
 ```bash
-cp -r lessons/_vorlage lessons/50-mein-thema
+cp -r lessons/_vorlage lessons/68-mein-thema
 ```
 
 In `lektion.json` legt `kapitel` fest, unter welcher Überschrift die Lektion in der Liste erscheint. Lektionen eines Kapitels müssen direkt hintereinander stehen, und die Nummern müssen lückenlos sein (beides prüft `npm test`).
@@ -240,7 +241,7 @@ Der zweite Wert in `expect(wert, tipp)` ist optional. Er erscheint unter der Feh
 | `capture(() => …)` | fängt die `console.log`-Ausgaben eines Aufrufs ab; mit einer `async`-Funktion: `await capture(async () => …)` |
 | `wait(ms)` | in `async`-Tests eine Weile warten: `await wait(100)` |
 
-**Übungs-API für `fetch`:** Echte Netzwerkzugriffe sind im Worker gesperrt. Stattdessen beantwortet die Engine (`public/js/core.js`) Anfragen an `/uebung/…` selbst, nach 40 ms und mit echten Response-Objekten (`ok`, `status`, `json()`, `text()`). Jeder Lauf startet mit frischen Daten. Andere Adressen werden wie ein Netzwerkfehler abgelehnt.
+**Übungs-API für `fetch`:** Echte Netzwerkzugriffe sind im Worker gesperrt. Stattdessen beantwortet die Engine (`public/js/core.js`) Anfragen an `/uebung/…` selbst, nach 40 ms und mit echten Response-Objekten (`ok`, `status`, `json()`, `text()`). Jeder Lauf startet mit frischen Daten. Andere Adressen werden wie ein Netzwerkfehler abgelehnt. `fetch` beachtet `signal` (`AbortController`, `AbortSignal.timeout`), und `/uebung/langsam?ms=…` antwortet absichtlich verzögert (höchstens 1,5 s).
 
 | Anfrage | Antwort |
 | --- | --- |

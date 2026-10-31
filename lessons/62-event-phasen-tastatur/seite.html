@@ -1,0 +1,26 @@
+<style>
+  #karte { border: 2px solid #999; border-radius: 8px; padding: 12px; max-width: 320px; cursor: pointer; }
+  #karte.offen { border-color: #1e6b3a; background: #eef8f1; }
+  button { font: inherit; padding: 6px 12px; }
+  #menue { list-style: none; padding: 6px; margin: 4px 0; border: 1px solid #999; max-width: 200px; }
+  #auswahl li { padding: 4px 8px; }
+  #auswahl li:focus { outline: 3px solid #1f5fa3; }
+</style>
+<h2>Karte</h2>
+<div id="karte">
+  <p>Klicke die Karte, um sie zu öffnen.</p>
+  <button id="merken" type="button">Merken</button>
+  <p id="gemerkt" role="status"></p>
+</div>
+<h2>Menü</h2>
+<button id="menue-knopf" type="button" aria-expanded="false" aria-controls="menue">Menü</button>
+<ul id="menue" hidden>
+  <li>Profil</li>
+  <li>Einstellungen</li>
+</ul>
+<h2>Auswahl mit Pfeiltasten</h2>
+<ul id="auswahl" aria-label="Lieblingsobst">
+  <li tabindex="0">Apfel</li>
+  <li tabindex="-1">Birne</li>
+  <li tabindex="-1">Kirsche</li>
+</ul>

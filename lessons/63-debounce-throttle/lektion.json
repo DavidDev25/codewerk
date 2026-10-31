@@ -1,0 +1,7 @@
+{
+  "titel": "debounce & throttle",
+  "kapitel": "Teil 6 · Browser",
+  "minuten": 20,
+  "kurz": "Häufige Events zähmen: debounce wartet, bis Ruhe ist, throttle lässt höchstens einen Aufruf pro Zeitspanne durch – ein Klassiker im Vorstellungsgespräch.",
+  "tipp": "debounce: Merke dir die Timer-ID in einer Closure. Bei jedem Aufruf clearTimeout(id) und neu setTimeout(() => fn(...werte), ms). throttle: Merke dir, wann zuletzt ausgeführt wurde (Date.now()), und führe nur aus, wenn genug Zeit vergangen ist."
+}
