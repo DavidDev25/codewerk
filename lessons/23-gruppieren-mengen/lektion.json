@@ -1,0 +1,7 @@
+{
+  "titel": "Gruppieren & Mengen",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 15,
+  "kurz": "Listen mit Object.groupBy und Map.groupBy in Gruppen sortieren und Sets wie Mengen aus dem Matheunterricht verknüpfen.",
+  "tipp": "Object.groupBy(liste, (eintrag) => schluessel) liefert ein Objekt mit einem Array pro Schlüssel. Für Sets gibt es a.union(b), a.intersection(b), a.difference(b) und a.isSubsetOf(b)."
+}

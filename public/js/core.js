@@ -675,17 +675,33 @@
       const url = String(input && input.url ? input.url : input);
       const options = init || {};
       const method = String(options.method || 'GET').toUpperCase();
+      const signal = options.signal;
+      const abortReason = function () {
+        if (signal.reason !== undefined) return signal.reason;
+        const e = new Error('Die Anfrage wurde abgebrochen.');
+        e.name = 'AbortError';
+        return e;
+      };
       return new Promise(function (resolve, reject) {
-        g.setTimeout(function () {
-          const q = url.indexOf('?');
-          const path = q < 0 ? url : url.slice(0, q);
+        if (signal && signal.aborted) { reject(abortReason()); return; }
+        const q = url.indexOf('?');
+        const path = q < 0 ? url : url.slice(0, q);
+        const params = parseQuery(q < 0 ? '' : url.slice(q + 1));
+        const delay = path === '/uebung/langsam' ? Math.min(Math.max(Number(params.ms) || 0, 0), 1500) : PRACTICE_DELAY;
+        const timer = g.setTimeout(function () {
+          if (signal) signal.removeEventListener('abort', onAbort);
           if (!/^\/uebung(\/|$)/.test(path)) {
             reject(new TypeError('Failed to fetch: In Codewerk erreicht dein Code nur die Übungs-API unter /uebung/…, nicht „' + url + '“.'));
             return;
           }
-          const answer = handle(method, path, parseQuery(q < 0 ? '' : url.slice(q + 1)), options.body);
+          const answer = path === '/uebung/langsam' ? [200, { ms: delay }] : handle(method, path, params, options.body);
           resolve(practiceResponse(answer[0], answer[1]));
-        }, PRACTICE_DELAY);
+        }, delay);
+        function onAbort() {
+          g.clearTimeout(timer);
+          reject(abortReason());
+        }
+        if (signal) signal.addEventListener('abort', onAbort, { once: true });
       });
     };
   }

@@ -43,7 +43,11 @@ async function run(code, tests, page) {
     ctx.CW.installPage(ctx, {});
     evaluate = (src) => ctx.eval(src);
   } else {
-    ctx = vm.createContext({ setTimeout, clearTimeout, setInterval, clearInterval });
+    // Dieselben Host-APIs wie im Browser-Worker (in einer nackten vm fehlen sie)
+    ctx = vm.createContext({
+      setTimeout, clearTimeout, setInterval, clearInterval, queueMicrotask, structuredClone,
+      AbortController, AbortSignal, EventTarget, Event, DOMException, URL, URLSearchParams,
+    });
     vm.runInContext(acornSource, ctx);
     vm.runInContext(coreSource, ctx);
     evaluate = (src) => vm.runInContext(src, ctx, { timeout: 5000 });

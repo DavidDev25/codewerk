@@ -1,0 +1,7 @@
+{
+  "titel": "Genau rechnen & BigInt",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 15,
+  "kurz": "Warum 0.1 + 0.2 nicht 0.3 ist, wie man Kommazahlen sicher vergleicht, mit Cent rechnet und mit BigInt beliebig große ganze Zahlen benutzt.",
+  "tipp": "Kommazahlen nie mit === vergleichen, sondern den Abstand prüfen: Math.abs(a - b) < Number.EPSILON. Ein BigInt hat ein n am Ende (10n) und lässt sich nicht mit normalen Zahlen mischen."
+}

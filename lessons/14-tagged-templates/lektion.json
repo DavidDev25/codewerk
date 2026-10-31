@@ -1,0 +1,7 @@
+{
+  "titel": "Tagged Templates",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 15,
+  "kurz": "Template-Strings mit einer eigenen Funktion verarbeiten: Werte hervorheben, Eingaben sicher machen, Beträge formatieren.",
+  "tipp": "Eine Tag-Funktion bekommt erst das Array der festen Textteile, danach alle Werte: function tag(teile, ...werte). Baue das Ergebnis in einer Schleife zusammen: teile[i] + werte[i]."
+}

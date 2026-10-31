@@ -1,0 +1,7 @@
+{
+  "titel": "Funktionen kombinieren",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 20,
+  "kurz": "Funktionen aus Funktionen bauen: Currying, Komposition mit pipe und Memoization, damit teure Berechnungen nur einmal laufen.",
+  "tipp": "pipe gibt eine Funktion zurück: (wert) => fns.reduce((bisher, fn) => fn(bisher), wert). Für merken legst du außerhalb der zurückgegebenen Funktion eine Map an und schaust zuerst dort nach."
+}
