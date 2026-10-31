@@ -1,0 +1,7 @@
+{
+  "titel": "Speicher, WeakMap & Lecks",
+  "kapitel": "Teil 4 · Fortgeschritten",
+  "minuten": 18,
+  "kurz": "Wie JavaScript Speicher aufräumt, woran Speicherlecks entstehen und wie WeakMap und WeakSet Daten an Objekte hängen, ohne sie festzuhalten.",
+  "tipp": "Eine WeakMap nimmt nur Objekte als Schlüssel: besuche.set(nutzer, (besuche.get(nutzer) ?? 0) + 1). Bei der Uhr merkst du dir die ID von setInterval und gibst sie in stop() an clearInterval."
+}

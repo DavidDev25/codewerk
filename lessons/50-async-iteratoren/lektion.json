@@ -1,0 +1,7 @@
+{
+  "titel": "Async-Iteratoren & Iterator-Helfer",
+  "kapitel": "Teil 4 · Fortgeschritten",
+  "minuten": 18,
+  "kurz": "Daten Stück für Stück aus dem Netz holen mit async function* und for await, und Iteratoren mit map, filter und take verketten.",
+  "tipp": "async function* alleNutzer() { let id = 1; while (true) { const antwort = await fetch(…); if (!antwort.ok) return; yield await antwort.json(); id++; } } Iterator-Helfer hängst du direkt an einen Generator: zahlenAb(1).filter(…).map(…).take(3).toArray()."
+}

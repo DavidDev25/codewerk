@@ -1,0 +1,7 @@
+{
+  "titel": "Symbol, Proxy & Reflect",
+  "kapitel": "Teil 4 · Fortgeschritten",
+  "minuten": 20,
+  "kurz": "Metaprogrammierung: unsichtbare Schlüssel mit Symbol, Objekte mit Proxy überwachen und mit Reflect die Standardaktion ausführen.",
+  "tipp": "new Proxy(ziel, { get(ziel, name, empfaenger) { … }, set(ziel, name, wert, empfaenger) { … } }). Am Ende jeder Falle ruft Reflect.get(…) bzw. Reflect.set(…) mit denselben Werten das normale Verhalten auf."
+}

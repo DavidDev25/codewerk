@@ -1,0 +1,7 @@
+{
+  "titel": "Eigene Tests schreiben",
+  "kapitel": "Teil 5 · Qualität",
+  "minuten": 25,
+  "kurz": "Du schreibst die Tests: normale Fälle, Grenzfälle und Fehlerfälle, und zwar so gut, dass sie vier eingebaute Fehler in falschen Varianten aufdecken.",
+  "tipp": "Denk an die Grenzen: 0 %, genau 100 % (erlaubt!), über 100 % und negative Werte (müssen werfen). Ein normaler Fall allein deckt nicht jeden Fehler auf. Jeder Eintrag im Array ist ein pruefe(…) oder wirft(…)."
+}
