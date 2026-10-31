@@ -589,6 +589,91 @@
     }
   }
 
+  const PRACTICE_DELAY = 40;
+  const STATUS_TEXT = { 200: 'OK', 201: 'Created', 400: 'Bad Request', 404: 'Not Found', 405: 'Method Not Allowed' };
+
+  function practiceResponse(status, body) {
+    const text = JSON.stringify(body);
+    return {
+      ok: status >= 200 && status < 300,
+      status: status,
+      statusText: STATUS_TEXT[status] || '',
+      headers: { get: function (name) { return String(name).toLowerCase() === 'content-type' ? 'application/json' : null; } },
+      json: function () { return Promise.resolve(JSON.parse(text)); },
+      text: function () { return Promise.resolve(text); },
+    };
+  }
+
+  function parseQuery(query) {
+    const params = {};
+    query.split('&').filter(Boolean).forEach(function (pair) {
+      const i = pair.indexOf('=');
+      const key = decodeURIComponent(i < 0 ? pair : pair.slice(0, i));
+      params[key] = i < 0 ? '' : decodeURIComponent(pair.slice(i + 1).replace(/\+/g, ' '));
+    });
+    return params;
+  }
+
+  function practiceApi() {
+    const users = [
+      { id: 1, name: 'Mara', stadt: 'Nürnberg' },
+      { id: 2, name: 'Ali', stadt: 'Erlangen' },
+      { id: 3, name: 'Lea', stadt: 'Fürth' },
+    ];
+    const weather = {
+      'nürnberg': { stadt: 'Nürnberg', grad: 12, himmel: 'bewölkt' },
+      'erlangen': { stadt: 'Erlangen', grad: 11, himmel: 'Regen' },
+      'fürth': { stadt: 'Fürth', grad: 13, himmel: 'sonnig' },
+    };
+    const notes = [];
+    return function (method, path, params, body) {
+      let match;
+      if (path === '/uebung/nutzer') {
+        return method === 'GET' ? [200, users] : [405, { fehler: 'Hier geht nur GET.' }];
+      }
+      if ((match = /^\/uebung\/nutzer\/([^/]+)$/.exec(path))) {
+        const user = users.find(function (u) { return String(u.id) === match[1]; });
+        return user ? [200, user] : [404, { fehler: 'Nutzer ' + match[1] + ' gibt es nicht.' }];
+      }
+      if (path === '/uebung/wetter') {
+        const entry = weather[String(params.stadt || '').toLowerCase()];
+        return entry ? [200, entry] : [404, { fehler: 'Für „' + (params.stadt || '') + '“ gibt es keine Wetterdaten.' }];
+      }
+      if (path === '/uebung/notizen') {
+        if (method === 'GET') return [200, notes];
+        if (method !== 'POST') return [405, { fehler: 'Hier gehen nur GET und POST.' }];
+        let data = null;
+        try { data = JSON.parse(body); } catch (e) { return [400, { fehler: 'Der Body ist kein gültiges JSON. Nutze JSON.stringify(…).' }]; }
+        if (!data || typeof data.text !== 'string' || !data.text.trim()) return [400, { fehler: 'Eine Notiz braucht ein Feld „text“.' }];
+        const note = { id: notes.length + 1, text: data.text };
+        notes.push(note);
+        return [201, note];
+      }
+      return [404, { fehler: 'Diese Adresse gibt es in der Übungs-API nicht.' }];
+    };
+  }
+
+  function practiceFetch(g) {
+    const handle = practiceApi();
+    return function fetch(input, init) {
+      const url = String(input && input.url ? input.url : input);
+      const options = init || {};
+      const method = String(options.method || 'GET').toUpperCase();
+      return new Promise(function (resolve, reject) {
+        g.setTimeout(function () {
+          const q = url.indexOf('?');
+          const path = q < 0 ? url : url.slice(0, q);
+          if (!/^\/uebung(\/|$)/.test(path)) {
+            reject(new TypeError('Failed to fetch: In Codewerk erreicht dein Code nur die Übungs-API unter /uebung/…, nicht „' + url + '“.'));
+            return;
+          }
+          const answer = handle(method, path, parseQuery(q < 0 ? '' : url.slice(q + 1)), options.body);
+          resolve(practiceResponse(answer[0], answer[1]));
+        }, PRACTICE_DELAY);
+      });
+    };
+  }
+
   let currentAsyncError = null;
   CW.asyncError = function (reason) { if (currentAsyncError) currentAsyncError(reason); };
 
@@ -718,6 +803,7 @@
     }
     currentAsyncError = onAsyncError;
     const timers = watchTimers(g, onAsyncError);
+    g.fetch = practiceFetch(g);
 
     try {
       (0, g.eval)(program);

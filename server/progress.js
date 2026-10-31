@@ -18,6 +18,8 @@
    entscheiden storage.js und db.js. So gelten überall dieselben Grenzen.
    ========================================================================== */
 
+const umzug = require('./umzug');
+
 const MAX_CODE = 200 * 1024;   // 200 KB Code pro Lektion
 const MAX_JOURNAL = 150;
 const MAX_CHAT = 40;           // Nachrichten pro Lektion
@@ -34,7 +36,7 @@ function normalize(doc) {
   if (!d.lessons || typeof d.lessons !== 'object') d.lessons = {};
   if (!d.ui || typeof d.ui !== 'object') d.ui = {};
   if (!Array.isArray(d.journal)) d.journal = [];
-  return d;
+  return umzug.migrate(d);
 }
 
 function lesson(doc, id) {

@@ -23,11 +23,29 @@ const MAX_CHAT_TEXT = 6000;
 
 const emptyDoc = () => ({ version: 1, lastLessonId: null, ui: {}, lessons: {}, journal: [] });
 
+let renames = {};
+
+function renameId(id) {
+  return Object.prototype.hasOwnProperty.call(renames, id) ? renames[id] : id;
+}
+
+function migrate(doc) {
+  for (const [oldId, entry] of Object.entries(doc.lessons)) {
+    const newId = renameId(oldId);
+    if (newId === oldId) continue;
+    if (!doc.lessons[newId]) doc.lessons[newId] = entry;
+    delete doc.lessons[oldId];
+  }
+  if (typeof doc.lastLessonId === 'string') doc.lastLessonId = renameId(doc.lastLessonId);
+  doc.journal.forEach((e) => { if (e && typeof e.lessonId === 'string') e.lessonId = renameId(e.lessonId); });
+  return doc;
+}
+
 function readGuest() {
   try {
     const doc = JSON.parse(localStorage.getItem(GUEST_KEY));
     if (doc && typeof doc === 'object') {
-      return { ...emptyDoc(), ...doc, lessons: doc.lessons || {}, ui: doc.ui || {}, journal: Array.isArray(doc.journal) ? doc.journal : [] };
+      return migrate({ ...emptyDoc(), ...doc, lessons: doc.lessons || {}, ui: doc.ui || {}, journal: Array.isArray(doc.journal) ? doc.journal : [] });
     }
   } catch (e) { }
   return emptyDoc();
@@ -79,7 +97,7 @@ export const api = {
   setGuest(on) { guest = !!on; },
   isGuest: () => guest,
   config: () => json('/api/config'),
-  lessons: () => json('/api/lessons'),
+  lessons: () => json('/api/lessons').then((info) => { renames = info.renames || {}; return info; }),
   lesson: (id) => json('/api/lessons/' + encodeURIComponent(id)),
   progress: () => (guest ? Promise.resolve(readGuest()) : json('/api/progress')),
   saveLesson: (id, patch, keepalive) => (guest

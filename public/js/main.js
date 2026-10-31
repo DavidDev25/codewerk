@@ -120,15 +120,37 @@ function renderProgress() {
   $('#progress-text').textContent = `${done} von ${total} geschafft`;
 }
 
+function lessonItem(l) {
+  const done = state.progress.lessons[l.id] && state.progress.lessons[l.id].done;
+  const current = state.lesson && state.lesson.id === l.id;
+  return `<li><button type="button" class="lesson-item${current ? ' is-current' : ''}" data-id="${escapeHtml(l.id)}"${current ? ' aria-current="true"' : ''}>` +
+    `<span class="lesson-status" aria-hidden="true">${done ? '✓' : current ? '●' : ''}</span>` +
+    `<span class="lesson-text"><span class="lesson-name">${l.index}. ${escapeHtml(l.title)}</span>` +
+    `<span class="lesson-meta">${escapeHtml(l.summary)} · ca. ${l.minutes} Min.${done ? ' · geschafft' : ''}</span></span></button></li>`;
+}
+
+function chapterGroups() {
+  const groups = [];
+  state.lessons.forEach((l) => {
+    const last = groups[groups.length - 1];
+    if (last && last.chapter === l.chapter) last.lessons.push(l);
+    else groups.push({ chapter: l.chapter, lessons: [l] });
+  });
+  return groups;
+}
+
 function renderLessonList() {
   const list = $('#lesson-list');
-  list.innerHTML = state.lessons.map((l) => {
-    const done = state.progress.lessons[l.id] && state.progress.lessons[l.id].done;
-    const current = state.lesson && state.lesson.id === l.id;
-    return `<li><button type="button" class="lesson-item${current ? ' is-current' : ''}" data-id="${escapeHtml(l.id)}"${current ? ' aria-current="true"' : ''}>` +
-      `<span class="lesson-status" aria-hidden="true">${done ? '✓' : current ? '●' : ''}</span>` +
-      `<span class="lesson-text"><span class="lesson-name">${l.index}. ${escapeHtml(l.title)}</span>` +
-      `<span class="lesson-meta">${escapeHtml(l.summary)} · ca. ${l.minutes} Min.${done ? ' · geschafft' : ''}</span></span></button></li>`;
+  const groups = chapterGroups();
+  if (groups.length === 1 && !groups[0].chapter) {
+    list.innerHTML = state.lessons.map(lessonItem).join('');
+    return;
+  }
+  list.innerHTML = groups.map((g) => {
+    const done = g.lessons.filter((l) => state.progress.lessons[l.id] && state.progress.lessons[l.id].done).length;
+    return `<li class="chapter"><h3 class="chapter-title">${escapeHtml(g.chapter || 'Weitere Lektionen')}` +
+      `<span class="chapter-count">${done} von ${g.lessons.length}</span></h3>` +
+      `<ol class="lesson-list chapter-list">${g.lessons.map(lessonItem).join('')}</ol></li>`;
   }).join('');
 }
 
@@ -639,7 +661,8 @@ async function init() {
     config = await api.config();
     api.setGuest(config.accounts && !config.user);
     await handleLoginReturn(config);
-    [lessonInfo, progress] = await Promise.all([api.lessons(), api.progress()]);
+    const lessonsRequest = api.lessons();
+    [lessonInfo, progress] = await Promise.all([lessonsRequest, api.isGuest() ? lessonsRequest.then(() => api.progress()) : api.progress()]);
   } catch (e) {
     return showFatal('Der Server antwortet nicht: ' + e.message);
   }

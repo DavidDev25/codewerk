@@ -1,6 +1,14 @@
 # Codewerk – deine persönliche JavaScript-Lernplattform
 
-Codewerk bringt dir JavaScript bei, von den Grundlagen über die objektorientierte Programmierung (OOP) bis zu asynchronem Code. Es gibt eine Einstiegslektion (Lektion 0 „So funktioniert Codewerk“) und 21 kurze Lektionen in zwei Teilen: Teil 1 (Lektion 1–15) von Variablen bis zum ersten Abschlussprojekt, Teil 2 (Lektion 16–21) mit Fehlerbehandlung, Array-Methoden, Callbacks, Promises, async/await und einem zweiten Abschlussprojekt. Jede hat eine kleine Erklärung, eine Aufgabe, automatische Tests, ein Diagramm deines Codes und einen KI-Tutor.
+Codewerk bringt dir JavaScript bei, von den Grundlagen über die objektorientierte Programmierung (OOP) bis zu asynchronem Code. Es gibt eine Einstiegslektion (Lektion 0 „So funktioniert Codewerk“) und 38 kurze Lektionen in drei Kapiteln, jedes mit einem Abschlussprojekt:
+
+| Kapitel | Lektionen | Inhalt |
+| --- | --- | --- |
+| Teil 1 · Grundlagen | 1–21 | Variablen, Datentypen, Funktionen, Bedingungen, Strings, Zahlen, Arrow-Funktionen, Arrays, Schleifen, Objekte, Referenzen, Destructuring, `?.`/`??`, Closures, Array-Methoden, JSON, Map & Set, Rekursion |
+| Teil 2 · Objektorientierung | 22–32 | `this`, Klassen, `#private`, Getter/Setter, Vererbung, `super`, Polymorphie, Komposition, Prototypen |
+| Teil 3 · Fehler & Asynchron | 33–38 | Fehlerbehandlung, Callbacks & Timer, Promises, async/await, `fetch` mit eingebauter Übungs-API |
+
+Jede Lektion hat eine kleine Erklärung, eine Aufgabe, automatische Tests, ein Diagramm deines Codes und einen KI-Tutor.
 
 Dein Code und dein Fortschritt werden automatisch auf deinem Server gespeichert. Beim nächsten Öffnen geht es genau dort weiter, wo du aufgehört hast.
 
@@ -144,14 +152,18 @@ Jede Lektion ist ein Ordner in `lessons/`. Die Reihenfolge ergibt sich aus dem O
 **Schritt 1: Vorlage kopieren**
 
 ```bash
-cp -r lessons/_vorlage lessons/16-mein-thema
+cp -r lessons/_vorlage lessons/39-mein-thema
 ```
+
+In `lektion.json` legt `kapitel` fest, unter welcher Überschrift die Lektion in der Liste erscheint. Lektionen eines Kapitels müssen direkt hintereinander stehen, und die Nummern müssen lückenlos sein (beides prüft `npm test`).
+
+**Lektionen umnummerieren:** Die Lektions-ID ist der Ordnername, und daran hängt der gespeicherte Fortschritt. Wer einen Ordner umbenennt, trägt alt → neu in `server/umzug.js` ein. Dann wird Fortschritt unter der alten ID beim nächsten Laden automatisch übernommen, im Konto wie im Gast-Speicher des Browsers.
 
 **Schritt 2: Die sechs Dateien ausfüllen**
 
 | Datei | Inhalt |
 | --- | --- |
-| `lektion.json` | `titel`, `minuten`, `kurz` (ein Satz), `tipp` |
+| `lektion.json` | `titel`, `kapitel`, `minuten`, `kurz` (ein Satz), `tipp` |
 | `erklaerung.md` | Erklärung mit Alltagsbeispiel |
 | `aufgabe.md` | die Aufgabe in kleinen Schritten |
 | `start.js` | Startcode im Editor. Er sollte ohne Fehler laufen, aber noch nicht alle Tests bestehen |
@@ -222,6 +234,16 @@ Der zweite Wert in `expect(wert, tipp)` ist optional. Er erscheint unter der Feh
 | `source()` | der Quelltext des Nutzercodes (z. B. `toMatch(/#saldo/)`) |
 | `capture(() => …)` | fängt die `console.log`-Ausgaben eines Aufrufs ab; mit einer `async`-Funktion: `await capture(async () => …)` |
 | `wait(ms)` | in `async`-Tests eine Weile warten: `await wait(100)` |
+
+**Übungs-API für `fetch`:** Echte Netzwerkzugriffe sind im Worker gesperrt. Stattdessen beantwortet die Engine (`public/js/core.js`) Anfragen an `/uebung/…` selbst, nach 40 ms und mit echten Response-Objekten (`ok`, `status`, `json()`, `text()`). Jeder Lauf startet mit frischen Daten. Andere Adressen werden wie ein Netzwerkfehler abgelehnt.
+
+| Anfrage | Antwort |
+| --- | --- |
+| `GET /uebung/nutzer` | alle Nutzer (`id`, `name`, `stadt`) |
+| `GET /uebung/nutzer/<id>` | ein Nutzer, sonst 404 |
+| `GET /uebung/wetter?stadt=<name>` | `stadt`, `grad`, `himmel` für Nürnberg, Erlangen, Fürth, sonst 404 |
+| `GET /uebung/notizen` | alle Notizen dieses Laufs |
+| `POST /uebung/notizen` mit JSON `{ "text": … }` | 201 und die Notiz mit `id`; ohne Text 400 |
 
 **Asynchroner Code:** Codewerk wartet nach dem Ausführen, bis alle Timer und Promises erledigt sind (höchstens 2 Sekunden). Ausgaben aus `setTimeout` oder `await` erscheinen deshalb ganz normal. Tests dürfen `async` sein:
 

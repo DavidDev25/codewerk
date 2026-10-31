@@ -16,6 +16,7 @@
    ========================================================================== */
 const fs = require('fs');
 const path = require('path');
+const { RENAMES } = require('./umzug');
 
 const LESSON_DIR = process.env.LESSON_DIR || path.join(__dirname, '..', 'lessons');
 const FILES = ['lektion.json', 'erklaerung.md', 'aufgabe.md', 'start.js', 'tests.js', 'loesung.js'];
@@ -53,6 +54,7 @@ function loadAll() {
         id: name,
         index: Number.isNaN(number) ? lessons.length + 1 : number,
         title: meta.titel || name,
+        chapter: meta.kapitel || '',
         minutes: Number(meta.minuten) || 15,
         summary: meta.kurz || '',
         tip: meta.tipp || '',
@@ -78,8 +80,9 @@ function publicView(lesson) {
 function list() {
   const { lessons, problems } = loadAll();
   return {
-    lessons: lessons.map((l) => ({ id: l.id, index: l.index, title: l.title, minutes: l.minutes, summary: l.summary })),
+    lessons: lessons.map((l) => ({ id: l.id, index: l.index, chapter: l.chapter, title: l.title, minutes: l.minutes, summary: l.summary })),
     problems,
+    renames: RENAMES, // damit der Browser auch Gast-Fortschritt umschreiben kann
   };
 }
 
