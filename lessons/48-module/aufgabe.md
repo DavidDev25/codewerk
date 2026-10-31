@@ -1,22 +1,38 @@
 ## Aufgabe: Der Rechner als Modul
 
-Diesmal besteht dein Programm aus **drei Dateien**. Oben im Editor wechselst du mit den Reitern zwischen ihnen. `main.js` ist mit ▶ markiert: Dort beginnt das Programm.
+Diesmal besteht dein Programm aus **drei Dateien**. Oben im Editor wechselst du mit den Reitern zwischen ihnen. `main.js` ist mit ▶ markiert, dort beginnt das Programm. `format.js` musst du nicht ändern.
 
-**In `rechner.js`:**
-
-1. Exportiere die Funktion `addiere`.
-2. Schreibe `letzteRechnung()` und exportiere sie. Sie gibt den letzten Eintrag aus `verlauf` zurück, oder `null`, wenn noch nichts gerechnet wurde. `verlauf` selbst bleibt **privat**.
-
-**In `main.js`:**
-
-3. Importiere `addiere` und `letzteRechnung` aus `./rechner.js`.
-4. Importiere den Standard-Export von `./format.js` unter dem Namen `schoen`.
-5. Rechne `addiere(2, 3)` und danach `addiere(10, 4)`. Gib dann `schoen(letzteRechnung())` mit `console.log` aus.
-
-Erwartete Ausgabe:
+Am Ende soll im Reiter **Ausgabe** diese Zeile stehen:
 
 ```
 Ergebnis: 10 + 4 = 14
 ```
 
-`format.js` musst du nicht ändern.
+### Schritt 1: rechner.js gibt etwas frei
+
+Öffne den Reiter `rechner.js`. Dort steht schon die Funktion `addiere`. Sie schreibt jede Rechnung in die Liste `verlauf`.
+
+So gehst du vor:
+
+1. Schreibe `export` vor `function addiere`.
+2. Schreibe darunter `export function letzteRechnung() { ... }`. Sie gibt den letzten Eintrag aus `verlauf` zurück, also `verlauf.at(-1)`.
+3. Ist noch nichts gerechnet worden, gibt sie `null` zurück. Das geht mit `?? null` hinter `verlauf.at(-1)`.
+
+Wichtig: Vor `const verlauf` gehört **kein** `export`. Die Liste bleibt privat.
+
+### Schritt 2: main.js holt sich alles
+
+Wechsle zum Reiter `main.js`.
+
+1. Hole mit `import { addiere, letzteRechnung } from "./rechner.js";` beide Funktionen.
+2. Hole den Standard-Export von `format.js` unter dem Namen `schoen`: `import schoen from "./format.js";`. Hier gibt es **keine** geschweiften Klammern.
+
+### Schritt 3: Rechnen und ausgeben
+
+```js
+addiere(2, 3);
+addiere(10, 4);
+schoen(letzteRechnung()); // "Ergebnis: 10 + 4 = 14"
+```
+
+Schreibe die beiden Rechnungen in `main.js` und gib `schoen(letzteRechnung())` mit `console.log` aus.

@@ -1,6 +1,6 @@
 ## Generatoren, die warten können
 
-In Lektion 49 haben Generatoren Werte auf Abruf geliefert, aber immer sofort. Was, wenn jeder Wert erst aus dem Netz geholt werden muss? Dann kombinierst du `async` und `function*`:
+In Lektion 49 haben Generatoren Werte auf Abruf geliefert, aber immer sofort. Manchmal muss jeder Wert aber erst aus dem Netz geholt werden. Dann kombinierst du `async` und `function*`. Im Beispiel holt ein Generator drei Nutzer, einen nach dem anderen:
 
 ```js
 async function* nutzerNachUndNach() {
@@ -19,14 +19,16 @@ async function zeigen() {
 zeigen();
 ```
 
+Ausgegeben werden „Mara“, „Ali“ und „Lea“. Jeder Name erscheint, sobald seine Antwort da ist.
+
 - `async function*` darf `await` **und** `yield` benutzen.
 - `for await (… of …)` wartet bei jedem Durchlauf, bis der nächste Wert da ist.
 
 :::alltag
-Wie eine Fernsehserie, die wöchentlich erscheint: Du schaust Folge für Folge, sobald sie verfügbar ist, statt auf die ganze Staffel zu warten.
+Denk an eine Fernsehserie, die jede Woche eine neue Folge bekommt. Du schaust Folge für Folge, sobald sie erscheint, statt auf die ganze Staffel zu warten.
 :::
 
-Typischer Einsatz ist das **Seitenweise Laden** (Paginierung): Viele Server liefern Daten in Häppchen, und der Generator holt so lange die nächste Seite, bis keine mehr kommt. Der Code, der die Daten benutzt, merkt davon nichts und sieht nur eine Schleife.
+Typischer Einsatz ist das **seitenweise Laden**. Viele Server liefern Daten in Häppchen. Der Generator holt so lange die nächste Seite, bis keine mehr kommt. Der Code, der die Daten benutzt, merkt davon nichts. Er sieht nur eine Schleife.
 
 Alle Werte auf einmal sammelt `Array.fromAsync`:
 
@@ -40,9 +42,11 @@ async function* drei() {
 Array.fromAsync(drei()).then((liste) => console.log(liste));
 ```
 
-## Iterator-Helfer
+Heraus kommt `[1, 2, 3]`. `Array.fromAsync` gibt ein Promise zurück. Deshalb holst du die Liste mit `.then` oder `await` ab.
 
-Seit 2025 haben Iteratoren eigene Methoden, ähnlich wie Arrays, aber **faul**: Sie berechnen nur so viel, wie wirklich gebraucht wird. Damit kannst du sogar unendliche Generatoren verarbeiten:
+## Helfer für Iteratoren
+
+Seit 2025 haben Iteratoren eigene Methoden, ähnlich wie Arrays. Sie sind aber **faul**: Sie rechnen nur so viel aus, wie wirklich gebraucht wird. Damit kannst du sogar unendliche Generatoren verarbeiten. Im Beispiel suchst du aus allen Zahlen ab 1 die ersten vier, die durch 3 teilbar sind, und nimmst sie mal 10:
 
 ```js
 function* zahlenAb(start) {
@@ -62,12 +66,14 @@ const ergebnis = zahlenAb(1)
 console.log(ergebnis);
 ```
 
+Heraus kommt `[30, 60, 90, 120]`. Der Generator hört nie auf. Aber `take(4)` sagt Schluss, sobald vier Werte da sind. Bis dahin hat der Generator nur die Zahlen von 1 bis 12 erzeugt.
+
 | Methode | Bedeutung |
 | --- | --- |
 | `map`, `filter` | wie bei Arrays, aber Wert für Wert |
 | `take(n)` | höchstens n Werte, dann Schluss |
 | `drop(n)` | die ersten n Werte überspringen |
-| `toArray()` | alles Übrige in ein Array sammeln |
+| `toArray()` | alles Übrige in einem Array sammeln |
 | `find`, `some`, `every`, `reduce` | wie bei Arrays |
 
 Ohne `take` würde `toArray()` bei einem unendlichen Generator nie fertig. Die Reihenfolge ist also wichtig: erst begrenzen, dann sammeln.

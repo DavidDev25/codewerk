@@ -1,12 +1,12 @@
 ## Ordnung in großen Programmen
 
-Echte Programme bestehen aus Hunderten Dateien. Jede Datei ist ein **Modul**: Sie hat ihre eigenen Variablen und gibt nur das nach außen, was andere wirklich brauchen.
+Echte Programme bestehen aus Hunderten Dateien. Jede Datei ist ein **Modul**. Sie hat ihre eigenen Variablen und gibt nur das nach außen, was andere wirklich brauchen.
 
 :::alltag
-Ein Restaurant: Die Küche ist ein Modul. Gäste sehen nur die **Speisekarte** (das, was exportiert wird). Wie gekocht wird, welche Vorräte es gibt und wer abwäscht, bleibt in der Küche (privat).
+Denk an ein Restaurant. Die Küche ist ein Modul. Die Gäste sehen nur die **Speisekarte**, also das, was die Küche nach außen gibt. Wie gekocht wird, welche Vorräte es gibt und wer abwäscht, bleibt in der Küche.
 :::
 
-## export und import
+## Freigeben und holen
 
 Eine Datei `mathe.js` gibt mit `export` frei, was andere benutzen dürfen:
 
@@ -30,11 +30,13 @@ import { verdoppeln, PI } from "./mathe.js";
 console.log(verdoppeln(PI));
 ```
 
-- Nur was mit `export` markiert ist, kann importiert werden. `geheimFaktor` bleibt privat.
-- Die Namen in `{ … }` müssen zu den Exporten passen. Mit `as` kannst du umbenennen: `import { verdoppeln as mal2 } from "./mathe.js";`
-- Der Pfad beginnt mit `./` (gleicher Ordner) oder `../` (ein Ordner höher) und endet auf `.js`. Im Browser ist beides Pflicht.
+`main.js` gibt 6.28318 aus. Die Funktion `verdoppeln` benutzt dabei `geheimFaktor`, obwohl `main.js` diese Variable gar nicht sehen kann.
 
-In dieser Lektion hat der Editor deshalb **mehrere Reiter**, einen pro Datei. `main.js` ist mit ▶ markiert: Hier startet das Programm, alle anderen Dateien laufen nur, wenn jemand sie importiert.
+- Nur was mit `export` markiert ist, kann importiert werden. `geheimFaktor` bleibt privat.
+- Die Namen in `{ … }` müssen zu den Exporten passen. Mit `as` kannst du umbenennen: `import { verdoppeln as mal2 } from "./mathe.js";`.
+- Der Pfad beginnt mit `./` für denselben Ordner oder mit `../` für den Ordner darüber. Er endet auf `.js`. Im Browser ist beides Pflicht.
+
+In dieser Lektion hat der Editor deshalb **mehrere Reiter**, einen pro Datei. `main.js` ist mit ▶ markiert. Hier startet das Programm. Alle anderen Dateien laufen nur, wenn jemand sie importiert.
 
 ## Der Standard-Export
 
@@ -49,23 +51,25 @@ import Warenkorb from "./warenkorb.js";
 import Korb from "./warenkorb.js";   // derselbe Export, anderer Name
 ```
 
-Viele Teams verzichten auf `export default` und nutzen nur benannte Exporte: Dann heißt eine Sache überall gleich, und der Editor kann beim Umbenennen helfen.
+Beide Zeilen in `main.js` holen dieselbe Klasse, nur unter verschiedenen Namen.
+
+Viele Teams verzichten auf `export default` und benutzen nur benannte Exporte. Dann heißt eine Sache überall gleich, und der Editor kann beim Umbenennen helfen.
 
 ## Was ein Modul besonders macht
 
-| Eigenschaft | Was das heißt |
+| Eigenschaft | Was das bedeutet |
 | --- | --- |
 | eigener Bereich | Variablen oben in einer Datei sind **nicht** global. Zwei Dateien dürfen beide `const liste` haben. |
 | läuft genau einmal | Importieren drei Dateien `rechner.js`, wird es nur einmal ausgeführt. Alle teilen sich **dasselbe** `verlauf`. |
-| immer strict mode | Fehler wie eine vergessene Deklaration (`x = 5` ohne `let`) werfen sofort einen Fehler. |
+| immer streng | Eine vergessene Deklaration wie `x = 5` ohne `let` wirft sofort einen Fehler. |
 | Importe sind schreibgeschützt | `addiere = 5` in `main.js` geht nicht. Ändern darf nur das Modul selbst. |
 | Fehler vor dem Start | Importierst du einen Namen, den es nicht gibt, startet das Programm gar nicht erst. |
 
-Der Punkt „läuft genau einmal“ ist wichtig: Ein Modul ist ein guter Ort für gemeinsamen Zustand, etwa einen Warenkorb, den mehrere Teile einer Seite benutzen.
+Der Punkt „läuft genau einmal“ ist wichtig. Ein Modul ist dadurch ein guter Ort für gemeinsame Daten, zum Beispiel einen Warenkorb, den mehrere Teile einer Seite benutzen.
 
-## Alles auf einmal: der Namensraum
+## Alles auf einmal holen
 
-Brauchst du viele Exporte einer Datei, holst du sie gesammelt als Objekt:
+Brauchst du viele Exporte einer Datei, holst du sie gesammelt als ein Objekt:
 
 ```mjs
 import * as rechner from "./rechner.js";
@@ -74,11 +78,11 @@ rechner.addiere(2, 3);
 console.log(rechner.letzteRechnung());
 ```
 
-`rechner` ist ein **Namensraum-Objekt**. Es ist immer aktuell: Ändert das Modul eine exportierte `let`-Variable, siehst du über `rechner.name` sofort den neuen Wert.
+`rechner` ist jetzt ein Objekt mit allen Exporten der Datei. Man nennt es **Namensraum**. Es ist immer aktuell: Ändert das Modul eine exportierte `let`-Variable, siehst du über `rechner.name` sofort den neuen Wert.
 
-## Weiterreichen: eine Datei als Eingang
+## Eine Datei als Eingang
 
-Größere Ordner haben oft eine `index.js`, die nur weiterreicht. Andere Teile des Programms müssen dann nur eine Datei kennen:
+Größere Ordner haben oft eine Datei `index.js`, die nur weiterreicht. Andere Teile des Programms müssen dann nur diese eine Datei kennen:
 
 ```mjs
 // werkzeuge/index.js
@@ -90,9 +94,11 @@ export { default as Korb } from "./korb.js";
 import { addiere, Korb } from "./werkzeuge/index.js";
 ```
 
+`index.js` holt die Exporte aus drei Dateien und gibt sie gleich weiter. `main.js` holt sich alles aus `index.js` und muss nicht wissen, in welcher Datei was steckt.
+
 ## Profiwissen: Laden bei Bedarf
 
-`import { … } from` steht immer ganz oben und lädt alles **vor** dem Start. Manchmal willst du ein Modul erst laden, wenn es gebraucht wird, etwa einen großen Diagramm-Baustein erst beim Klick. Dafür gibt es `import(…)` als Funktion. Sie gibt ein Promise mit dem Namensraum zurück:
+`import { … } from` steht immer ganz oben und lädt alles **vor** dem Start. Manchmal willst du ein Modul aber erst laden, wenn es gebraucht wird, etwa einen großen Diagramm-Baustein erst beim Klick. Dafür gibt es `import(…)` als Funktion. Sie gibt ein Promise mit dem Namensraum zurück:
 
 ```mjs
 async function diagrammZeigen() {
@@ -101,7 +107,9 @@ async function diagrammZeigen() {
 }
 ```
 
-In Modulen darfst du `await` außerdem **ganz oben** benutzen, ohne `async function` drumherum (Top-Level-await). Wer dieses Modul importiert, wartet automatisch, bis es fertig ist:
+Erst wenn `diagrammZeigen` aufgerufen wird, lädt `import(…)` die Datei. Mit `await` wartest du, bis sie da ist, und holst dir `zeichnen` heraus.
+
+In Modulen darfst du `await` außerdem **ganz oben** benutzen, ohne `async function` drumherum. Wer dieses Modul importiert, wartet automatisch, bis es fertig ist:
 
 ```mjs
 // daten.js
@@ -111,7 +119,7 @@ export const nutzer = await antwort.json();
 
 ## Pakete von anderen
 
-Pakete, die du mit `npm` installierst, importierst du ohne `./`: `import express from "express";` Den Weg zum Paket findet dann Node.js oder ein Werkzeug wie Vite. Das lernst du im Node.js-Teil. In Codewerk importierst du nur deine eigenen Dateien.
+Pakete, die du mit `npm` installierst, importierst du ohne `./`, zum Beispiel `import express from "express";`. Den Weg zum Paket findet dann Node.js oder ein Werkzeug wie Vite. Das lernst du im Node.js-Teil. In Codewerk importierst du nur deine eigenen Dateien.
 
 ## Früher: das Modul-Muster
 
@@ -129,11 +137,11 @@ console.log(zaehler.erhoehen());
 console.log(typeof stand);
 ```
 
-Das Prinzip ist dasselbe: privat drinnen, öffentlich nur das Nötige. Du triffst dieses Muster noch in älterem Code, und Werkzeuge wie Vite verwandeln deine Module beim Bauen der Webseite in ähnliche Konstrukte.
+Ausgegeben werden 2 und `undefined`. Der Zähler funktioniert, aber `stand` ist von außen nicht zu sehen. Die Idee ist dieselbe wie bei Modulen: privat drinnen, öffentlich nur das Nötige. Du triffst dieses Muster noch in älterem Code. Werkzeuge wie Vite verwandeln deine Module beim Bauen der Webseite in ähnliche Konstrukte.
 
 ## Fehler, die du sehen wirst
 
-| Meldung (sinngemäß) | Ursache |
+| Meldung, sinngemäß | Ursache |
 | --- | --- |
 | „rechner.js exportiert nichts mit dem Namen …“ | Tippfehler im Import oder `export` vergessen |
 | „… hat keinen Standard-Export“ | `import x from` statt `import { x } from` |
