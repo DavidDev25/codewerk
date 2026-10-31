@@ -7,7 +7,7 @@
      2. Lektionen bereitstellen (ohne Musterlösung!)
      3. Fortschritt speichern – im persönlichen Modus in data/progress.json,
         im Konten-Modus pro Konto in data/codewerk.db (siehe accounts.js)
-     4. Chat-Anfragen an OmniRoute weiterleiten (API-Key bleibt hier)
+     4. Chat-Anfragen an Cloudflare Workers AI weiterleiten (API-Token bleibt hier)
    ========================================================================== */
 const path = require('path');
 const express = require('express');
@@ -137,8 +137,8 @@ async function main() {
   app.get('/api/config', (req, res) => {
     const c = tutor.config();
     res.json({
-      tutorConfigured: Boolean(c.apiKey && c.model),
-      model: c.model || null,
+      tutorConfigured: tutor.isConfigured(c),
+      model: c.models[0] || null,
       accounts: accountsOn,
       user: req.user ? { login: req.user.login, name: req.user.name || req.user.login } : null,
       tutorLocked: accountsOn && !req.user, // Gäste: Tutor nur mit Anmeldung
@@ -198,6 +198,10 @@ async function main() {
     if (accountsOn && !req.user) {
       return res.status(401).json({ error: 'Der KI-Tutor ist nur mit Anmeldung verfügbar. Melde dich oben mit GitHub an – kostenlos.' });
     }
+    // Altersgrenze ab 16 (DSGVO-Einwilligungsalter in Deutschland): einmal bestätigen, im Konto gespeichert
+    if (accountsOn && !(storeFor(req).get().ui || {}).tutorAge16) {
+      return res.status(403).json({ error: 'Bitte bestätige zuerst, dass du mindestens 16 Jahre alt bist.', needsAge: true });
+    }
     const payload = req.body || {};
     const { lessons: all } = lessons.loadAll();
     const lesson = all.find((l) => l.id === payload.lessonId);
@@ -222,6 +226,7 @@ async function main() {
       : 'Persönlicher Modus: ohne Anmeldung, Fortschritt in data/progress.json.');
     problems.forEach((p) => console.warn('Hinweis:', p));
     if (!process.env.BASIC_AUTH_PASSWORD) console.log('Hinweis: Kein Passwortschutz aktiv (BASIC_AUTH_PASSWORD ist leer).');
+    if (process.env.TUTOR_SELFCHECK !== '0') tutor.selfCheck().catch((e) => console.warn('Tutor-Selbsttest fehlgeschlagen:', e.message));
   });
 }
 

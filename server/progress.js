@@ -82,6 +82,7 @@ function setUi(doc, ui) {
   const allowedResults = ['pruefung', 'ausgabe', 'diagramm', 'vorschau'];
   if (ui && allowedTabs.includes(ui.tab)) doc.ui.tab = ui.tab;
   if (ui && allowedResults.includes(ui.resultTab)) doc.ui.resultTab = ui.resultTab;
+  if (ui && ui.tutorAge16 === true) doc.ui.tutorAge16 = true;
 }
 
 function setLast(doc, id) {

@@ -40,9 +40,9 @@ Trage dort ein:
 
 | Eintrag | Bedeutung |
 | --- | --- |
-| `OMNIROUTE_API_KEY` | dein API-Key aus OmniRoute |
-| `OMNIROUTE_MODEL` | Name des Modells oder der Combo, wie in OmniRoute |
-| `OMNIROUTE_BASE_URL` | normalerweise unverändert lassen |
+| `CLOUDFLARE_ACCOUNT_ID` | deine Cloudflare-Account-ID (für den KI-Tutor, optional) |
+| `CLOUDFLARE_API_TOKEN` | API-Token mit der Berechtigung „Workers AI“ |
+| `TUTOR_MODELS` | normalerweise leer lassen (Standardmodelle) |
 | `BASIC_AUTH_PASSWORD` | ein Passwort, wenn der Server aus dem Netz erreichbar ist |
 | `PORT` | Port im Browser, Standard `3000` |
 
@@ -71,9 +71,21 @@ In den Logs steht `22 Lektionen geladen.`
 
 ---
 
-## 2. KI-Tutor mit OmniRoute verbinden
+## 2. KI-Tutor mit Cloudflare Workers AI verbinden
 
-Der Tutor läuft über dein selbst gehostetes OmniRoute (`/v1/chat/completions`, mit Streaming). Der API-Key bleibt auf dem Server und gelangt nie in den Browser.
+Der Tutor nutzt [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/) über die OpenAI-kompatible Schnittstelle (`/ai/v1/chat/completions`, mit Streaming). Das kostenlose Kontingent (10.000 „Neurons“ pro Tag, Reset um 00:00 UTC) reicht je nach Länge für einige hundert Antworten täglich. Ist es aufgebraucht, sagt der Tutor freundlich, dass er bis morgen Pause macht. Cloudflare nutzt die Inhalte laut eigener Aussage nicht zum Training und speichert sie nicht. Der API-Token bleibt auf dem Server und gelangt nie in den Browser.
+
+**Einrichten:**
+
+1. Kostenloses Konto auf [dash.cloudflare.com](https://dash.cloudflare.com/sign-up) anlegen.
+2. Die **Account-ID** kopieren (Dashboard, rechts unter „Account details“).
+3. Unter [API-Tokens](https://dash.cloudflare.com/profile/api-tokens) einen eigenen Token erstellen, mit genau einer Berechtigung: **Account → Workers AI → Read**.
+4. Beides als `CLOUDFLARE_ACCOUNT_ID` und `CLOUDFLARE_API_TOKEN` in die `.env` eintragen und `docker compose up -d` ausführen.
+5. In `docker compose logs` steht danach für jedes Modell eine Zeile `Tutor-Selbsttest: … → ok`.
+
+Verwendet werden nur Modelle unter der Apache-2.0-Lizenz (Standard: Mistral Small 3.1, dann Qwen 2.5 Coder). Fällt das erste aus, nimmt der Tutor das nächste. Mit `TUTOR_MODELS` lässt sich die Liste ändern; `TUTOR_BASE_URL` erlaubt einen anderen OpenAI-kompatiblen Anbieter.
+
+**Rechtliches:** Im Konten-Modus ist der Tutor ab 16 Jahren. Vor der ersten Nutzung bestätigt man das einmal, die Bestätigung steht im Konto. Unter dem Chat steht dauerhaft, dass eine KI antwortet (Transparenzpflicht nach Art. 50 KI-Verordnung). Die Datenschutzerklärung (`public/datenschutz.html`) nennt Cloudflare als Auftragsverarbeiter.
 
 Der Tutor kennt die Lektion, deinen aktuellen Code, die letzte Ausgabe, die Testergebnisse und die geheime Musterlösung. Er soll die Lösung nicht verraten, sondern Hinweise geben und Rückfragen stellen. Das ist eine Anweisung an das Modell. Ein Modell hält sich fast immer daran, aber nicht mit absoluter Sicherheit.
 
@@ -88,33 +100,16 @@ Der Tutor kennt die Lektion, deinen aktuellen Code, die letzte Ausgabe, die Test
 
 | Meldung | Lösung |
 | --- | --- |
-| „Der Tutor ist noch nicht eingerichtet“ | `OMNIROUTE_API_KEY` und `OMNIROUTE_MODEL` in `.env` eintragen, dann `docker compose up -d` |
-| „OmniRoute ist … nicht erreichbar“ | Läuft OmniRoute? Stimmt der Port in `OMNIROUTE_BASE_URL`? |
-| „API-Key abgelehnt“ | Key in der `.env` prüfen |
-| „kennt dieses Modell nicht (404)“ | `OMNIROUTE_MODEL` prüfen |
+| „Der Tutor ist noch nicht eingerichtet“ | `CLOUDFLARE_ACCOUNT_ID` und `CLOUDFLARE_API_TOKEN` in `.env` eintragen, dann `docker compose up -d` |
+| „Cloudflare hat den API-Token abgelehnt“ | Token prüfen: Berechtigung „Workers AI“ gesetzt? Account-ID richtig? |
+| „kennt dieses Modell nicht“ | `TUTOR_MODELS` prüfen oder leer lassen |
+| „Der Tutor macht für heute Pause“ | Das kostenlose Tageskontingent ist aufgebraucht. Um 00:00 UTC geht es weiter. |
 
-Läuft OmniRoute direkt auf dem Server, muss es auf `0.0.0.0` lauschen (nicht nur auf `127.0.0.1`). Sonst kommt der Container nicht heran. Eine Firewall darf den Docker-Verkehr zum OmniRoute-Port nicht blockieren.
-
-Nach einer Änderung an der `.env` brauchst du: `docker compose up -d`
-
-**OmniRoute als Container auf demselben Server (so läuft die Live-Version)**
-
-Statt OmniRoute auf dem Server selbst zu installieren, läuft es als eigener Container im Netz von Codewerk. Dann muss es nicht auf `0.0.0.0` lauschen und ist von außen gar nicht erreichbar:
-
-```bash
-docker run -d --name omniroute --restart unless-stopped \
-  --network codewerk_default -p 127.0.0.1:20128:20128 \
-  -v omniroute-data:/app/data --env-file /opt/omniroute/.env --memory=1200m \
-  diegosouzapw/omniroute:latest
-```
-
-In der `.env` von Codewerk steht dann `OMNIROUTE_BASE_URL=http://omniroute:20128/v1`. Das Dashboard öffnest du über einen SSH-Tunnel (`ssh -L 20128:127.0.0.1:20128 …`, dann `http://localhost:20128`). Beim ersten Aufruf über den Tunnel fragt der Einrichtungsassistent nach einem einmaligen Bootstrap-Token; der steht in `docker logs omniroute`.
-
-**Ausweichmodell über eine Combo:** Lege in OmniRoute unter „Kombinationen“ eine Combo an (Strategie „Priorität“, z. B. erst ein Flash-Modell, dann ein Flash-Lite-Modell) und trage ihren **exakten Namen** als `OMNIROUTE_MODEL` ein. Ist das erste Modell am Limit, springt OmniRoute aufs nächste. Ein Präfix wie `combo/name` funktioniert nicht (OmniRoute liest „combo“ dann als Anbieter). Fällt ein Modell bei Google weg, änderst du nur die Combo, nicht Codewerk.
+Nach einer Änderung an der `.env` brauchst du: `docker compose up -d`. Ob alles klappt, zeigt der Selbsttest in `docker compose logs`.
 
 **Schutz vor Missbrauch (wenn Codewerk öffentlich erreichbar ist)**
 
-Jede Frage an den Tutor kostet über deinen API-Key Geld bzw. Kontingent. Damit niemand das ausnutzt, gibt es zwei Grenzen pro IP-Adresse:
+Jede Frage an den Tutor verbraucht Kontingent deines Cloudflare-Kontos. Damit niemand das ausnutzt, gibt es zwei Grenzen pro IP-Adresse:
 
 | Einstellung in `.env` | Standard | Was passiert, wenn sie erreicht ist |
 | --- | --- | --- |
@@ -192,7 +187,7 @@ docker compose exec codewerk npm run pruefen
 
 Das Skript lässt für **jede** Lektion die Musterlösung gegen ihre Tests laufen. Es meldet auch, wenn der Startcode schon alles besteht oder abstürzt. Ohne Docker: `npm run pruefen`.
 
-Für Änderungen an der Plattform selbst gibt es zusätzlich `npm test` (Ordner `test/`, Node-Test-Runner, keine Zusatzpakete). Die Tests starten den echten Server gegen ein nachgebautes OmniRoute und prüfen u. a. Sicherheits-Header, Lektionsnummern, dass die Musterlösung nie an den Browser geht und dass der Tutor-Stream unkomprimiert Wort für Wort ankommt.
+Für Änderungen an der Plattform selbst gibt es zusätzlich `npm test` (Ordner `test/`, Node-Test-Runner, keine Zusatzpakete). Die Tests starten den echten Server gegen einen nachgebauten KI-Dienst und prüfen u. a. Sicherheits-Header, Lektionsnummern, dass die Musterlösung nie an den Browser geht und dass der Tutor-Stream unkomprimiert Wort für Wort ankommt.
 
 **Schritt 4: Seite im Browser neu laden.** Die Lektion ist da. Es ist kein Neustart nötig, denn der Ordner `lessons` ist in den Container eingebunden und wird bei jeder Anfrage neu gelesen.
 
@@ -341,7 +336,7 @@ SetEnvIf Request_URI "^/api/chat" no-gzip=1
 Du brauchst Node.js 22.13 oder neuer (empfohlen: 24).
 
 ```bash
-cp .env.example .env     # und ausfüllen; bei OMNIROUTE_BASE_URL die echte Adresse eintragen, z. B. http://localhost:20128/v1
+cp .env.example .env     # und ausfüllen (für den Tutor CLOUDFLARE_ACCOUNT_ID und CLOUDFLARE_API_TOKEN)
 npm ci
 npm start
 ```
@@ -362,7 +357,7 @@ codewerk/
 │  ├─ auth.js              optionaler Passwortschutz
 │  ├─ lessons.js           liest die Ordner in lessons/ (ohne Musterlösung an den Browser)
 │  ├─ storage.js           Fortschritt als JSON im persönlichen Modus, atomar gespeichert
-│  └─ tutor.js             Prompt bauen, OmniRoute anfragen, Antwort streamen, Tagesbudget
+│  └─ tutor.js             Prompt bauen, Cloudflare Workers AI anfragen (mit Ausweichmodell), Antwort streamen, Tagesbudget, Selbsttest
 ├─ public/                 Frontend (reines JavaScript, kein Build-Schritt)
 │  ├─ index.html, css/app.css
 │  └─ js/
@@ -396,5 +391,4 @@ Monaco, die Schriften und der Parser `acorn` kommen aus `node_modules` und werde
 | Rote Wellenlinie im Editor | Das ist ein Schreibfehler im Code. Die Meldung des Editors ist englisch, die Meldung unter „Ausgabe“ ist deutsch |
 | „Nicht gespeichert – Server nicht erreichbar“ | Läuft der Container noch? Der Code bleibt im Editor und wird beim nächsten Mal gespeichert |
 | Hochgeladene Änderung ist nicht zu sehen | `docker compose up -d --build` (mit `--build`), danach im Browser `Strg + F5` |
-| Tutor: „Unable to determine provider for model …“ (400) | Den Namen gibt es in OmniRoute nicht: Combo gespeichert? Namen exakt so eintragen wie im Dashboard |
 | Tutor: „no longer available to new users“ (404) | Google hat das Modell abgeschaltet: in der Combo durch ein aktuelles Modell ersetzen |

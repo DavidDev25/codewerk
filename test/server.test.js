@@ -1,5 +1,5 @@
 'use strict';
-// Startet den echten Server (persönlicher Modus) gegen ein nachgebautes OmniRoute
+// Startet den echten Server (persönlicher Modus) gegen einen nachgebauten KI-Dienst (OpenAI-kompatibel wie Cloudflare Workers AI)
 // und prüft Header, Auslieferung, Lektions-API und den Tutor-Stream.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -52,9 +52,10 @@ test.before(async () => {
       GITHUB_CLIENT_SECRET: '',
       BASIC_AUTH_PASSWORD: '',
       TRUST_PROXY: '',
-      OMNIROUTE_BASE_URL: `http://127.0.0.1:${upstreamPort}/v1`,
-      OMNIROUTE_API_KEY: 'test-key',
-      OMNIROUTE_MODEL: 'tutor',
+      TUTOR_BASE_URL: `http://127.0.0.1:${upstreamPort}/v1`,
+      CLOUDFLARE_API_TOKEN: 'test-key',
+      TUTOR_MODELS: 'tutor',
+      TUTOR_SELFCHECK: '0',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });

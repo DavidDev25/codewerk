@@ -1007,6 +1007,9 @@ async function init() {
   });
   tutor.setConfigured(config.tutorConfigured, config.model);
   if (config.tutorLocked) tutor.setLocked();
+  else if (config.tutorConfigured && config.accounts && config.user && !(progress.ui && progress.ui.tutorAge16)) {
+    tutor.setAgeGate(() => api.saveUi({ tutorAge16: true }).then(() => { (state.progress.ui ||= {}).tutorAge16 = true; }));
+  }
   renderAccount(config);
   $('#guest-note').hidden = !api.isGuest();
 

@@ -447,6 +447,8 @@ a.btn { text-decoration: none; }
 .danger-zone .btn { margin: 4px 0 8px; }
 .notice-info { background: var(--accent-soft); color: var(--ink); border: 1px solid var(--accent); }
 .notice-info p { margin-bottom: .6em; }
+.age-check { display: flex; align-items: center; gap: 10px; min-height: 44px; margin-bottom: 8px; cursor: pointer; font-weight: 700; }
+.age-check input { width: 22px; height: 22px; accent-color: var(--accent); }
 .guest-note { margin: 0 18px 8px; padding: .6em .8em; border-radius: 10px; background: var(--accent-soft); line-height: 1.5; }
 .guest-note a { color: var(--accent); font-weight: 700; }
 .toast { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 60; max-width: min(34rem, calc(100vw - 24px)); padding: .7em 1.1em; border-radius: 12px; background: var(--surface); color: var(--ink); border: 1.5px solid var(--accent); box-shadow: 0 10px 30px rgba(0, 0, 0, .25); font-size: .92rem; }

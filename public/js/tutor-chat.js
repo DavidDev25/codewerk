@@ -164,7 +164,7 @@ export function createTutor({ root, getContext, onChange, onAsk }) {
       setup.hidden = ok;
       setup.className = 'notice notice-warn';
       if (!ok) {
-        setup.innerHTML = '<strong>Der Tutor ist noch nicht eingerichtet.</strong> Trage in der Datei <code>.env</code> die Werte <code>OMNIROUTE_API_KEY</code> und <code>OMNIROUTE_MODEL</code> ein und starte den Container neu. Alles andere funktioniert auch ohne Tutor.';
+        setup.innerHTML = '<strong>Der Tutor ist gerade nicht eingerichtet.</strong> Alles andere funktioniert auch ohne Tutor.';
       }
       void model;
     },
@@ -178,6 +178,30 @@ export function createTutor({ root, getContext, onChange, onAsk }) {
       root.querySelector('.quick').hidden = true;
       log.hidden = true;
       form.hidden = true;
+    },
+    setAgeGate(onConfirm) {
+      configured = false;
+      unavailable = 'Bitte bestätige zuerst oben, dass du mindestens 16 Jahre alt bist.';
+      setup.hidden = false;
+      setup.className = 'notice notice-info';
+      setup.innerHTML = '<p><strong>Der KI-Tutor ist ab 16 Jahren.</strong> Du schreibst dort mit einer künstlichen Intelligenz, nicht mit einem Menschen. Ihre Antworten können Fehler enthalten.</p>' +
+        '<label class="age-check"><input type="checkbox" id="age-confirm"> Ich bin mindestens 16 Jahre alt.</label>' +
+        '<button class="btn primary" type="button" id="age-confirm-btn" disabled>Tutor freischalten</button>';
+      const box = setup.querySelector('#age-confirm');
+      const btn = setup.querySelector('#age-confirm-btn');
+      box.addEventListener('change', () => { btn.disabled = !box.checked; });
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        try {
+          await onConfirm();
+          configured = true;
+          setup.hidden = true;
+          setup.innerHTML = '';
+        } catch (e) {
+          btn.disabled = false;
+          setup.insertAdjacentHTML('beforeend', '<p class="small">Das hat nicht geklappt. Bitte versuche es noch einmal.</p>');
+        }
+      });
     },
     focusInput() { input.focus(); },
   };

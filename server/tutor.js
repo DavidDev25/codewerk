@@ -3,20 +3,33 @@
    tutor.js – Der KI-Tutor.
 
    - baut den System-Prompt (Lektion, Code, Ausgabe, Testergebnisse, Musterlösung)
-   - schickt ihn an OmniRoute (OpenAI-kompatibel: POST {BASE_URL}/chat/completions)
+   - schickt ihn an Cloudflare Workers AI (OpenAI-kompatibel:
+     POST https://api.cloudflare.com/client/v4/accounts/<ID>/ai/v1/chat/completions)
+   - probiert bei einem Ausfall das nächste Modell aus TUTOR_MODELS
    - reicht die Antwort Stück für Stück (Streaming) an den Browser weiter
 
-   Der API-Key bleibt hier auf dem Server. Der Browser sieht ihn nie.
+   Der API-Token bleibt hier auf dem Server. Der Browser sieht ihn nie.
    Die Musterlösung geht NUR an die KI – nie an den Browser.
+   Es werden keine Namen oder Konto-Daten an die KI geschickt.
    ========================================================================== */
 
+// Nur Modelle unter Apache-2.0-Lizenz (keine zusätzlichen Kennzeichnungspflichten)
+const DEFAULT_MODELS = '@cf/mistralai/mistral-small-3.1-24b-instruct,@cf/qwen/qwen2.5-coder-32b-instruct';
+
 function config() {
+  const accountId = (process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
+  // TUTOR_BASE_URL nur für Tests oder einen anderen OpenAI-kompatiblen Anbieter
+  const base = process.env.TUTOR_BASE_URL || (accountId ? `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/v1` : '');
   return {
-    baseUrl: (process.env.OMNIROUTE_BASE_URL || 'http://host.docker.internal:20128/v1').replace(/\/+$/, ''),
-    apiKey: process.env.OMNIROUTE_API_KEY || '',
-    model: process.env.OMNIROUTE_MODEL || '',
+    baseUrl: base.replace(/\/+$/, ''),
+    apiKey: (process.env.CLOUDFLARE_API_TOKEN || '').trim(),
+    models: (process.env.TUTOR_MODELS || DEFAULT_MODELS).split(',').map((m) => m.trim()).filter(Boolean),
     dailyLimit: Number(process.env.TUTOR_LIMIT_PER_DAY) || 50,
   };
+}
+
+function isConfigured(cfg = config()) {
+  return Boolean(cfg.baseUrl && cfg.apiKey && cfg.models.length);
 }
 
 /* ------------------------------------------- Tagesbudget pro Konto bzw. IP-Adresse
@@ -155,23 +168,39 @@ function sse(res, data) {
   res.write('data: ' + JSON.stringify(data) + '\n\n');
 }
 
+/** Hat Cloudflare das kostenlose Tageskontingent (Neurons) aufgebraucht? */
+function isQuotaError(status, bodyText) {
+  return status === 429 || /4006|neuron|daily free allocation/i.test(String(bodyText || ''));
+}
+
+const PAUSE_TEXT = 'Der Tutor macht für heute Pause: Das kostenlose Tageskontingent ist aufgebraucht. Ab 1 Uhr nachts geht es weiter. Die Tests und alle Lektionen funktionieren natürlich trotzdem.';
+
 /** Macht aus technischen Fehlern verständliche deutsche Hinweise. */
 function friendlyError(err, cfg, status, bodyText) {
-  if (status === 401 || status === 403) return 'OmniRoute hat den API-Key abgelehnt. Prüfe OMNIROUTE_API_KEY in der .env.';
-  if (status === 404) return `OmniRoute kennt diese Adresse oder dieses Modell nicht (Fehler 404). Prüfe OMNIROUTE_BASE_URL und OMNIROUTE_MODEL. ${String(bodyText || '').slice(0, 160)}`;
-  if (status === 429) return 'OmniRoute meldet: zu viele Anfragen oder Limit erreicht. Warte kurz und versuche es nochmal.';
-  if (status) return `OmniRoute antwortet mit Fehler ${status}. ${String(bodyText || '').slice(0, 200)}`;
+  if (status === 401 || status === 403) return 'Cloudflare hat den API-Token abgelehnt. Prüfe CLOUDFLARE_API_TOKEN (Berechtigung „Workers AI“) und CLOUDFLARE_ACCOUNT_ID in der .env.';
+  if (status === 404 || status === 400) return `Cloudflare kennt dieses Modell oder diese Adresse nicht (Fehler ${status}). Prüfe TUTOR_MODELS und CLOUDFLARE_ACCOUNT_ID. ${String(bodyText || '').slice(0, 160)}`;
+  if (status) return `Der KI-Dienst antwortet mit Fehler ${status}. Versuche es gleich noch einmal.`;
   const code = err && (err.cause && err.cause.code || err.code);
   if (err && err.name === 'AbortError') return 'Die Antwort hat zu lange gedauert und wurde abgebrochen.';
   if (code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'EAI_AGAIN' || (err && /fetch failed/.test(err.message))) {
-    return `OmniRoute ist unter ${cfg.baseUrl} nicht erreichbar. Läuft es? Stimmen Adresse und Port (und extra_hosts in docker-compose.yml)?`;
+    return 'Der KI-Dienst ist gerade nicht erreichbar. Versuche es in ein paar Minuten noch einmal.';
   }
   return 'Unerwarteter Fehler beim Tutor: ' + (err && err.message);
 }
 
+function request(cfg, model, messages, signal, extra) {
+  return fetch(cfg.baseUrl + '/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + cfg.apiKey },
+    body: JSON.stringify({ model, messages, stream: true, temperature: 0.4, max_tokens: 700, ...extra }),
+    signal,
+  });
+}
+
 /**
- * Schickt die Anfrage an OmniRoute und streamt die Antwort als Server-Sent Events
+ * Schickt die Anfrage an Cloudflare Workers AI und streamt die Antwort als Server-Sent Events
  * an den Browser: {delta:"…"} … {done:true}  oder  {error:"…"}.
+ * Fällt ein Modell aus (5xx, 404), wird das nächste aus TUTOR_MODELS probiert.
  */
 async function streamTutor({ messages, req, res, budgetKey }) {
   const cfg = config();
@@ -179,12 +208,12 @@ async function streamTutor({ messages, req, res, budgetKey }) {
     'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'no-cache, no-transform',
     Connection: 'keep-alive',
-    'X-Accel-Buffering': 'no', // falls ein Reverse-Proxy (nginx) davor sitzt
+    'X-Accel-Buffering': 'no', // falls ein Reverse-Proxy davor sitzt
   });
   res.flushHeaders();
 
-  if (!cfg.apiKey || !cfg.model) {
-    sse(res, { error: 'Der Tutor ist noch nicht eingerichtet: Trage OMNIROUTE_API_KEY und OMNIROUTE_MODEL in die .env ein und starte neu.' });
+  if (!isConfigured(cfg)) {
+    sse(res, { error: 'Der Tutor ist noch nicht eingerichtet: Trage CLOUDFLARE_ACCOUNT_ID und CLOUDFLARE_API_TOKEN in die .env ein und starte neu.' });
     return res.end();
   }
 
@@ -201,25 +230,33 @@ async function streamTutor({ messages, req, res, budgetKey }) {
     clearTimeout(idleTimer);
     idleTimer = setTimeout(() => controller.abort(), 60000); // 60 s ohne Lebenszeichen
   };
-  // Browser hat den Chat geschlossen oder "Stopp" gedrückt -> Anfrage an OmniRoute abbrechen
+  // Browser hat den Chat geschlossen oder "Stopp" gedrückt -> Anfrage abbrechen
   res.on('close', () => { clearTimeout(idleTimer); controller.abort(); });
 
   try {
-    resetIdle();
-    const upstream = await fetch(cfg.baseUrl + '/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + cfg.apiKey },
-      body: JSON.stringify({ model: cfg.model, messages, stream: true, temperature: 0.4 }),
-      signal: controller.signal,
-    });
-
-    if (!upstream.ok) {
-      const text = await upstream.text().catch(() => '');
-      sse(res, { error: friendlyError(null, cfg, upstream.status, text) });
+    let upstream = null;
+    let lastStatus = 0;
+    let lastText = '';
+    for (const model of cfg.models) {
+      resetIdle();
+      const attempt = await request(cfg, model, messages, controller.signal);
+      if (attempt.ok) { upstream = attempt; break; }
+      lastStatus = attempt.status;
+      lastText = await attempt.text().catch(() => '');
+      if (isQuotaError(lastStatus, lastText)) {
+        sse(res, { delta: PAUSE_TEXT });
+        sse(res, { done: true });
+        return res.end();
+      }
+      if (lastStatus === 401 || lastStatus === 403) break;
+      console.warn(`Tutor: Modell ${model} antwortet mit ${lastStatus}, versuche das nächste.`);
+    }
+    if (!upstream) {
+      sse(res, { error: friendlyError(null, cfg, lastStatus, lastText) });
       return res.end();
     }
 
-    // Manche Modelle/Router antworten trotz stream:true mit normalem JSON.
+    // Manche Modelle antworten trotz stream:true mit normalem JSON.
     const type = upstream.headers.get('content-type') || '';
     if (type.includes('application/json')) {
       const json = await upstream.json();
@@ -244,14 +281,14 @@ async function streamTutor({ messages, req, res, budgetKey }) {
         if (data === '[DONE]') continue;
         try {
           const json = JSON.parse(data);
-          if (json.error) { sse(res, { error: friendlyError(null, cfg, 0, '') + ' ' + (json.error.message || '') }); return res.end(); }
+          if (json.error) { sse(res, { error: friendlyError(null, cfg, 0, '') }); return res.end(); }
           const delta = json.choices && json.choices[0] && json.choices[0].delta;
           // "reasoning_content" (Denk-Text mancher Modelle) bewusst ignorieren
           if (delta && typeof delta.content === 'string' && delta.content) { gotText = true; sse(res, { delta: delta.content }); }
         } catch (e) { /* unvollständige Zeile ignorieren */ }
       }
     }
-    if (!gotText) sse(res, { error: 'Das Modell hat keine Antwort geliefert. Prüfe OMNIROUTE_MODEL.' });
+    if (!gotText) sse(res, { error: 'Das Modell hat keine Antwort geliefert. Versuche es noch einmal.' });
     else sse(res, { done: true });
     res.end();
   } catch (err) {
@@ -264,4 +301,23 @@ async function streamTutor({ messages, req, res, budgetKey }) {
   }
 }
 
-module.exports = { buildMessages, streamTutor, config };
+/**
+ * Selbsttest beim Start: Jedes Modell bekommt eine winzige Anfrage, das Ergebnis
+ * steht im Protokoll (docker logs). So lässt sich die Einrichtung prüfen, ohne
+ * den Token zu kennen. Kostet nur wenige Neurons.
+ */
+async function selfCheck(log = console.log) {
+  const cfg = config();
+  if (!isConfigured(cfg)) { log('Tutor: nicht eingerichtet (CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN fehlen).'); return; }
+  for (const model of cfg.models) {
+    try {
+      const r = await request(cfg, model, [{ role: 'user', content: 'Antworte nur mit: ok' }], AbortSignal.timeout(20000), { stream: false, max_tokens: 5 });
+      const text = r.ok ? '' : (await r.text().catch(() => '')).slice(0, 160);
+      log(`Tutor-Selbsttest: ${model} → ${r.ok ? 'ok' : 'Fehler ' + r.status + (isQuotaError(r.status, text) ? ' (Tageskontingent aufgebraucht)' : '') + ' ' + text}`);
+    } catch (e) {
+      log(`Tutor-Selbsttest: ${model} → nicht erreichbar (${e.message})`);
+    }
+  }
+}
+
+module.exports = { buildMessages, streamTutor, config, isConfigured, selfCheck };
