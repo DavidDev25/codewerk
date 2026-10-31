@@ -127,14 +127,23 @@ code { font-size: .88em; background: var(--surface-2); border: 1px solid var(--l
 .kbd { font-family: var(--font-code); font-size: .7rem; font-weight: 400; opacity: .85; border: 1px solid currentColor; border-radius: 5px; padding: 0 .35em; }
 
 .topbar {
-  display: flex; align-items: center; gap: 16px;
-  padding: 10px 16px;
+  display: flex; align-items: center; gap: 12px 24px;
+  padding: 10px 20px; margin-bottom: 16px;
+  background: var(--surface); border-bottom: 1px solid var(--line);
 }
+.brand { display: flex; align-items: center; gap: 10px; flex: none; }
+.brand-mark { width: 34px; height: 34px; flex: none; }
+.bm-bg { fill: var(--accent); }
+.bm-code { fill: none; stroke: var(--accent-ink); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.bm-cursor { fill: var(--brass); }
+.brand-name { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; letter-spacing: -.01em; }
+#lesson-counter { font-family: var(--font-code); font-size: .68rem; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar-title { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .topbar-title h1 { font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .progress { display: flex; align-items: center; gap: 10px; }
-.progress-track { width: 140px; height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; }
-.progress-fill { height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .4s ease; }
+.progress-track { width: 160px; height: 8px; border-radius: 99px; background: var(--brass-track); overflow: hidden; }
+.progress-fill { height: 100%; width: 0; background: var(--brass); border-radius: 99px; transition: width .4s ease; }
+#progress-text { font-family: var(--font-code); font-size: .72rem; white-space: nowrap; }
 
 .layout {
   display: grid;
@@ -402,10 +411,13 @@ a.btn { text-decoration: none; }
   html, body { height: 100%; height: 100dvh; }
   body { grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
 
-  .topbar { position: relative; gap: 8px; padding: 8px 10px 10px; padding-top: max(8px, env(safe-area-inset-top)); }
+  .topbar { position: relative; gap: 8px; padding: 8px 10px 10px; padding-top: max(8px, env(safe-area-inset-top)); margin-bottom: 8px; }
+  .brand-name { display: none; }
+  .brand-mark { width: 30px; height: 30px; }
   .topbar .btn { min-height: 40px; padding: .3em .7em; font-size: .82rem; }
   .topbar-title h1 { font-size: 1.02rem; }
-  .topbar-title #lesson-counter { font-size: .72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar-title #lesson-counter { font-size: .62rem; }
+  .counter-extra { display: none; }
   .login-long, .account-name { display: none; }
   .login-short { display: inline; }
   .account-btn { padding: .2em; min-height: 40px; }

@@ -255,7 +255,8 @@ function renderLessonList() {
 function renderLessonTexts() {
   const l = state.lesson;
   $('#lesson-title').textContent = l.title;
-  $('#lesson-counter').textContent = `Lektion ${l.index} von ${state.lessons[state.lessons.length - 1].index} · ca. ${l.minutes} Min.`;
+  $('#lesson-counter').innerHTML = (l.chapter ? `<span class="counter-extra">${escapeHtml(l.chapter)} · </span>` : '') +
+    `Lektion ${l.index} von ${state.lessons[state.lessons.length - 1].index}<span class="counter-extra"> · ca. ${l.minutes} Min.</span>`;
   document.title = `${l.index}. ${l.title} – Codewerk`;
   $('#tab-verstehen').innerHTML = '<h2 class="sr-only">Erklärung</h2>' + renderMarkdown(l.explanation, { runnable: true }) +
     '<div class="next-hint"><button class="btn primary" type="button" data-goto="aufgabe">Weiter zur Aufgabe</button></div>';
