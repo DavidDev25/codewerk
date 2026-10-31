@@ -2,6 +2,6 @@
   "titel": "Variablen",
   "kapitel": "Teil 1 · Grundlagen",
   "minuten": 10,
-  "kurz": "Werte benennen und merken: let, const und Text mit Platzhaltern.",
-  "tipp": "Steckbrief-Reihenfolge: erst name und punkte anlegen, dann punkte erhöhen, erst danach die Nachricht bauen – sonst steht in der Nachricht noch die alte Zahl."
+  "kurz": "Werte unter einem Namen merken: mit const und let, und Werte in einen Text einsetzen.",
+  "tipp": "Halte die Reihenfolge ein: Erst name und punkte anlegen, dann punkte erhöhen, erst danach den Satz bauen. Sonst steht im Satz noch die alte Zahl."
 }

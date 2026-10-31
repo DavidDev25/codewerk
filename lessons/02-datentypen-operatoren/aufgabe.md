@@ -1,10 +1,44 @@
-## Aufgabe: Kasse im Café
+## Aufgabe: Die Kasse im Café
 
-Die Werte `preis`, `anzahl` und `eingabe` gibt es schon. `eingabe` kommt aus einem Formular und ist deshalb ein Text.
+Drei Kaffee à 4,50 € plus Trinkgeld. Du rechnest aus, was bezahlt wird. Die Werte `preis`, `anzahl` und `eingabe` stehen schon im Editor.
 
-1. `const gesamt` ist `preis` mal `anzahl`.
-2. `const istGerade` ist `true`, wenn `anzahl` gerade ist. Nutze `%` und `===`.
-3. `const trinkgeld` ist `eingabe` als **Zahl**.
-4. `const bezahlt` ist `gesamt` plus `trinkgeld`. Es muss eine Zahl herauskommen, kein zusammengeklebter Text.
-5. `const typVonEingabe` ist der Typ von `eingabe` (mit `typeof`).
-6. Gib `bezahlt` mit `console.log` aus.
+Am Ende soll unter **Ausgabe** das hier stehen:
+
+```
+15.5
+```
+
+### Schritt 1: Der Gesamtpreis
+
+Lege `const gesamt` an. Darin steht `preis` mal `anzahl`. Malnehmen geht mit `*`.
+
+### Schritt 2: Gerade oder ungerade?
+
+Lege `const istGerade` an. Sie soll `true` sein, wenn `anzahl` gerade ist, sonst `false`.
+
+So gehst du vor:
+
+1. Rechne den Rest beim Teilen durch 2 aus: `anzahl % 2`.
+2. Vergleiche diesen Rest mit `=== 0`.
+
+Bei 3 Kaffee kommt `false` heraus, denn 3 ist ungerade.
+
+### Schritt 3: Das Trinkgeld als Zahl
+
+`eingabe` kommt aus einem Formular. Deshalb steht dort der **Text** `"2"`, keine Zahl.
+
+Lege `const trinkgeld` an und mach aus `eingabe` mit `Number(…)` eine echte Zahl.
+
+### Schritt 4: Was bezahlt wird
+
+Lege `const bezahlt` an: `gesamt` plus `trinkgeld`.
+
+Wichtig: Nimm `trinkgeld`, nicht `eingabe`. Mit `eingabe` würde JavaScript Text zusammenkleben, und heraus käme `13.52` statt `15.5`.
+
+### Schritt 5: Den Typ nachsehen
+
+Lege `const typVonEingabe` an. Darin steht der Typ von `eingabe`, den du mit `typeof` herausfindest.
+
+### Schritt 6: Ausgeben
+
+Gib `bezahlt` mit `console.log` aus.

@@ -1,7 +1,9 @@
 ## Die Kurzschreibweise mit =>
 
+Funktionen kannst du auch kürzer schreiben, mit einem Pfeil `=>`. Man nennt sie **Arrow-Funktionen**. Sie tun dasselbe wie normale Funktionen, nur mit weniger Worten.
+
 :::alltag
-Eine normale Funktion ist wie ein ausführliches Rezept mit Überschrift. Eine **Arrow-Funktion** ist wie ein Notizzettel am Kühlschrank: „Brot → toasten“. Gleiche Arbeit, weniger Worte.
+Eine normale Funktion ist wie ein ausführliches Rezept mit Überschrift. Eine Arrow-Funktion ist wie ein Notizzettel am Kühlschrank: „Brot → toasten“. Gleiche Arbeit, weniger Worte.
 :::
 
 Diese drei Funktionen machen genau dasselbe:
@@ -20,13 +22,16 @@ const verdoppeln3 = (zahl) => zahl * 2;
 console.log(verdoppeln1(4), verdoppeln2(4), verdoppeln3(4));
 ```
 
-- Eine Arrow-Funktion speicherst du in einer Variable, meist mit `const`.
-- Besteht sie nur aus **einem Ausdruck**, kannst du die geschweiften Klammern und `return` weglassen. Das Ergebnis wird automatisch zurückgegeben.
-- Mit geschweiften Klammern brauchst du `return` wieder.
+Die Ausgabe ist dreimal 8. Was sich bei den Arrow-Funktionen ändert:
+
+- Du speicherst die Funktion in einer Variable, meist mit `const`.
+- Die Eingaben stehen in runden Klammern, danach kommt der Pfeil `=>`.
+- Steht hinter dem Pfeil nur eine einzige Rechnung, darfst du die geschweiften Klammern und `return` weglassen. Das Ergebnis wird dann automatisch zurückgegeben. So ist es bei `verdoppeln3`.
+- Mit geschweiften Klammern brauchst du `return` wieder, wie bei `verdoppeln2`.
 
 ## Standardwerte
 
-Ein Parameter kann einen **Standardwert** bekommen. Er gilt, wenn beim Aufruf nichts übergeben wird:
+Eine Eingabe kann einen **Standardwert** bekommen. Er gilt, wenn beim Aufruf nichts übergeben wird:
 
 ```js
 const gruss = (name = "Gast") => `Hallo ${name}!`;
@@ -34,11 +39,11 @@ console.log(gruss("Mara"));
 console.log(gruss());
 ```
 
-Das geht genauso bei normalen Funktionen: `function gruss(name = "Gast") { … }`
+Die Ausgabe ist `Hallo Mara!` und dann `Hallo Gast!`. Beim zweiten Aufruf fehlt der Name, deshalb springt der Standardwert ein. Das geht bei normalen Funktionen genauso: `function gruss(name = "Gast") { … }`.
 
-## Funktionen sind Werte
+## Funktionen kann man weitergeben
 
-Eine Funktion ist ein Wert wie eine Zahl oder ein Text. Du kannst sie in Variablen speichern und **an andere Funktionen übergeben**:
+Eine Funktion ist ein Wert, genau wie eine Zahl oder ein Text. Du kannst sie in einer Variable speichern und sogar einer anderen Funktion übergeben:
 
 ```js
 const laut = (text) => text.toUpperCase() + "!";
@@ -52,6 +57,6 @@ console.log(sagen("Hallo", laut));
 console.log(sagen("Hallo", leise));
 ```
 
-`sagen` weiß nicht, **wie** der Text verändert wird. Das entscheidet die Funktion, die du mitgibst. Eine übergebene Funktion heißt **Callback**. Dieses Muster brauchst du später ständig, zum Beispiel bei den Array-Methoden.
+Die Ausgabe ist `HALLO!` und dann `hallo…`. Die Funktion `sagen` weiß selbst nicht, wie der Text verändert wird. Das entscheidet die Funktion, die du ihr mitgibst. Eine Funktion, die du so übergibst, heißt **Callback**. Dieses Muster brauchst du später ständig, zum Beispiel bei Listen.
 
-Achte auf den Unterschied: `laut` ist die Funktion selbst, `laut("x")` ist ihr **Ergebnis**. Übergeben wird die Funktion, also ohne Klammern.
+Achte dabei auf die Klammern: `laut` ist die Funktion selbst, `laut("x")` ist schon ihr Ergebnis. Übergeben willst du die Funktion, also schreibst du `laut` ohne Klammern.

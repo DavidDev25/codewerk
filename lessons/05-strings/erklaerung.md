@@ -1,7 +1,9 @@
 ## Ein Text ist eine Perlenkette
 
+Texte heißen in JavaScript **Strings**. Ein String besteht aus einzelnen Zeichen, die hintereinander stehen. Jedes Zeichen hat eine Nummer, mit der du es erreichen kannst.
+
 :::alltag
-Stell dir einen Text als Perlenkette vor: Jede Perle ist ein Zeichen, und jede Perle hat eine Hausnummer. Die erste Perle hat die Nummer **0**, nicht 1.
+Stell dir einen Text als Perlenkette vor. Jede Perle ist ein Zeichen, und jede Perle hat eine Hausnummer. Die erste Perle hat die Nummer 0, nicht 1.
 :::
 
 ```js
@@ -12,12 +14,16 @@ console.log(wort[wort.length - 1]);
 console.log(wort.at(-1));
 ```
 
-- `length` ist die Anzahl der Zeichen.
-- `wort[0]` ist das erste Zeichen. `at(-1)` zählt von hinten.
+Die Ausgabe ist 8, dann `C`, dann zweimal `k`.
+
+- `length` ist die Anzahl der Zeichen. „Codewerk“ hat 8.
+- `wort[0]` ist das erste Zeichen, weil das Zählen bei 0 beginnt.
+- Das letzte Zeichen hat deshalb die Nummer `length - 1`, also 7.
+- Einfacher geht es mit `at(-1)`. Negative Zahlen zählen von hinten.
 
 ## Werkzeuge für Texte
 
-Ein Text bringt viele **Methoden** mit. Du rufst sie mit einem Punkt auf:
+Ein String bringt viele eingebaute Werkzeuge mit. Man nennt sie **Methoden**. Du rufst sie mit einem Punkt hinter dem Text auf:
 
 ```js
 const eingabe = "  Hallo Welt  ";
@@ -31,15 +37,19 @@ console.log("1-2-3".replaceAll("-", "+"));
 console.log("7".padStart(3, "0"));
 ```
 
-| Methode | Ergebnis |
+Probier das Beispiel aus und vergleiche die Ausgabe mit dieser Tabelle:
+
+| Methode | Was sie macht |
 | --- | --- |
-| `trim()` | ohne Leerzeichen am Anfang und Ende |
-| `toUpperCase()`, `toLowerCase()` | alles groß oder klein |
-| `includes(x)` | `true`, wenn `x` irgendwo vorkommt |
+| `trim()` | entfernt Leerzeichen am Anfang und am Ende |
+| `toUpperCase()`, `toLowerCase()` | macht alles groß oder alles klein |
+| `includes(x)` | `true`, wenn `x` irgendwo im Text vorkommt |
 | `startsWith(x)`, `endsWith(x)` | `true`, wenn der Text so anfängt oder endet |
-| `slice(von, bis)` | ein Stück; `bis` gehört nicht mehr dazu |
-| `replaceAll(alt, neu)` | jedes `alt` wird zu `neu` |
-| `padStart(länge, zeichen)` | vorne auffüllen, z. B. für `007` |
+| `slice(von, bis)` | schneidet ein Stück heraus; das Zeichen bei `bis` gehört nicht mehr dazu |
+| `replaceAll(alt, neu)` | ersetzt jedes `alt` durch `neu` |
+| `padStart(länge, zeichen)` | füllt vorne auf, zum Beispiel aus `7` wird `007` |
+
+`"Nürnberg".slice(0, 3)` ergibt `Nür`: die Zeichen 0, 1 und 2. Das Zeichen Nummer 3 ist nicht mehr dabei.
 
 ## Texte ändern sich nie
 
@@ -53,4 +63,6 @@ name = name.trim();
 console.log(`[${name}]`);
 ```
 
-Methoden lassen sich auch verketten: `text.trim().toLowerCase()` entfernt erst die Leerzeichen und macht dann alles klein.
+Die erste Ausgabe ist `[  mara ]`, die Leerzeichen sind noch da. Die Zeile `name.trim();` hat zwar einen sauberen Text erzeugt, ihn aber nirgends gespeichert. Erst `name = name.trim();` speichert das Ergebnis. Die zweite Ausgabe ist deshalb `[mara]`.
+
+Du kannst Methoden auch hintereinander hängen: `text.trim().toLowerCase()` entfernt erst die Leerzeichen und macht dann alles klein.

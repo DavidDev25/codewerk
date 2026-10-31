@@ -1,8 +1,14 @@
 ## Eine Funktion ist eine kleine Maschine
 
+Manche Dinge braucht ein Programm immer wieder, zum Beispiel eine Zahl verdoppeln oder einen Gruß bauen. Damit du den Code dafür nicht jedes Mal neu schreibst, packst du ihn in eine **Funktion**. Eine Funktion bekommt etwas hinein und gibt ein Ergebnis zurück.
+
 :::alltag
-Ein Mixer: Du wirfst Obst hinein (Eingabe), drückst den Knopf und bekommst einen Saft heraus (Ergebnis). Du musst nicht jedes Mal neu überlegen, wie Mixen geht.
+Denk an einen Mixer. Du wirfst Obst hinein, drückst den Knopf und bekommst Saft heraus. Wie das Mixen funktioniert, musst du nicht jedes Mal neu überlegen.
 :::
+
+## Eine Funktion schreiben und benutzen
+
+So sieht eine Funktion aus, die eine Zahl verdoppelt:
 
 ```js
 function verdoppeln(zahl) {
@@ -12,11 +18,28 @@ function verdoppeln(zahl) {
 console.log(verdoppeln(4));
 ```
 
-- `zahl` ist die **Eingabe** (Parameter).
-- `return` gibt das **Ergebnis** zurück.
-- Mit `verdoppeln(4)` **rufst** du die Funktion auf.
+Die Ausgabe ist 8. Die einzelnen Teile:
 
-Eine Funktion ohne `return` gibt `undefined` zurück:
+- `function verdoppeln` gibt der Funktion einen Namen.
+- `zahl` in den runden Klammern ist die Eingabe. Man nennt sie **Parameter**.
+- `return` gibt das Ergebnis zurück.
+- `verdoppeln(4)` **ruft** die Funktion auf. Dabei wird `zahl` zu 4.
+
+Eine Funktion kann auch mehrere Eingaben haben. Du trennst sie mit Kommas:
+
+```js
+function addiere(a, b) {
+  return a + b;
+}
+
+console.log(addiere(2, 3));
+```
+
+Die Ausgabe ist 5.
+
+## Ohne return kommt nichts zurück
+
+Ein häufiger Fehler: Die Funktion rechnet zwar, gibt aber nichts zurück.
 
 ```js
 function vergesslich(zahl) {
@@ -26,4 +49,6 @@ function vergesslich(zahl) {
 console.log(vergesslich(4));
 ```
 
-Auch mehrere Eingaben sind möglich: `function addiere(a, b) { return a + b; }`
+Die Ausgabe ist `undefined`. Die Funktion hat 8 ausgerechnet, das Ergebnis aber nicht mit `return` herausgegeben. Es geht verloren.
+
+Auch `console.log` in einer Funktion ersetzt kein `return`. `console.log` zeigt einen Wert nur an. Mit dem Ergebnis weiterrechnen kannst du nur, wenn die Funktion es mit `return` zurückgibt.

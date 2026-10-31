@@ -7,7 +7,7 @@ test('`punkte` steht am Ende auf 10', () => {
 });
 
 test('`nachricht` hat das richtige Format', () => {
-  expect(nachricht, 'Format: Hallo <name>, du hast <punkte> Punkte.').toBe(`Hallo ${name}, du hast 10 Punkte.`);
+  expect(nachricht, 'So soll der Satz aussehen: Hallo Mara, du hast 10 Punkte. Nimm Backticks und ${name} und ${punkte}.').toBe(`Hallo ${name}, du hast 10 Punkte.`);
 });
 
 test('Die Nachricht wird mit console.log ausgegeben', () => {
