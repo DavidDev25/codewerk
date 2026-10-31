@@ -2,65 +2,77 @@
 @font-face { font-family: "Atkinson Hyperlegible"; font-weight: 700; font-style: normal; font-display: swap; src: url("/vendor/fonts/atkinson-hyperlegible-latin-700-normal.woff2") format("woff2"); }
 @font-face { font-family: "JetBrains Mono"; font-weight: 400; font-style: normal; font-display: swap; src: url("/vendor/fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2"); }
 @font-face { font-family: "JetBrains Mono"; font-weight: 600; font-style: normal; font-display: swap; src: url("/vendor/fonts/jetbrains-mono-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 700; font-style: normal; font-display: swap; src: url("/vendor/fonts/jetbrains-mono-latin-700-normal.woff2") format("woff2"); }
 
 :root {
   --font-ui: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-code: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-display: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
-  --bg: #E9EFEE;
+  --bg: #F5F8F8;
   --surface: #FFFFFF;
-  --surface-2: #F4F8F7;
-  --ink: #1B2B2A;
-  --muted: #536968;
-  --line: #D0DBD9;
-  --accent: #226B74;
+  --surface-2: #E9EFEF;
+  --ink: #141C1E;
+  --muted: #566A6D;
+  --line: #D5DEDF;
+  --accent: #1B5E67;
   --accent-ink: #FFFFFF;
-  --accent-soft: #DAEDEF;
-  --ok: #276E47;
+  --accent-soft: #DFF0F1;
+  --accent-strong: #1B5E67;
+  --brass: #DDB04A;
+  --brass-ink: #7A5A12;
+  --brass-soft: #FAF1D9;
+  --brass-track: #F2DFA8;
+  --ok: #23683F;
   --ok-soft: #DCF0E4;
-  --bad: #A23A2A;
+  --bad: #A33627;
   --bad-soft: #F8E4DF;
-  --warn: #7E5300;
+  --warn: #7D5000;
   --warn-soft: #F7EBCD;
   --focus: #0B5FD0;
 
-  --c-var: #226B74;
-  --c-object: #5A6B7B;
+  --c-var: #1B5E67;
+  --c-object: #566A6D;
   --c-array: #2E6FA3;
-  --c-instance: #A8651A;
+  --c-instance: #8F5514;
   --c-class: #7452B0;
 
-  --shadow: 0 1px 2px rgba(20, 40, 40, .06), 0 6px 20px rgba(20, 40, 40, .05);
-  --radius: 14px;
+  --shadow: 0 1px 2px rgba(13, 19, 20, .05), 0 4px 14px rgba(13, 19, 20, .04);
+  --radius: 12px;
   --gap: 16px;
   color-scheme: light;
 }
 
 :root[data-theme="dark"] {
-  --bg: #111819;
-  --surface: #1A2425;
-  --surface-2: #213031;
-  --ink: #E4EEEC;
-  --muted: #9DB2B0;
-  --line: #2E4143;
-  --accent: #6FC1C9;
-  --accent-ink: #0E2123;
-  --accent-soft: #23454A;
-  --ok: #7BD0A1;
+  --bg: #0D1314;
+  --surface: #141C1E;
+  --surface-2: #1A2527;
+  --ink: #E9EFEF;
+  --muted: #8DA0A2;
+  --line: #304245;
+  --accent: #78C3CA;
+  --accent-ink: #0B2A2F;
+  --accent-soft: #134A52;
+  --accent-strong: #B3DDE1;
+  --brass: #DDB04A;
+  --brass-ink: #DDB04A;
+  --brass-soft: #2B2410;
+  --brass-track: #3A3118;
+  --ok: #7FD3A2;
   --ok-soft: #1F3E2E;
-  --bad: #F29A88;
+  --bad: #F4A08F;
   --bad-soft: #442620;
-  --warn: #E6BE6A;
+  --warn: #EBC26D;
   --warn-soft: #3F3217;
-  --focus: #7DB4FF;
+  --focus: #82B8FF;
 
-  --c-var: #6FC1C9;
+  --c-var: #78C3CA;
   --c-object: #9DB0C2;
   --c-array: #7DB5E8;
   --c-instance: #E2A458;
   --c-class: #B79AE6;
 
-  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px rgba(0, 0, 0, .25);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 14px rgba(0, 0, 0, .2);
   color-scheme: dark;
 }
 
@@ -81,7 +93,7 @@ body {
   grid-template-columns: minmax(0, 1fr);
   -webkit-font-smoothing: antialiased;
 }
-h1, h2, h3, h4 { line-height: 1.25; margin: 0; }
+h1, h2, h3, h4 { line-height: 1.25; margin: 0; font-family: var(--font-display); font-weight: 700; letter-spacing: -.01em; text-wrap: balance; }
 p { margin: 0 0 .9em; }
 code, pre, kbd { font-family: var(--font-code); }
 code { font-size: .88em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: .05em .35em; }
@@ -356,6 +368,7 @@ dialog::backdrop { background: rgba(10, 20, 20, .5); }
 .lesson-item { width: 100%; text-align: left; font: inherit; display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; border: 1.5px solid transparent; background: transparent; color: var(--ink); cursor: pointer; }
 .lesson-item:hover { background: var(--surface-2); }
 .lesson-item.is-current { border-color: var(--accent); background: var(--accent-soft); }
+.lesson-item.is-current .lesson-meta { color: var(--accent-strong); }
 .lesson-status { width: 1.6em; height: 1.6em; flex: none; display: grid; place-items: center; font-weight: 700; color: var(--ok); margin-top: .1em; }
 .lesson-text { display: flex; flex-direction: column; }
 .lesson-name { font-weight: 700; }
