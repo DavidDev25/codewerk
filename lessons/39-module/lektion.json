@@ -1,0 +1,7 @@
+{
+  "titel": "Module",
+  "kapitel": "Teil 4 · Fortgeschritten",
+  "minuten": 15,
+  "kurz": "Große Programme auf Dateien verteilen mit export und import, und was ein Modul im Kern ausmacht: privat drinnen, öffentlich nur das Nötige.",
+  "tipp": "Das Muster: const rechner = (() => { const verlauf = []; function addiere(a, b) { … } return { addiere, anzahlRechnungen }; })(); Was nicht im return-Objekt steht, bleibt privat."
+}

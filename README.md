@@ -1,12 +1,13 @@
 # Codewerk – deine persönliche JavaScript-Lernplattform
 
-Codewerk bringt dir JavaScript bei, von den Grundlagen über die objektorientierte Programmierung (OOP) bis zu asynchronem Code. Es gibt eine Einstiegslektion (Lektion 0 „So funktioniert Codewerk“) und 38 kurze Lektionen in drei Kapiteln, jedes mit einem Abschlussprojekt:
+Codewerk bringt dir JavaScript bei, von den Grundlagen über die objektorientierte Programmierung (OOP) bis zu asynchronem Code. Es gibt eine Einstiegslektion (Lektion 0 „So funktioniert Codewerk“) und 43 kurze Lektionen in vier Kapiteln, jedes mit einem Abschlussprojekt:
 
 | Kapitel | Lektionen | Inhalt |
 | --- | --- | --- |
 | Teil 1 · Grundlagen | 1–21 | Variablen, Datentypen, Funktionen, Bedingungen, Strings, Zahlen, Arrow-Funktionen, Arrays, Schleifen, Objekte, Referenzen, Destructuring, `?.`/`??`, Closures, Array-Methoden, JSON, Map & Set, Rekursion |
 | Teil 2 · Objektorientierung | 22–32 | `this`, Klassen, `#private`, Getter/Setter, Vererbung, `super`, Polymorphie, Komposition, Prototypen |
 | Teil 3 · Fehler & Asynchron | 33–38 | Fehlerbehandlung, Callbacks & Timer, Promises, async/await, `fetch` mit eingebauter Übungs-API |
+| Teil 4 · Fortgeschritten | 39–43 | Module, Iteratoren & Generatoren, reguläre Ausdrücke, Datum & `Intl` |
 
 Jede Lektion hat eine kleine Erklärung, eine Aufgabe, automatische Tests, ein Diagramm deines Codes und einen KI-Tutor.
 
@@ -152,7 +153,7 @@ Jede Lektion ist ein Ordner in `lessons/`. Die Reihenfolge ergibt sich aus dem O
 **Schritt 1: Vorlage kopieren**
 
 ```bash
-cp -r lessons/_vorlage lessons/39-mein-thema
+cp -r lessons/_vorlage lessons/44-mein-thema
 ```
 
 In `lektion.json` legt `kapitel` fest, unter welcher Überschrift die Lektion in der Liste erscheint. Lektionen eines Kapitels müssen direkt hintereinander stehen, und die Nummern müssen lückenlos sein (beides prüft `npm test`).

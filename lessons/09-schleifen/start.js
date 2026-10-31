@@ -12,4 +12,12 @@ function einsBis(n) {
 
 }
 
+function ersteNegative(zahlen) {
+
+}
+
+function verdoppelnBis(start, grenze) {
+
+}
+
 console.log(summe([1, 2, 3]));

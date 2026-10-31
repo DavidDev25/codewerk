@@ -1,0 +1,7 @@
+{
+  "titel": "Datum & Intl",
+  "kapitel": "Teil 4 · Fortgeschritten",
+  "minuten": 18,
+  "kurz": "Mit Datum und Zeit rechnen und Daten, Zahlen und Preise so anzeigen, wie man es in Deutschland erwartet.",
+  "tipp": "Zwei Daten voneinander abziehen ergibt Millisekunden. Ein Tag hat 24 * 60 * 60 * 1000 davon. Bei Intl.DateTimeFormat immer timeZone: \"UTC\" mitgeben, wenn du mit Daten wie \"2026-12-24\" arbeitest."
+}

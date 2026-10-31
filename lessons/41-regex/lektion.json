@@ -1,0 +1,7 @@
+{
+  "titel": "Reguläre Ausdrücke",
+  "kapitel": "Teil 4 · Fortgeschritten",
+  "minuten": 20,
+  "kurz": "Muster in Texten finden, prüfen und ersetzen: Postleitzahlen, Zahlen, Datumsangaben und E-Mail-Adressen.",
+  "tipp": "^ und $ verankern am Anfang und Ende: /^\\d{5}$/ passt nur, wenn der GANZE Text aus fünf Ziffern besteht. Beim Ersetzen holst du Gruppen mit $1, $2, $3 zurück."
+}

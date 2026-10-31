@@ -1,0 +1,7 @@
+{
+  "titel": "Iteratoren & Generatoren",
+  "kapitel": "Teil 4 · Fortgeschritten",
+  "minuten": 18,
+  "kurz": "Werte einen nach dem anderen erzeugen mit function* und yield, auch unendlich viele, und eigene Objekte für for…of durchlaufbar machen.",
+  "tipp": "Ein Generator hat einen Stern: function* zaehleBis(n) { for (…) yield i; } Für erste(gen, n) holst du mit for…of Werte und hörst mit break auf, sobald du n hast."
+}

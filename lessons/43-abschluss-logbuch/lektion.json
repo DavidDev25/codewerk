@@ -1,0 +1,7 @@
+{
+  "titel": "Abschlussprojekt: Server-Logbuch",
+  "kapitel": "Teil 4 · Fortgeschritten",
+  "minuten": 30,
+  "kurz": "Ein echtes Problem aus dem Programmieralltag: Log-Zeilen mit RegEx zerlegen, mit einem Generator filtern, zählen und den Bericht mit Intl ausgeben.",
+  "tipp": "Die RegEx für eine Zeile: /^(\\d{4}-\\d{2}-\\d{2}) (\\d{2}:\\d{2}) (INFO|WARNUNG|FEHLER) (.+)$/. Passt sie nicht, gib null zurück. bericht nutzt zeileLesen, nurFehler und Intl.DateTimeFormat mit timeZone: \"UTC\"."
+}

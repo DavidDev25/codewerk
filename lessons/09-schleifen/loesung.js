@@ -24,4 +24,23 @@ function einsBis(n) {
   return ergebnis;
 }
 
+function ersteNegative(zahlen) {
+  for (const zahl of zahlen) {
+    if (zahl < 0) {
+      return zahl;
+    }
+  }
+  return null;
+}
+
+function verdoppelnBis(start, grenze) {
+  let wert = start;
+  let anzahl = 0;
+  while (wert < grenze) {
+    wert *= 2;
+    anzahl++;
+  }
+  return anzahl;
+}
+
 console.log(summe([1, 2, 3]));
