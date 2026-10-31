@@ -1,10 +1,10 @@
 ## Funktionen als Bausteine
 
-Du weißt schon: Funktionen sind Werte (Lektion 8) und können sich mit Closures Dinge merken (Lektion 16). Daraus entstehen drei Techniken, die Profis ständig nutzen.
+Zwei Dinge weißt du schon über Funktionen. Aus Lektion 8 weißt du, dass man sie wie Werte speichern und weitergeben kann. Aus Lektion 16 weißt du, dass sie sich Werte merken können. Aus diesen beiden Dingen entstehen drei Techniken, die erfahrene Entwickler ständig benutzen.
 
-## Currying: ein Wert nach dem anderen
+## Werte einzeln übergeben
 
-Eine **gecurryte** Funktion nimmt ihre Werte nicht auf einmal, sondern einzeln, und gibt dazwischen jeweils eine neue Funktion zurück:
+Eine Funktion kann ihre Werte auch einzeln nehmen statt alle auf einmal. Nach jedem Wert gibt sie eine neue Funktion zurück, die auf den nächsten wartet. Das nennt man **Currying**.
 
 ```js
 const multipliziere = (a) => (b) => a * b;
@@ -14,15 +14,17 @@ const verdreifachen = multipliziere(3);
 console.log(verdoppeln(5), verdreifachen(5), multipliziere(4)(10));
 ```
 
-So baust du aus einer allgemeinen Funktion schnell spezielle Helfer. `verdoppeln` „merkt“ sich die 2 in einer Closure.
+`multipliziere(2)` rechnet noch nichts. Es liefert eine neue Funktion, die sich die 2 merkt. Diese Funktion speicherst du als `verdoppeln`. Ausgegeben werden 10, 15 und 40. Bei `multipliziere(4)(10)` passiert beides direkt hintereinander: erst kommt die 4, dann die 10.
 
-## Komposition: Funktionen hintereinanderschalten
+So baust du aus einer allgemeinen Funktion schnell kleine Helfer für einen bestimmten Zweck.
+
+## Funktionen hintereinanderschalten
 
 :::alltag
-Ein Fließband in der Bäckerei: Teig kneten → formen → backen → verpacken. Jede Station macht eine Sache und gibt das Ergebnis an die nächste weiter.
+Denk an ein Fließband in der Bäckerei. Erst wird der Teig geknetet, dann geformt, dann gebacken und zum Schluss verpackt. Jede Station macht eine Sache und gibt das Ergebnis an die nächste weiter.
 :::
 
-`pipe` verbindet mehrere Funktionen zu einer. Das Ergebnis der einen wird zur Eingabe der nächsten:
+Die Funktion `pipe` baut so ein Fließband. Sie bekommt mehrere Funktionen und verbindet sie zu einer einzigen. Was die erste Funktion zurückgibt, bekommt die zweite, und so weiter. Diese Technik heißt **Komposition**.
 
 ```js
 function pipe(...funktionen) {
@@ -38,11 +40,15 @@ const aufraeumen = pipe(
 console.log(aufraeumen("  Hallo Schöne Welt "));
 ```
 
-Jede Funktion bleibt klein und einzeln testbar. Neue Schritte steckst du einfach dazu.
+Heraus kommt „hallo-schöne-welt“. Zuerst schneidet `trim` die Leerzeichen am Rand ab. Dann macht `toLowerCase` alles klein. Zum Schluss ersetzt `replaceAll` die Leerzeichen durch Bindestriche.
 
-## Memoization: einmal rechnen, dann merken
+Innen benutzt `pipe` die Methode `reduce`. Der Startwert ist der Text. Jede Funktion bekommt das bisherige Ergebnis und liefert das nächste.
 
-Manche Berechnungen sind teuer und werden mit denselben Werten immer wieder aufgerufen. **Memoization** merkt sich Ergebnisse in einer Map:
+Jede Station bleibt klein und lässt sich einzeln testen. Brauchst du einen weiteren Schritt, schreibst du einfach eine Funktion dazu.
+
+## Einmal rechnen, dann merken
+
+Manche Berechnungen dauern lange und werden trotzdem immer wieder mit denselben Werten aufgerufen. Dann lohnt es sich, jedes Ergebnis in einer Map zu speichern. Beim nächsten Mal holst du es von dort, statt neu zu rechnen. Das nennt man **Memoization**.
 
 ```js
 function merken(fn) {
@@ -66,6 +72,8 @@ schnell(9);
 console.log(aufrufe);
 ```
 
-Besonders stark ist das bei Rekursion (Lektion 24). Die einfache Fibonacci-Funktion rechnet dieselben Werte millionenfach neu aus. Mit `merken` wird jede Zahl nur **einmal** berechnet.
+Ausgegeben wird 1. `schnell` wurde dreimal mit 9 aufgerufen, aber `langsamQuadrat` hat nur einmal gerechnet. Beim zweiten und dritten Mal stand das Ergebnis schon in `speicher`, und `merken` hat es von dort geholt.
 
-Memoization lohnt sich nur bei **reinen** Funktionen: gleiche Eingabe, immer gleiches Ergebnis, keine Nebenwirkungen.
+Besonders viel bringt das bei Funktionen, die sich selbst aufrufen, wie in Lektion 24. Eine einfache Fibonacci-Funktion rechnet dieselben Zahlen millionenfach neu aus. Mit `merken` wird jede Zahl nur **einmal** berechnet.
+
+Wichtig: Merken klappt nur bei Funktionen, die bei gleicher Eingabe immer dasselbe Ergebnis liefern und sonst nichts verändern. Solche Funktionen nennt man **rein**.

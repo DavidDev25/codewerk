@@ -1,8 +1,12 @@
-## Eine Funktion ruft sich selbst
+## Eine Funktion ruft sich selbst auf
+
+Eine Funktion darf sich selbst aufrufen. Das klingt erst einmal seltsam, ist aber ein sehr nützlicher Trick.
 
 :::alltag
-Matroschka-Puppen: Du öffnest eine Puppe, darin steckt eine kleinere, darin wieder eine kleinere, bis du bei der kleinsten ankommst, die sich nicht mehr öffnen lässt. **Rekursion** funktioniert genauso: Eine Aufgabe wird in eine kleinere Version derselben Aufgabe zerlegt, bis sie ganz einfach ist.
+Denk an Matroschka-Puppen. Du öffnest eine Puppe, und darin steckt eine kleinere. Darin steckt wieder eine kleinere, bis du bei der kleinsten ankommst. Die lässt sich nicht mehr öffnen. So funktioniert **Rekursion**: Eine Aufgabe wird in eine kleinere Fassung derselben Aufgabe zerlegt, bis sie ganz einfach ist.
 :::
+
+Das Beispiel zählt rückwärts. `countdown` gibt eine Zahl aus und ruft sich dann mit der nächstkleineren Zahl auf:
 
 ```js
 function countdown(n) {
@@ -17,16 +21,18 @@ function countdown(n) {
 countdown(3);
 ```
 
-Jede rekursive Funktion braucht zwei Teile:
+Ausgegeben werden 3, 2, 1 und „Start!“. Bei `n === 0` ruft sich die Funktion nicht mehr auf. Sie gibt „Start!“ aus und hört auf.
 
-1. **Abbruch**: Ein einfacher Fall, der ohne Selbstaufruf gelöst wird (hier `n === 0`).
-2. **Selbstaufruf** mit einer **kleineren** Aufgabe (hier `n - 1`).
+Jede Funktion, die sich selbst aufruft, braucht zwei Teile:
 
-Fehlt der Abbruch, ruft sich die Funktion endlos selbst auf, bis JavaScript mit „Maximum call stack size exceeded“ abbricht.
+1. Einen **Abbruch**: einen einfachen Fall, den sie ohne Selbstaufruf löst. Hier ist das `n === 0`.
+2. Einen **Selbstaufruf** mit einer **kleineren** Aufgabe. Hier ist das `n - 1`.
+
+Fehlt der Abbruch, ruft sich die Funktion immer weiter auf. Irgendwann bricht JavaScript mit der Meldung „Maximum call stack size exceeded“ ab. Das bedeutet: zu viele Aufrufe auf einmal.
 
 ## Mit Ergebnis
 
-Die Summe von 1 bis n ist n plus die Summe von 1 bis n − 1:
+Die Funktion kann auch etwas zurückgeben. Die Summe von 1 bis 4 ist 4 plus die Summe von 1 bis 3. Genau so rechnet das Beispiel:
 
 ```js
 function summeBis(n) {
@@ -39,11 +45,11 @@ function summeBis(n) {
 console.log(summeBis(4));
 ```
 
-`summeBis(4)` rechnet 4 + `summeBis(3)` = 4 + 3 + `summeBis(2)` = … = 4 + 3 + 2 + 1 + 0.
+Heraus kommt 10. Der Rechenweg sieht so aus: `summeBis(4)` ist 4 + `summeBis(3)`. Das ist 4 + 3 + `summeBis(2)`, und so weiter bis 4 + 3 + 2 + 1 + 0. Bei 0 greift der Abbruch und liefert 0.
 
-## Wo Rekursion glänzt: verschachtelte Daten
+## Wofür Rekursion am besten passt
 
-Für einfache Zählaufgaben reicht eine Schleife. Ihre Stärke spielt Rekursion bei Daten aus, die **beliebig tief** verschachtelt sind, zum Beispiel Ordner mit Unterordnern:
+Für einfaches Zählen reicht auch eine Schleife. Richtig stark ist Rekursion bei Daten, die **beliebig tief** verschachtelt sind. Ein Beispiel sind Ordner mit Unterordnern, in denen wieder Unterordner stecken:
 
 ```js
 const projekt = {
@@ -68,6 +74,8 @@ function alleDateien(ordner) {
 console.log(alleDateien(projekt));
 ```
 
-Mit einer einfachen Schleife wüsstest du nicht, wie viele Ebenen es gibt. Die Rekursion steigt einfach so tief hinab, wie nötig. Der Abbruch passiert hier von selbst: Ein Ordner ohne Unterordner ruft niemanden mehr auf.
+Heraus kommen 14 Dateien, denn 2 + 5 + 3 + 4 ergibt 14. `alleDateien` zählt die Dateien im eigenen Ordner und ruft sich dann für jeden Unterordner selbst auf. So steigt die Funktion genau so tief hinab, wie es Ebenen gibt. Mit einer einfachen Schleife wüsstest du vorher nicht, wie viele Ebenen das sind.
 
-Ob etwas ein Array ist, prüfst du mit `Array.isArray(wert)`.
+Den Abbruch musst du hier nicht extra hinschreiben. Ein Ordner ohne Unterordner hat eine leere Liste, und die Schleife läuft dann gar nicht.
+
+Manchmal musst du prüfen, ob ein Wert eine Liste ist, in der du weitersuchen musst. Das geht mit `Array.isArray(wert)`. Es ergibt `true` für Arrays und `false` für alles andere.
