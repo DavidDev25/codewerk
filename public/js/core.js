@@ -269,7 +269,13 @@
         const len = a == null ? undefined : a.length;
         return { pass: len === n, expected: 'Länge ' + n, actualText: 'Länge ' + show(len) };
       },
-      toMatch: function (a, re) { return { pass: typeof a === 'string' && re.test(a), expected: 'passt auf ' + String(re) }; },
+      toMatch: function (a, re) {
+        const pass = typeof a === 'string' && re.test(a);
+        if (typeof a === 'string' && a.indexOf('\n') !== -1) {
+          return { pass: pass, message: ['Im Code fehlt noch die gesuchte Stelle.', 'Diese Stelle sollte nicht im Code stehen.'] };
+        }
+        return { pass: pass, expected: 'passt auf ' + String(re) };
+      },
       toHaveProperty: function (a, key) {
         return { pass: a != null && Object.prototype.hasOwnProperty.call(Object(a), key), expected: 'hat die Eigenschaft „' + key + '“' };
       },
@@ -283,6 +289,7 @@
             const args = [actual].concat([].slice.call(arguments));
             const r = matchers[name].apply(null, args);
             if (r.pass === negate) {
+              if (r.message) throw new TestFailure(r.message[negate ? 1 : 0], hint);
               const got = r.actualText || show(actual);
               throw new TestFailure('Erwartet: ' + (negate ? 'nicht ' : '') + r.expected + '  ·  Bekommen: ' + got, hint);
             }
