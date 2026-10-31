@@ -222,9 +222,9 @@ function lessonItem(l) {
   const done = state.progress.lessons[l.id] && state.progress.lessons[l.id].done;
   const current = state.lesson && state.lesson.id === l.id;
   return `<li><button type="button" class="lesson-item${current ? ' is-current' : ''}" data-id="${escapeHtml(l.id)}"${current ? ' aria-current="true"' : ''}>` +
-    `<span class="lesson-status" aria-hidden="true">${done ? '✓' : current ? '●' : ''}</span>` +
+    `<span class="lesson-status${done ? ' is-done' : current ? ' is-here' : ''}" aria-hidden="true">${done ? '✓' : current ? '●' : ''}</span>` +
     `<span class="lesson-text"><span class="lesson-name">${l.index}. ${escapeHtml(l.title)}</span>` +
-    `<span class="lesson-meta">${escapeHtml(l.summary)} · ca. ${l.minutes} Min.${done ? ' · geschafft' : ''}</span></span></button></li>`;
+    `<span class="lesson-meta">ca. ${l.minutes} Min.${done ? ' · geschafft' : current ? ' · du bist hier' : ''}</span></span></button></li>`;
 }
 
 function chapterGroups() {
@@ -237,19 +237,39 @@ function chapterGroups() {
   return groups;
 }
 
+const isDone = (l) => !!(state.progress.lessons[l.id] && state.progress.lessons[l.id].done);
+
+function chapterCard(g) {
+  const done = g.lessons.filter(isDone).length;
+  const total = g.lessons.length;
+  const here = !!state.lesson && g.lessons.some((l) => l.id === state.lesson.id);
+  const finished = done === total;
+  const [part, ...rest] = (g.chapter || 'Weitere Lektionen').split(' · ');
+  const title = rest.length ? rest.join(' · ') : part;
+  const status = finished ? ['Geschafft', 'is-finished'] : here ? ['Du bist hier', 'is-here'] : done ? ['Begonnen', 'is-started'] : ['Offen', 'is-open'];
+  const first = g.lessons[0].index;
+  const last = g.lessons[total - 1].index;
+  const topics = g.lessons.slice(0, 4).map((l) => l.title).join(', ') + (total > 4 ? ' …' : '');
+  return `<li class="chapter-card${here ? ' is-here' : ''}${finished ? ' is-finished' : ''}">` +
+    `<div class="chapter-head"><span class="chapter-part">${rest.length ? escapeHtml(part) + ' · ' : ''}Lektion ${first}–${last}</span>` +
+    `<span class="chapter-status ${status[1]}">${status[0]}</span></div>` +
+    `<h3 class="chapter-name">${escapeHtml(title)}</h3>` +
+    `<p class="chapter-topics">${escapeHtml(topics)}</p>` +
+    `<div class="chapter-progress"><div class="chapter-track" role="img" aria-label="${done} von ${total} Lektionen geschafft"><div class="chapter-fill" style="width:${Math.round((done / total) * 100)}%"></div></div>` +
+    `<span class="chapter-count">${done} / ${total}</span></div>` +
+    `<details${here ? ' open' : ''}><summary>Lektionen anzeigen</summary><ol class="lesson-list chapter-list">${g.lessons.map(lessonItem).join('')}</ol></details></li>`;
+}
+
 function renderLessonList() {
   const list = $('#lesson-list');
   const groups = chapterGroups();
-  if (groups.length === 1 && !groups[0].chapter) {
-    list.innerHTML = state.lessons.map(lessonItem).join('');
-    return;
-  }
-  list.innerHTML = groups.map((g) => {
-    const done = g.lessons.filter((l) => state.progress.lessons[l.id] && state.progress.lessons[l.id].done).length;
-    return `<li class="chapter"><h3 class="chapter-title">${escapeHtml(g.chapter || 'Weitere Lektionen')}` +
-      `<span class="chapter-count">${done} von ${g.lessons.length}</span></h3>` +
-      `<ol class="lesson-list chapter-list">${g.lessons.map(lessonItem).join('')}</ol></li>`;
-  }).join('');
+  const done = state.lessons.filter(isDone).length;
+  const finishedChapters = groups.filter((g) => g.lessons.every(isDone)).length;
+  $('#overview-count').textContent = `${done} von ${state.lessons.length} Lektionen`;
+  $('#overview-fill').style.width = state.lessons.length ? (done / state.lessons.length) * 100 + '%' : '0';
+  $('#overview-track').setAttribute('aria-valuenow', String(state.lessons.length ? Math.round((done / state.lessons.length) * 100) : 0));
+  $('#overview-chapters').textContent = finishedChapters === 1 ? '1 Kapitel abgeschlossen' : `${finishedChapters} von ${groups.length} Kapiteln abgeschlossen`;
+  list.innerHTML = groups.map(chapterCard).join('');
 }
 
 function renderLessonTexts() {
@@ -783,7 +803,7 @@ function wireUi() {
   });
 
   const menu = $('#dlg-menu');
-  $('#btn-menu').addEventListener('click', () => { renderLessonList(); menu.showModal(); const cur = $('.lesson-item.is-current', menu); if (cur) cur.scrollIntoView({ block: 'center' }); });
+  $('#btn-menu').addEventListener('click', () => { renderLessonList(); menu.showModal(); const card = $('.chapter-card.is-here', menu); menu.scrollTop = card ? card.offsetTop - $('.overview-head', menu).offsetHeight - 16 : 0; });
   $('#lesson-list').addEventListener('click', (e) => {
     const b = e.target.closest('.lesson-item');
     if (!b) return;

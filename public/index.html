@@ -143,10 +143,17 @@
     </button>
   </nav>
 
-  <dialog id="dlg-menu" class="drawer" aria-label="Alle Lektionen">
-    <div class="drawer-head">
-      <h2>Alle Lektionen</h2>
-      <button class="btn ghost small" type="button" data-close>Schließen</button>
+  <dialog id="dlg-menu" class="overview" aria-labelledby="overview-title">
+    <div class="overview-head">
+      <div class="overview-summary">
+        <span class="eyebrow" id="overview-title">Dein Fortschritt</span>
+        <h2 id="overview-count">Lektionen</h2>
+        <div class="overview-bar">
+          <div class="overview-track" id="overview-track" role="progressbar" aria-labelledby="overview-count" aria-valuemin="0" aria-valuemax="100"><div class="overview-fill" id="overview-fill"></div></div>
+          <span id="overview-chapters" class="small muted"></span>
+        </div>
+      </div>
+      <button class="btn" type="button" data-close>Schließen</button>
     </div>
     <p id="guest-note" class="guest-note small" hidden>Du lernst als <strong>Gast</strong>: Dein Fortschritt wird nur in diesem Browser gespeichert. <a href="/auth/github">Mit GitHub anmelden</a>, um ihn im Konto zu sichern und den KI-Tutor zu nutzen. Was dabei gespeichert wird, steht im <a href="/datenschutz.html">Datenschutz</a>.</p>
     <ol id="lesson-list" class="lesson-list"></ol>
