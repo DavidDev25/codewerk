@@ -1,10 +1,12 @@
 ## Formulare abschicken
 
-Ein Formular schickt seine Daten beim Absenden normalerweise an einen Server, und der Browser lädt dabei die **ganze Seite neu**. Moderne Seiten verhindern das und erledigen alles mit JavaScript.
+Ein Formular schickt seine Daten beim Absenden normalerweise an einen Server. Der Browser lädt dabei die **ganze Seite neu**. Moderne Seiten verhindern das und erledigen alles mit JavaScript.
 
 :::alltag
-Ein Briefkasten in der Firma: Normalerweise wirfst du den Brief ein und er geht zur Post. Mit `preventDefault()` fängst du ihn vorher ab, liest ihn selbst und entscheidest, was damit passiert.
+Denk an den Briefkasten in einer Firma. Normalerweise wirfst du den Brief ein, und er geht zur Post. Mit `preventDefault()` fängst du ihn vorher ab, liest ihn selbst und entscheidest, was damit passiert.
 :::
+
+Im Beispiel fängst du das Absenden des Anmeldeformulars ab:
 
 ```js
 const form = document.querySelector("#anmeldung");
@@ -15,11 +17,13 @@ form.addEventListener("submit", (event) => {
 });
 ```
 
+Klickst du in der Vorschau auf den Knopf zum Absenden, erscheint „Abgefangen! Die Seite lädt nicht neu.“. Die Seite bleibt, wie sie ist.
+
 Wichtig: Hör auf das `submit`-Event des **Formulars**, nicht auf den Klick auf den Knopf. `submit` kommt auch, wenn jemand im Eingabefeld Enter drückt.
 
 ## Werte auslesen
 
-Jedes Feld mit einem `name` findest du über `form.elements`:
+Jedes Feld mit einem `name` findest du über `form.elements`. Im Beispiel füllt der Code zwei Felder selbst aus und liest sie dann auf zwei Arten:
 
 ```js
 const form = document.querySelector("#anmeldung");
@@ -33,11 +37,13 @@ const daten = new FormData(form);
 console.log(daten.get("kurs"));
 ```
 
-`FormData` sammelt alle Felder auf einmal. `daten.get("name")` liefert den Wert zum Namen. Mit `Object.fromEntries(new FormData(form))` bekommst du ein ganz normales Objekt.
+Ausgegeben werden „Mara“, „React“ und noch einmal „React“. `trim()` hat die Leerzeichen um Mara entfernt.
+
+`FormData` sammelt alle Felder auf einmal. `daten.get("kurs")` liefert den Wert des Feldes mit diesem Namen. Mit `Object.fromEntries(new FormData(form))` bekommst du sogar ein ganz normales Objekt mit allen Feldern.
 
 ## Eingaben prüfen
 
-Prüfe immer zuerst und zeige eine **verständliche** Meldung, was fehlt:
+Prüfe immer zuerst und zeige eine **verständliche** Meldung, was fehlt. Im Beispiel gibt die Prüfung eine Meldung zurück oder `null`, wenn alles stimmt:
 
 ```js
 function pruefen(name, email) {
@@ -51,10 +57,12 @@ console.log(pruefen("Ali", "ali.de"));
 console.log(pruefen("Ali", "ali@web.de"));
 ```
 
+Beim ersten Aufruf fehlt der Name. Beim zweiten fehlt das @. Beim dritten stimmt alles, und es kommt `null` heraus. Die Prüfung hört beim ersten Fehler auf. So bekommt man immer genau eine Meldung.
+
 ## Zurücksetzen
 
-`form.reset()` leert alle Felder wieder, ideal nach einem erfolgreichen Absenden.
+`form.reset()` leert alle Felder wieder. Das ist ideal nach einem erfolgreichen Absenden.
 
-:::alltag
-Diese Prüfung im Browser ist eine Hilfe für die Nutzer, kein Schutz. Wer will, kann sie umgehen. Ein echter Server muss alle Daten **noch einmal selbst** prüfen.
+:::achtung
+Diese Prüfung im Browser ist eine Hilfe für die Nutzer, aber kein Schutz. Wer will, kann sie umgehen. Ein echter Server muss alle Daten **noch einmal selbst** prüfen.
 :::

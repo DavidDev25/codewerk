@@ -3,7 +3,7 @@
 Bis jetzt hat dein Code nur gerechnet und mit `console.log` ausgegeben. Im Browser kann JavaScript aber noch viel mehr: Es kann die **Seite selbst** verändern. Ab dieser Lektion gibt es dafür rechts den Reiter **Vorschau**. Dort siehst du die Seite, auf der dein Code läuft.
 
 :::alltag
-Eine Webseite ist wie ein Haus aus Legosteinen. Der Browser baut aus dem HTML einen **Baum** aus Bausteinen: das Dokument enthält den `body`, der enthält eine Überschrift, eine Liste, die Liste enthält Einträge … Diesen Baum nennt man **DOM** (Document Object Model). Mit JavaScript kannst du jeden Stein finden, umfärben, beschriften oder austauschen.
+Eine Webseite ist wie ein Haus aus Legosteinen. Der Browser baut aus dem HTML einen **Baum** aus Bausteinen. Das Dokument enthält den `body`, der enthält eine Überschrift und eine Liste, und die Liste enthält Einträge. Diesen Baum nennt man **DOM**. Mit JavaScript kannst du jeden Stein finden, umfärben, beschriften oder austauschen.
 :::
 
 Die Seite dieser Lektion sieht so aus:
@@ -21,7 +21,7 @@ Die Seite dieser Lektion sieht so aus:
 
 ## Elemente finden
 
-`document` ist der Eingang zum ganzen Baum. Mit `querySelector` findest du ein Element über einen **CSS-Selektor**:
+`document` ist der Eingang zum ganzen Baum. Mit `querySelector` findest du ein Element. Du beschreibst es dabei mit einem **CSS-Selektor**, also so, wie man es auch in CSS anspricht. Im Beispiel findest du drei Elemente auf drei Arten:
 
 ```js
 const titel = document.querySelector("#titel");
@@ -34,6 +34,8 @@ const ersterEintrag = document.querySelector("li");
 console.log(ersterEintrag.textContent);
 ```
 
+Ausgegeben werden „Mein Laden“, „Heute geöffnet bis 18 Uhr“ und „Äpfel“. `textContent` liefert den Text, der im Element steht.
+
 | Selektor | findet |
 | --- | --- |
 | `"#titel"` | das Element mit `id="titel"` |
@@ -41,7 +43,7 @@ console.log(ersterEintrag.textContent);
 | `"li"` | Elemente vom Typ `<li>` |
 | `"#angebote li"` | `<li>` innerhalb von `#angebote` |
 
-`querySelector` liefert das **erste** passende Element oder `null`. Für **alle** passenden nimmst du `querySelectorAll`:
+`querySelector` liefert das **erste** passende Element oder `null`, wenn keins passt. Deshalb kam bei `"li"` nur „Äpfel“ heraus. Für **alle** passenden Elemente nimmst du `querySelectorAll`:
 
 ```js
 const eintraege = document.querySelectorAll("#angebote li");
@@ -51,7 +53,11 @@ for (const li of eintraege) {
 }
 ```
 
+Ausgegeben werden 3 und danach „Äpfel“, „Birnen“ und „Kirschen“. Das Ergebnis von `querySelectorAll` hat eine Länge und lässt sich mit `for…of` durchlaufen, fast wie ein Array.
+
 ## Elemente ändern
+
+Hast du ein Element gefunden, kannst du es verändern. Im Beispiel bekommt die Überschrift einen neuen Text, der Hinweis eine Klasse und der Knopf drei neue Eigenschaften:
 
 ```js
 const titel = document.querySelector("#titel");
@@ -66,12 +72,14 @@ knopf.title = "Gerade geschlossen";
 knopf.dataset.produkt = "obst";
 ```
 
+In der Vorschau steht jetzt „Willkommen!“ als Überschrift. Der Hinweis ist rot und fett, weil die Seite für die Klasse `wichtig` diese Farbe festlegt. Der Knopf ist ausgegraut, und wenn du mit der Maus darüberfährst, erscheint „Gerade geschlossen“.
+
 | Was | Wie |
 | --- | --- |
 | Text | `element.textContent = "…"` |
 | CSS-Klasse | `element.classList.add("…")`, `.remove(…)`, `.toggle(…)`, `.contains(…)` |
 | Attribut | `element.title = "…"` oder `element.setAttribute("title", "…")` |
-| `data-…`-Attribut | `element.dataset.produkt = "…"` wird zu `data-produkt="…"` |
-| Aussehen direkt | `element.style.color = "red"` (meist besser: eine Klasse) |
+| `data-…`-Attribut | aus `element.dataset.produkt = "…"` wird `data-produkt="…"` |
+| Aussehen direkt | `element.style.color = "red"`, meistens ist eine Klasse aber besser |
 
-Drücke **Ausführen** und schau in den Reiter **Vorschau**: Die Änderungen siehst du sofort. Im **Diagramm** erscheinen Elemente als kleine Kästchen wie `<h1#titel>`.
+Drücke **Ausführen** und schau in den Reiter **Vorschau**. Dort siehst du die Änderungen sofort. Im **Diagramm** erscheinen Elemente als kleine Kästchen wie `<h1#titel>`.

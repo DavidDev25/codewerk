@@ -1,19 +1,21 @@
 ## Deine erste echte Web-App
 
-Zum Abschluss baust du eine App, wie sie in vielen Bewerbungsgesprächen als Übung verlangt wird: eine **To-do-Liste**. Sie braucht alles aus Teil 5: Elemente erzeugen, Events, ein Formular und `localStorage`.
+Zum Abschluss baust du eine App, wie sie oft in Bewerbungsgesprächen als Übung verlangt wird: eine **To-do-Liste**. Sie braucht alles aus Teil 6: Elemente erzeugen, Events, ein Formular und `localStorage`.
 
-## Das wichtigste Prinzip: Daten zuerst
+## Das wichtigste Prinzip: erst die Daten
 
-Anfänger ändern bei jeder Aktion direkt die Seite: hier ein `<li>` dazu, dort eins weg. Das wird schnell chaotisch. Profis trennen zwei Dinge:
+Anfänger ändern bei jeder Aktion direkt die Seite: hier ein `<li>` dazu, dort eins weg. Das wird schnell unübersichtlich. Erfahrene Entwickler trennen zwei Dinge:
 
-1. **Die Daten:** ein Array mit Objekten, zum Beispiel `{ text: "Einkaufen", erledigt: false }`. Das ist die einzige Wahrheit.
+1. **Die Daten:** ein Array mit Objekten, zum Beispiel `{ text: "Einkaufen", erledigt: false }`. Nur was hier steht, gilt.
 2. **Die Anzeige:** Eine Funktion `zeichnen()` baut die Liste auf der Seite **jedes Mal komplett neu** aus dem Array.
 
-Jede Aktion läuft dann gleich ab: **Daten ändern → speichern → zeichnen.**
+Jede Aktion läuft dann gleich ab: **Daten ändern, speichern, zeichnen.**
 
 :::alltag
-Wie ein Spielstand und der Bildschirm im Videospiel: Das Spiel ändert nie direkt Pixel. Es ändert den Spielstand (Leben, Position …), und der Bildschirm wird daraus 60-mal pro Sekunde neu gezeichnet. Genau dieses Prinzip steckt auch hinter **React**, das du später kennenlernst.
+Denk an ein Videospiel. Das Spiel ändert nie direkt einzelne Bildpunkte. Es ändert den Spielstand, also Leben, Position und so weiter. Der Bildschirm wird daraus 60-mal pro Sekunde neu gezeichnet. Genau diese Idee steckt auch hinter **React**, das du später kennenlernst.
 :::
+
+Im Beispiel zeichnet `zeichnen()` zwei Einträge aus dem Array auf die Seite:
 
 ```js
 const daten = [{ text: "Brot", erledigt: false }, { text: "Milch", erledigt: true }];
@@ -33,7 +35,9 @@ zeichnen();
 console.log(document.querySelectorAll("#aufgaben li").length);
 ```
 
-- `replaceChildren()` ohne Werte leert ein Element.
+Ausgegeben wird 2. In der Vorschau stehen „Brot“ und „✓ Milch“, denn die Milch ist erledigt.
+
+- `replaceChildren()` ohne Werte leert ein Element. So fängt jedes Zeichnen bei einer leeren Liste an.
 - `data-index` merkt sich auf jedem `<li>`, zu welchem Eintrag im Array es gehört. Damit findest du beim Klick den richtigen Eintrag.
 
 ## Bausteine aus den letzten Lektionen

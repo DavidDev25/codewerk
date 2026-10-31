@@ -1,12 +1,16 @@
 ## Eine Adresse besteht aus Teilen
 
+Jede Adresse im Internet ist aus festen Teilen zusammengesetzt. Jeder Teil hat einen englischen Namen:
+
 ```text
 https://shop.de:443/suche?q=rote+schuhe&seite=2#bewertungen
 └─┬─┘   └──┬──┘    └─┬─┘ └──────────┬─────────┘ └────┬────┘
 protocol  host   pathname        search            hash
 ```
 
-Statt Adressen mühsam mit `split` zu zerlegen, gibt es das Werkzeug `URL`:
+Vorne steht das Protokoll, dann der Server. Nach dem Schrägstrich kommt der Pfad. Hinter `?` stehen Suchangaben, hinter `#` eine Stelle auf der Seite.
+
+Statt Adressen mühsam mit `split` zu zerlegen, gibt es das Werkzeug `URL`. Im Beispiel holst du die einzelnen Teile heraus:
 
 ```js
 const url = new URL("https://shop.de/suche?q=rote+schuhe&seite=2#bewertungen");
@@ -15,7 +19,9 @@ console.log(url.searchParams.get("q"), url.searchParams.get("seite"));
 console.log(Object.fromEntries(url.searchParams));
 ```
 
-Auch zum **Bauen** ist es ideal, denn es kodiert Leerzeichen und Umlaute automatisch richtig:
+Die erste Zeile zeigt „shop.de /suche #bewertungen“. Die zweite zeigt „rote schuhe 2“. Das Plus in der Adresse ist dabei wieder zu einem Leerzeichen geworden. Die letzte Zeile macht aus allen Suchangaben ein Objekt: `{ q: "rote schuhe", seite: "2" }`. Die 2 ist dabei ein Text, denn in einer Adresse ist alles Text.
+
+`URL` hilft auch beim **Bauen** von Adressen. Es verpackt Leerzeichen und Umlaute automatisch richtig:
 
 ```js
 const link = new URL("https://shop.de/suche");
@@ -24,15 +30,17 @@ link.searchParams.set("seite", 1);
 console.log(link.toString());
 ```
 
-## Routing: mehrere Ansichten, eine Seite
+Heraus kommt `https://shop.de/suche?q=%C3%84pfel+%26+Birnen&seite=1`. Aus dem Ä wird `%C3%84`, aus dem Leerzeichen ein Plus und aus `&` die Folge `%26`. Sonst würde der Server das `&` als Trenner zwischen zwei Angaben lesen.
 
-Moderne Web-Apps („Single Page Apps“) laden die Seite nur einmal und tauschen danach nur noch Inhalte aus. Damit Zurück-Knopf, Lesezeichen und geteilte Links trotzdem funktionieren, steht die aktuelle Ansicht in der **Adresse**. Das Umschalten anhand der Adresse heißt **Routing**.
+## Mehrere Ansichten auf einer Seite
+
+Moderne Web-Apps laden die Seite nur einmal und tauschen danach nur noch Inhalte aus. Man nennt sie **Single Page Apps**. Damit der Zurück-Knopf, Lesezeichen und geteilte Links trotzdem funktionieren, steht die aktuelle Ansicht in der **Adresse**. Das Umschalten anhand der Adresse nennt man **Routing**.
 
 :::alltag
-Ein Einkaufszentrum mit Wegweisern: Das Gebäude bleibt dasselbe, aber die Adresse „Ebene 2, Laden 14“ sagt genau, wo du bist, und jeder kann dich dorthin schicken.
+Denk an ein Einkaufszentrum mit Wegweisern. Das Gebäude bleibt dasselbe. Aber die Angabe „Ebene 2, Laden 14“ sagt genau, wo du bist, und jeder kann dich dorthin schicken.
 :::
 
-Die einfachste Form nutzt den **Hash** (alles nach `#`). Ändert er sich, lädt der Browser die Seite nicht neu, sondern feuert das Event `hashchange`:
+Die einfachste Form benutzt den **Hash**, also alles ab `#`. Ändert er sich, lädt der Browser die Seite nicht neu. Stattdessen kommt das Event `hashchange`. Im Beispiel gibt es zwei Ansichten:
 
 ```js
 const seiten = { "#/": "Willkommen!", "#/hilfe": "Hier hilft man dir." };
@@ -47,10 +55,12 @@ zeigen();
 location.hash = "#/hilfe";
 ```
 
-## Ohne # : die History-API
+Zuerst erscheint „Ansicht: Willkommen!“. Am Anfang ist der Hash leer, und `|| "#/"` macht daraus die Startseite. Danach setzt die letzte Zeile den Hash auf `#/hilfe`. Das löst `hashchange` aus, und es erscheint „Ansicht: Hier hilft man dir.“.
 
-Viele Router (auch der von React) nutzen statt des Hashs „echte“ Pfade wie `/produkte`. Dafür gibt es `history.pushState(daten, "", "/produkte")`, das die Adresse ändert, ohne neu zu laden, und das Event `popstate` für den Zurück-Knopf. Das braucht aber einen Server, der für jeden Pfad dieselbe Seite ausliefert. In der Codewerk-Vorschau übst du deshalb das Hash-Routing. Das Prinzip ist dasselbe.
+## Adressen ohne #
+
+Viele Router, auch der von React, benutzen statt des Hashs echte Pfade wie `/produkte`. Dafür gibt es `history.pushState(daten, "", "/produkte")`. Es ändert die Adresse, ohne die Seite neu zu laden. Für den Zurück-Knopf gibt es dann das Event `popstate`. Das braucht aber einen Server, der für jeden Pfad dieselbe Seite ausliefert. In der Codewerk-Vorschau übst du deshalb mit dem Hash. Die Idee ist dieselbe.
 
 ## Barrierefreie Navigation
 
-Markiere den aktiven Link mit `aria-current="page"`. Screenreader sagen dann „aktuelle Seite“, und du kannst ihn per CSS hervorheben.
+Markiere den Link zur aktuellen Ansicht mit `aria-current="page"`. Screenreader sagen dann „aktuelle Seite“, und du kannst den Link per CSS hervorheben.
