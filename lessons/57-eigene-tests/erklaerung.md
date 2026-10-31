@@ -1,14 +1,14 @@
 ## Warum selbst testen?
 
-In jeder Lektion haben bisher Tests dein Programm geprüft. In echten Projekten schreibst du diese Tests **selbst**. Sie sind dein Sicherheitsnetz: Änderst du später etwas, sagen sie dir sofort, ob du etwas kaputt gemacht hast.
+Bisher haben in jeder Lektion Tests dein Programm geprüft. In echten Projekten schreibst du diese Tests **selbst**. Sie sind dein Sicherheitsnetz: Änderst du später etwas, sagen sie dir sofort, ob du dabei etwas kaputt gemacht hast.
 
 :::alltag
-Ein Rauchmelder: Er nützt nur, wenn er auch wirklich bei Rauch piept. Ein Test, der nie fehlschlägt, ist wie ein Rauchmelder ohne Batterie. Er beruhigt, schützt aber nicht.
+Denk an einen Rauchmelder. Er nützt nur, wenn er bei Rauch auch wirklich piept. Ein Test, der nie fehlschlägt, ist wie ein Rauchmelder ohne Batterie. Er beruhigt, aber er schützt nicht.
 :::
 
-## Ein Test besteht aus drei Teilen
+## Ein Test hat drei Teile
 
-**Vorbereiten, Ausführen, Prüfen** (auf Englisch „Arrange, Act, Assert“):
+Jeder Test bereitet etwas vor, führt es aus und prüft das Ergebnis. Auf Englisch heißt das „Arrange, Act, Assert“. Im Beispiel testest du eine Funktion, die verdoppelt:
 
 ```js
 function verdoppeln(x) {
@@ -20,13 +20,15 @@ const ergebnis = verdoppeln(eingabe);
 console.log(ergebnis === 42 ? "bestanden" : "FEHLGESCHLAGEN");
 ```
 
-## Welche Fälle testen?
+Ausgegeben wird „bestanden“. Die erste Zeile nach der Funktion bereitet die Eingabe vor. Die zweite führt die Funktion aus. Die dritte prüft, ob 42 herausgekommen ist.
 
-Gute Tests decken nicht nur den Normalfall ab:
+## Welche Fälle du testen solltest
+
+Gute Tests decken nicht nur den Normalfall ab. Am Beispiel einer Rabatt-Funktion:
 
 | Art | Beispiel für eine Rabatt-Funktion |
 | --- | --- |
-| Normalfall | 10 % von 100 € → 90 € |
+| Normalfall | 10 % von 100 € ergibt 90 € |
 | Grenzfälle | 0 %, genau 100 %, ein Preis von 0 € |
 | Fehlerfälle | -5 % oder 150 % sollen einen Fehler werfen |
 
@@ -34,7 +36,7 @@ Die meisten Fehler sitzen an den **Grenzen**: `<` statt `<=`, eins zu viel oder 
 
 ## Wie gut sind meine Tests?
 
-Profis prüfen ihre Tests mit einem Trick: Sie bauen absichtlich Fehler in den Code ein („Mutanten“) und schauen, ob die Tests das merken. Fällt ein Mutant nicht auf, fehlt ein Test. Genau so wird deine Aufgabe geprüft.
+Erfahrene Entwickler prüfen ihre Tests mit einem Trick. Sie bauen absichtlich Fehler in den Code ein und schauen, ob die Tests das merken. Solche absichtlich kaputten Fassungen nennt man **Mutanten**. Fällt ein Mutant nicht auf, fehlt ein Test. Genau so wird auch deine Aufgabe geprüft.
 
 ## So sieht es in echten Projekten aus
 
@@ -46,4 +48,4 @@ test("10 % Rabatt auf 100 €", () => {
 });
 ```
 
-Die Tests laufen dann mit einem Befehl wie `npm test`, oft automatisch bei jedem Hochladen des Codes.
+Der Test hat einen Namen und eine Funktion. Darin sagt `expect(…).toBe(90)`: Ich erwarte, dass hier 90 herauskommt. Die Tests laufen dann mit einem Befehl wie `npm test`, oft automatisch bei jedem Hochladen des Codes.
