@@ -30,3 +30,14 @@ test('Die Browser-Fassung einer Lektion enthält keine Musterlösung', () => {
   assert.equal('solution' in view, false);
   assert.ok(view.starterCode && view.testsSource && view.explanation);
 });
+
+test('Mehrdatei-Lektion: Startdateien in Reiter-Reihenfolge, Lösungsdateien bleiben auf dem Server', () => {
+  const lesson = lessons.get('48-module');
+  assert.equal(lesson.entry, 'main.js');
+  assert.deepEqual(Object.keys(lesson.starterFiles), ['main.js', 'rechner.js', 'format.js']);
+  assert.equal(lesson.starterCode, null);
+  assert.match(lesson.solution, /\/\/ ===== Datei: rechner\.js =====/);
+  const view = lessons.publicView(lesson);
+  assert.equal('solution' in view, false);
+  assert.equal('solutionFiles' in view, false);
+});

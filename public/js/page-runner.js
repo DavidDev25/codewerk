@@ -25,7 +25,7 @@
     started = true;
     const job = event.data.job || {};
     const page = self.CW.installPage(self, job.storage);
-    self.CW.runLesson({ code: job.code, tests: job.tests, loopGuard: true }).then(function (result) {
+    self.CW.runLesson({ code: job.code, files: job.files, entry: job.entry, tests: job.tests, loopGuard: true }).then(function (result) {
       result.storage = page.dump();
       self.parent.postMessage({ type: 'result', result: result }, '*');
       liveConsole(function (entry) {

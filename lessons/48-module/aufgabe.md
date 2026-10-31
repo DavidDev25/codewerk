@@ -1,10 +1,22 @@
-## Aufgabe: Das Rechner-Modul
+## Aufgabe: Der Rechner als Modul
 
-Baue ein Modul nach dem Muster aus der Erklärung.
+Diesmal besteht dein Programm aus **drei Dateien**. Oben im Editor wechselst du mit den Reitern zwischen ihnen. `main.js` ist mit ▶ markiert: Dort beginnt das Programm.
 
-1. `const rechner` ist das Ergebnis einer sofort aufgerufenen Arrow-Funktion `(() => { … })()`.
-2. Darin liegt ein **privates** Array `verlauf`.
-3. Die Funktion `addiere(a, b)` gibt `a + b` zurück und schreibt jede Rechnung als Text `"a + b = ergebnis"` in `verlauf`.
-4. Die Funktion `letzteRechnung()` gibt den letzten Eintrag aus `verlauf` zurück, oder `null`, wenn noch nichts gerechnet wurde.
-5. Das Modul gibt **nur** `addiere` und `letzteRechnung` nach außen.
-6. Hole dir `addiere` per Destructuring aus `rechner` in eine eigene Konstante, so wie ein `import`.
+**In `rechner.js`:**
+
+1. Exportiere die Funktion `addiere`.
+2. Schreibe `letzteRechnung()` und exportiere sie. Sie gibt den letzten Eintrag aus `verlauf` zurück, oder `null`, wenn noch nichts gerechnet wurde. `verlauf` selbst bleibt **privat**.
+
+**In `main.js`:**
+
+3. Importiere `addiere` und `letzteRechnung` aus `./rechner.js`.
+4. Importiere den Standard-Export von `./format.js` unter dem Namen `schoen`.
+5. Rechne `addiere(2, 3)` und danach `addiere(10, 4)`. Gib dann `schoen(letzteRechnung())` mit `console.log` aus.
+
+Erwartete Ausgabe:
+
+```
+Ergebnis: 10 + 4 = 14
+```
+
+`format.js` musst du nicht ändern.

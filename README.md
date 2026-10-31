@@ -175,6 +175,9 @@ In `lektion.json` legt `kapitel` fest, unter welcher Überschrift die Lektion in
 | `tests.js` | die automatischen Tests |
 | `loesung.js` | Musterlösung. Sie bleibt auf dem Server, nur der KI-Tutor kennt sie |
 | `seite.html` | *(optional)* HTML einer Seite. Damit wird die Lektion zur Browser-Lektion mit Vorschau, und die Tests können `document` benutzen. `npm run pruefen` prüft sie mit jsdom |
+| `dateien/` + `loesung/` | *(optional, statt `start.js` und `loesung.js`)* mehrere Dateien als echte ES-Module, ein Reiter pro Datei im Editor. Einstieg ist `main.js` (anders: `"einstieg"` in `lektion.json`), die Reihenfolge der Reiter legt `"dateien": ["main.js", …]` fest. Unterordner sind erlaubt (`lib/werkzeug.js`) |
+
+**Mehrere Dateien:** `public/js/core.js` parst jede Datei als Modul und schreibt `import`/`export` in ein internes Register um. Das läuft wie immer im Worker, ohne `blob:`-URLs, die CSP bleibt streng. Unterstützt werden benannte und Standard-Exporte, `import * as`, `export … from`, `export * from`, dynamisches `import()`, Top-Level-`await` und `import.meta.url`. Falsche Pfade und fehlende Exporte meldet Codewerk wie der Browser schon vor dem Start, Fehler zeigen auf Datei und Zeile. Der Fortschritt speichert dann `{"dateien": {…}}` als Text.
 
 **Schritt 3: Prüfen**
 
@@ -237,7 +240,8 @@ Der zweite Wert in `expect(wert, tipp)` ist optional. Er erscheint unter der Feh
 | `.toThrow()` | die übergebene Funktion löst einen Fehler aus |
 | `.not.…` | jedes Prüfwerkzeug umdrehen, z. B. `.not.toBe(5)` |
 | `output()` | Array der `console.log`-Ausgaben des Nutzercodes |
-| `source()` | der Quelltext des Nutzercodes (z. B. `toMatch(/#saldo/)`) |
+| `source()` | der Quelltext des Nutzercodes (z. B. `toMatch(/#saldo/)`); bei mehreren Dateien `source('rechner.js')`, ohne Namen die Startdatei |
+| `modul('rechner.js')` | *(nur bei mehreren Dateien)* der Namensraum eines Moduls mit allen Exporten, z. B. `modul('rechner.js').addiere(1, 2)`. Top-Level-Variablen sind in Modulen nicht global, Tests holen sie sich so |
 | `capture(() => …)` | fängt die `console.log`-Ausgaben eines Aufrufs ab; mit einer `async`-Funktion: `await capture(async () => …)` |
 | `wait(ms)` | in `async`-Tests eine Weile warten: `await wait(100)` |
 

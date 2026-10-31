@@ -88,12 +88,13 @@
     <section class="pane pane-right" aria-label="Code und Ergebnis">
       <div class="card editor-card">
         <div class="editor-bar">
-          <span class="file">dein-code.js</span>
+          <span id="editor-file" class="file">dein-code.js</span>
           <span id="save-state" class="small muted" role="status">Gespeichert</span>
           <span class="spacer"></span>
           <button id="btn-reset" class="btn ghost small" type="button"><span class="long-label">Startcode </span>zurücksetzen</button>
           <button id="btn-run" class="btn primary run" type="button">Ausführen <span class="kbd">Strg + Enter</span></button>
         </div>
+        <div id="file-tabs" class="tabs small-tabs file-tabs" role="tablist" aria-label="Dateien" hidden></div>
         <div id="editor" class="editor" aria-label="Code-Editor"></div>
       </div>
 

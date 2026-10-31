@@ -220,6 +220,11 @@
     if ((m = message.match(/^Private field '(.+)' must be declared in an enclosing class/))) {
       return m[1] + ' ist nicht in der Klasse angelegt. Private Felder müssen oben in der Klasse stehen, z. B. ' + m[1] + ' = 0;';
     }
+    if (/^'import' and 'export' may appear only/.test(message)) {
+      return 'import und export gibt es nur in Lektionen mit mehreren Dateien. Hier steht dein ganzes Programm in einer Datei.';
+    }
+    if ((m = message.match(/^Duplicate export '(.+)'/))) return '„' + m[1] + '“ wird zweimal exportiert. Jeder Exportname darf nur einmal vorkommen.';
+    if ((m = message.match(/^Export '(.+)' is not defined/))) return '„' + m[1] + '“ wird exportiert, ist in dieser Datei aber nirgends angelegt.';
     if (/^Unexpected character/.test(message)) return 'Hier steht ein Zeichen, das nicht erlaubt ist.';
     if (/^Unexpected token/.test(message)) return 'Unerwartetes Zeichen. Oft fehlt kurz davor etwas: eine Klammer, ein Komma oder ein Anführungszeichen.';
     if (/^Unexpected reserved word/.test(message)) return 'Hier steht ein reserviertes Wort an der falschen Stelle.';
@@ -522,7 +527,10 @@
   function topLevelDeclarations(ast) {
     const out = [];
     ast.body.forEach(function (node) {
-      if (node.type === 'VariableDeclaration') {
+      if ((node.type === 'ExportNamedDeclaration' || node.type === 'ExportDefaultDeclaration') && node.declaration) node = node.declaration;
+      if (node.type === 'ImportDeclaration') {
+        node.specifiers.forEach(function (s) { out.push({ name: s.local.name, kind: 'import' }); });
+      } else if (node.type === 'VariableDeclaration') {
         node.declarations.forEach(function (d) { collectNames(d.id, node.kind, out); });
       } else if (node.type === 'FunctionDeclaration' && node.id) {
         out.push({ name: node.id.name, kind: 'function' });
@@ -710,7 +718,19 @@
   const LOOP_TYPES = ['ForStatement', 'ForInStatement', 'ForOfStatement', 'WhileStatement', 'DoWhileStatement'];
   const LOOP_MESSAGE = 'Diese Schleife lief länger als ' + (LOOP_LIMIT_MS / 1000) + ' Sekunden und wurde angehalten. Wird ihre Bedingung irgendwann falsch?';
 
+  function applyEdits(source, edits) {
+    edits.forEach(function (e, i) { e.i = i; });
+    edits.sort(function (a, b) { return b.at - a.at || b.i - a.i; });
+    let out = source;
+    edits.forEach(function (e) { out = out.slice(0, e.at) + e.text + out.slice(e.end === undefined ? e.at : e.end); });
+    return out;
+  }
+
   function guardLoops(source, ast) {
+    return applyEdits(source, loopEdits(ast));
+  }
+
+  function loopEdits(ast) {
     const edits = [];
     let count = 0;
     function walk(node, parent) {
@@ -734,13 +754,303 @@
       });
     }
     walk(ast, null);
-    edits.forEach(function (e, i) { e.i = i; });
-    edits.sort(function (a, b) { return b.at - a.at || b.i - a.i; });
-    let out = source;
-    edits.forEach(function (e) { out = out.slice(0, e.at) + e.text + out.slice(e.at); });
-    return out;
+    return edits;
   }
   CW.guardLoops = guardLoops;
+
+  const MODULE_URL = 'cw-datei/';
+  const FUNCTION_TYPES = ['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'];
+
+  function walkAll(node, visit) {
+    if (!node || typeof node.type !== 'string') return;
+    if (visit(node) === false) return;
+    Object.keys(node).forEach(function (key) {
+      const child = node[key];
+      if (Array.isArray(child)) child.forEach(function (c) { if (c && typeof c.type === 'string') walkAll(c, visit); });
+      else if (child && typeof child.type === 'string') walkAll(child, visit);
+    });
+  }
+
+  function hasTopLevelAwait(ast) {
+    let found = false;
+    walkAll(ast, function (node) {
+      if (found || FUNCTION_TYPES.indexOf(node.type) !== -1) return false;
+      if (node.type === 'AwaitExpression' || (node.type === 'ForOfStatement' && node.await)) found = true;
+    });
+    return found;
+  }
+
+  function exportName(node) { return node.type === 'Literal' ? String(node.value) : node.name; }
+
+  function blank(text) { return text.replace(/[^\n]/g, ' '); }
+
+  function linkError(file, node, message) {
+    const e = new Error(message);
+    e.cwLink = { file: file, line: node.loc.start.line, column: node.loc.start.column + 1 };
+    return e;
+  }
+
+  function resolveModule(from, spec, files) {
+    spec = String(spec);
+    if (!/^\.\.?\//.test(spec)) {
+      throw new Error('„' + spec + '“ ist kein Pfad zu einer Datei. Eigene Dateien importierst du mit ./ davor, z. B. „./' + spec.replace(/^\/+/, '') + '“.');
+    }
+    const parts = from.split('/');
+    parts.pop();
+    spec.split('/').forEach(function (p) {
+      if (p === '..') parts.pop();
+      else if (p !== '.' && p !== '') parts.push(p);
+    });
+    const name = parts.join('/');
+    if (Object.prototype.hasOwnProperty.call(files, name)) return name;
+    if (Object.prototype.hasOwnProperty.call(files, name + '.js')) {
+      throw new Error('Im Browser braucht der Pfad die Endung .js: Schreibe „' + spec + '.js“ statt „' + spec + '“.');
+    }
+    throw new Error('Die Datei „' + spec + '“ gibt es nicht (gesucht von ' + from + ' aus). Vorhanden: ' + Object.keys(files).join(', ') + '.');
+  }
+
+  function compileModule(name, source, files, options) {
+    const ast = root.acorn.parse(source, { ecmaVersion: 'latest', sourceType: 'module', locations: true });
+    const edits = options.loopGuard ? loopEdits(ast) : [];
+    const exports = [];
+    const requests = [];
+    const imports = [];
+    const stars = [];
+    let counter = 0;
+    const request = function (node) {
+      let target;
+      try { target = resolveModule(name, node.source.value, files); } catch (e) { throw linkError(name, node.source, e.message); }
+      const local = '__cwM' + (counter++);
+      requests.push({ local: local, target: target });
+      return { local: local, target: target };
+    };
+
+    ast.body.forEach(function (node) {
+      if (node.type === 'ImportDeclaration') {
+        const req = request(node);
+        const names = [];
+        node.specifiers.forEach(function (s) {
+          if (s.type === 'ImportNamespaceSpecifier') {
+            requests.push({ alias: s.local.name, local: req.local });
+            imports.push({ local: s.local.name, namespace: true });
+          } else {
+            const imported = s.type === 'ImportDefaultSpecifier' ? 'default' : exportName(s.imported);
+            names.push(JSON.stringify(imported) + ':' + s.local.name);
+            imports.push({ name: imported, local: s.local.name, target: req.target, node: s });
+          }
+        });
+        if (names.length) requests.push({ destructure: '{' + names.join(',') + '}', local: req.local });
+        edits.push({ at: node.start, end: node.end, text: blank(source.slice(node.start, node.end)) });
+      } else if (node.type === 'ExportNamedDeclaration') {
+        if (node.declaration) {
+          const decl = node.declaration;
+          const names = [];
+          if (decl.type === 'VariableDeclaration') decl.declarations.forEach(function (d) { collectNames(d.id, decl.kind, names); });
+          else names.push({ name: decl.id.name });
+          names.forEach(function (n) { exports.push({ name: n.name, get: n.name }); });
+          edits.push({ at: node.start, end: decl.start, text: blank(source.slice(node.start, decl.start)) });
+        } else {
+          const req = node.source ? request(node) : null;
+          node.specifiers.forEach(function (s) {
+            const local = exportName(s.local);
+            exports.push({ name: exportName(s.exported), get: req ? req.local + '[' + JSON.stringify(local) + ']' : local, from: req && req.target, imported: local, node: s });
+          });
+          edits.push({ at: node.start, end: node.end, text: blank(source.slice(node.start, node.end)) });
+        }
+      } else if (node.type === 'ExportDefaultDeclaration') {
+        const decl = node.declaration;
+        const named = (decl.type === 'FunctionDeclaration' || decl.type === 'ClassDeclaration') && decl.id;
+        if (named) {
+          exports.push({ name: 'default', get: decl.id.name });
+          edits.push({ at: node.start, end: decl.start, text: blank(source.slice(node.start, decl.start)) });
+        } else {
+          exports.push({ name: 'default', get: '__cwDefault' });
+          edits.push({ at: node.start, end: decl.start, text: 'const __cwDefault=' });
+          if (source[node.end - 1] !== ';') edits.push({ at: node.end, text: ';' });
+        }
+      } else if (node.type === 'ExportAllDeclaration') {
+        const req = request(node);
+        if (node.exported) exports.push({ name: exportName(node.exported), get: req.local });
+        else stars.push({ local: req.local, target: req.target });
+        edits.push({ at: node.start, end: node.end, text: blank(source.slice(node.start, node.end)) });
+      }
+    });
+
+    walkAll(ast, function (node) {
+      if (node.type === 'ImportExpression') edits.push({ at: node.start, end: node.source.start, text: '__cwDyn(' });
+      else if (node.type === 'MetaProperty' && node.meta.name === 'import') edits.push({ at: node.start, end: node.end, text: '__cwMeta' });
+    });
+
+    return {
+      name: name,
+      ast: ast,
+      body: applyEdits(source, edits),
+      exports: exports,
+      requests: requests,
+      imports: imports,
+      stars: stars,
+      lines: source.split('\n').length,
+      async: hasTopLevelAwait(ast),
+    };
+  }
+
+  function exportedNames(modules, name, seen) {
+    const m = modules[name];
+    if (!m || seen.indexOf(name) !== -1) return [];
+    seen = seen.concat(name);
+    const names = m.exports.map(function (e) { return e.name; });
+    m.stars.forEach(function (s) {
+      exportedNames(modules, s.target, seen).forEach(function (n) { if (n !== 'default' && names.indexOf(n) === -1) names.push(n); });
+    });
+    return names;
+  }
+
+  function checkLinks(modules) {
+    Object.keys(modules).forEach(function (name) {
+      const m = modules[name];
+      const check = function (target, wanted, node) {
+        if (!modules[target]) throw linkError(name, node, target + ' ist keine JavaScript-Datei und lässt sich nicht importieren.');
+        const available = exportedNames(modules, target, []);
+        if (available.indexOf(wanted) !== -1) return;
+        let message = target + ' exportiert nichts mit dem Namen „' + wanted + '“.';
+        if (wanted === 'default') message = target + ' hat keinen Standard-Export (export default). Benannte Exporte importierst du mit geschweiften Klammern: import { … } from …';
+        else if (available.length) message += ' Vorhanden: ' + available.join(', ') + '.';
+        else message += ' Die Datei exportiert noch gar nichts. Hast du export vergessen?';
+        throw linkError(name, node, message);
+      };
+      m.imports.forEach(function (i) { if (!i.namespace) check(i.target, i.name, i.node); });
+      m.exports.forEach(function (e) { if (e.from) check(e.from, e.imported, e.node); });
+    });
+  }
+
+  function moduleSource(m, isAsync, snapshot) {
+    const getters = m.exports.map(function (e) {
+      return JSON.stringify(e.name) + ':function(){return ' + e.get + ';}';
+    }).join(',');
+    let prefix = '(' + (isAsync ? 'async ' : '') + 'function(__cwReq,__cwExp,__cwDyn,__cwMeta){\'use strict\';__cwExp({' + getters + '});';
+    m.requests.forEach(function (r) {
+      if (r.target) prefix += 'const ' + r.local + '=' + (isAsync ? 'await ' : '') + '__cwReq(' + JSON.stringify(r.target) + ');';
+      else if (r.alias) prefix += 'const ' + r.alias + '=' + r.local + ';';
+      else prefix += 'const ' + r.destructure + '=' + r.local + ';';
+    });
+    return { prefix: prefix, code: prefix + m.body + '\n;' + (snapshot || '') + '\n})\n//# sourceURL=' + MODULE_URL + m.name };
+  }
+
+  CW.compileModules = function compileModules(files, entry, options) {
+    const modules = {};
+    const names = Object.keys(files).filter(function (n) { return /\.m?js$/.test(n); });
+    if (!Object.prototype.hasOwnProperty.call(files, entry)) {
+      return { syntaxError: { file: entry, line: 1, column: 1, message: 'Die Startdatei „' + entry + '“ fehlt.', raw: 'missing entry ' + entry } };
+    }
+    for (let i = 0; i < names.length; i++) {
+      const name = names[i];
+      try {
+        modules[name] = compileModule(name, String(files[name]), files, options || {});
+      } catch (e) {
+        if (e && e.cwLink) return { syntaxError: { file: e.cwLink.file, line: e.cwLink.line, column: e.cwLink.column, message: e.message, raw: e.message } };
+        if (e && e.loc) return { syntaxError: { file: name, line: e.loc.line, column: e.loc.column + 1, message: translateSyntax(e.message), raw: String(e.message) } };
+        return { syntaxError: { file: name, line: 1, column: 1, message: translateSyntax(e && e.message), raw: String(e && e.message) } };
+      }
+    }
+    try {
+      checkLinks(modules);
+    } catch (e) {
+      return { syntaxError: { file: e.cwLink.file, line: e.cwLink.line, column: e.cwLink.column, message: e.message, raw: e.message } };
+    }
+    const isAsync = names.some(function (n) { return modules[n].async; });
+    return { files: files, modules: modules, entry: entry, async: isAsync };
+  };
+
+  function createLoader(g, compiled, snapshotCode) {
+    const records = {};
+    const sources = {};
+    Object.keys(compiled.modules).forEach(function (name) {
+      const built = moduleSource(compiled.modules[name], compiled.async, name === compiled.entry ? snapshotCode : '');
+      sources[name] = { prefix: built.prefix.length, lines: compiled.modules[name].lines };
+      records[name] = { fn: (0, g.eval)(built.code), ns: null, state: 'new', result: null };
+    });
+
+    function namespace(record) {
+      if (!record.ns) {
+        record.ns = Object.create(null);
+        Object.defineProperty(record.ns, Symbol.toStringTag, { value: 'Module' });
+      }
+      return record.ns;
+    }
+
+    function evaluate(name) {
+      const record = records[name];
+      const ns = namespace(record);
+      if (record.state !== 'new') return record.state === 'done' && compiled.async ? record.result : ns;
+      record.state = 'evaluating';
+      const define = function (getters) {
+        const all = Object.assign({}, starGetters(name, getters), getters);
+        Object.keys(all).sort().forEach(function (key) {
+          Object.defineProperty(ns, key, {
+            enumerable: true,
+            get: all[key],
+            set: function () { throw new TypeError('Importierte Werte sind schreibgeschützt. Ändere „' + key + '“ in ' + name + ' selbst.'); },
+          });
+        });
+      };
+      const dynamicImport = function (spec) {
+        return Promise.resolve().then(function () {
+          let target;
+          try { target = resolveModule(name, spec, compiled.files); } catch (e) { throw new TypeError(e.message); }
+          if (!records[target]) throw new TypeError(target + ' ist keine JavaScript-Datei und lässt sich nicht importieren.');
+          return evaluate(target);
+        });
+      };
+      const meta = { url: 'file:///' + name };
+      let value;
+      try {
+        value = record.fn.call(undefined, evaluate, define, dynamicImport, meta);
+      } finally {
+        record.state = 'done';
+      }
+      Object.preventExtensions(ns);
+      if (compiled.async) {
+        record.result = value.then(function () { record.settled = true; return ns; });
+        return record.result;
+      }
+      record.settled = true;
+      return ns;
+    }
+
+    function starGetters(name, own) {
+      const out = {};
+      compiled.modules[name].stars.forEach(function (s) {
+        exportedNames(compiled.modules, s.target, [name]).forEach(function (key) {
+          if (key === 'default' || own[key] || out[key]) return;
+          out[key] = function () { return namespace(records[s.target])[key]; };
+        });
+      });
+      return out;
+    }
+
+    return {
+      sources: sources,
+      start: function () { return evaluate(compiled.entry); },
+      module: function (spec) {
+        const name = String(spec).replace(/^\.\//, '');
+        if (!records[name]) throw new Error('Die Datei „' + spec + '“ gibt es nicht. Vorhanden: ' + Object.keys(records).join(', ') + '.');
+        return records[name].settled ? records[name].ns : evaluate(name);
+      },
+    };
+  }
+
+  function locateModuleError(error, sources) {
+    const lines = String((error && error.stack) || '').split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(/cw-datei\/(.+?):(\d+):(\d+)/);
+      if (!m || !sources[m[1]]) continue;
+      const line = Number(m[2]);
+      let column = Number(m[3]);
+      if (line === 1) column = Math.max(1, column - sources[m[1]].prefix);
+      if (line >= 1 && line <= sources[m[1]].lines) return { file: m[1], line: line, column: column };
+    }
+    return null;
+  }
 
   const STORAGE_LIMIT = 100 * 1024;
 
@@ -788,7 +1098,9 @@
   CW.asyncError = function (reason) { if (currentAsyncError) currentAsyncError(reason); };
 
   CW.runLesson = async function runLesson(options) {
-    const code = String(options.code || '');
+    const files = options.files && typeof options.files === 'object' ? options.files : null;
+    const entry = String(options.entry || 'main.js');
+    const code = files ? String(files[entry] || '') : String(options.code || '');
     const testsSource = options.tests ? String(options.tests) : null;
     const g = root;
 
@@ -803,7 +1115,15 @@
 
     let declarations = [];
     let guarded = null;
-    try {
+    let compiled = null;
+    if (files) {
+      compiled = CW.compileModules(files, entry, { loopGuard: !!options.loopGuard });
+      if (compiled.syntaxError) {
+        result.syntaxError = compiled.syntaxError;
+        return result;
+      }
+      declarations = topLevelDeclarations(compiled.modules[entry].ast);
+    } else try {
       const ast = g.acorn.parse(STRICT_PREFIX + code, { ecmaVersion: 'latest', sourceType: 'script', locations: true });
       declarations = topLevelDeclarations(ast);
       if (options.loopGuard) guarded = guardLoops(STRICT_PREFIX + code, ast);
@@ -861,13 +1181,21 @@
       snapshot: function (entries) {
         entriesFn = entries;
         takeSnapshot();
-        capturing = false;
+        if (g.__cw.phase === 'user') capturing = false;
       },
       api: {
         test: function (name, fn) { registered.push({ name: name, fn: fn }); },
         expect: makeExpect(),
         output: function () { return result.logs.map(function (l) { return l.text; }); },
-        source: function () { return code; },
+        source: function (name) {
+          if (!files || name === undefined) return code;
+          const file = String(name).replace(/^\.\//, '');
+          return Object.prototype.hasOwnProperty.call(files, file) ? String(files[file]) : null;
+        },
+        modul: function (name) {
+          if (!loader) throw new Error('modul(…) gibt es nur in Lektionen mit mehreren Dateien.');
+          return loader.module(name);
+        },
         capture: function (fn) {
           const buffer = [];
           capture = buffer;
@@ -889,10 +1217,28 @@
       return '{name:' + JSON.stringify(d.name) + ',kind:' + JSON.stringify(d.kind) + ',get:function(){return ' + d.name + ';}}';
     }).join(',');
     const userLineCount = code.split('\n').length;
+    let loader = null;
 
-    let program = (guarded || STRICT_PREFIX + code) + '\n;__cw.snapshot(function(){return [' + getters + '];});\n';
+    const snapshotCall = '__cw.snapshot(function(){return [' + getters + '];});';
+    let program;
+    let entryPromise = null;
+    if (compiled) {
+      try {
+        loader = createLoader(g, compiled, snapshotCall);
+      } catch (e) {
+        result.syntaxError = { file: entry, line: 1, column: 1, message: translateSyntax(e && e.message), raw: String(e && e.message) };
+        return result;
+      }
+      g.__cw.start = function () {
+        const value = loader.start();
+        if (compiled.async) entryPromise = value;
+      };
+      program = ';__cw.start();\n';
+    } else {
+      program = (guarded || STRICT_PREFIX + code) + '\n;' + snapshotCall + '\n';
+    }
     if (testsSource) {
-      program += ';__cw.phase="tests";\n;(function(){ const { test, expect, output, source, capture, wait } = __cw.api;\n' +
+      program += ';__cw.phase="tests";\n;(function(){ const { test, expect, output, source, capture, wait, modul } = __cw.api;\n' +
         testsSource + '\n})();\n';
     }
     program += '//# sourceURL=' + SOURCE_NAME;
@@ -901,14 +1247,16 @@
       const isObject = e !== null && typeof e === 'object';
       const name = isObject ? String(e.name || 'Error') : 'Error';
       const message = isObject ? String(e.message) : String(e);
-      const loc = isObject ? locateError(e, userLineCount) : null;
-      return {
+      const loc = isObject ? (loader ? locateModuleError(e, loader.sources) : locateError(e, userLineCount)) : null;
+      const error = {
         name: name,
         message: isObject ? translateError(name, message) : 'Dein Code hat etwas „geworfen“ (throw): ' + show(e),
         raw: isObject ? name + ': ' + message : String(e),
         line: loc ? loc.line : null,
         column: loc ? loc.column : null,
       };
+      if (loader) error.file = loc ? loc.file : null;
+      return error;
     }
 
     let testAsyncError = null;
@@ -933,6 +1281,13 @@
 
     if (!result.syntaxError && !result.testsBroken) {
       g.__cw.phase = 'user-async';
+      if (entryPromise) {
+        entryPromise.then(null, onAsyncError);
+        await Promise.race([
+          entryPromise.then(null, function () {}),
+          new Promise(function (resolve) { (timers.real.setTimeout || setTimeout)(resolve, SETTLE_LIMIT_MS); }),
+        ]);
+      }
       capturing = true;
       const done = await settle(timers, SETTLE_LIMIT_MS);
       if (!done) {

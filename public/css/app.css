@@ -212,6 +212,12 @@ pre code { background: none; border: 0; padding: 0; font-size: inherit; }
 .editor-bar { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); flex: none; flex-wrap: wrap; }
 .file { font-family: var(--font-code); font-size: .82rem; font-weight: 600; }
 .editor { flex: 1; min-height: 0; }
+.file-tabs { padding-top: 4px; overflow-x: auto; scrollbar-width: thin; }
+.file-tabs .tab { font-family: var(--font-code); font-weight: 600; font-size: .82rem; white-space: nowrap; }
+.file-tabs .is-entry::before { content: "▶ " / ""; color: var(--accent); }
+.file-tabs .has-error { color: var(--bad); }
+.file-tabs .has-error::after { content: " ●" / ""; }
+.file-tabs .tab:not(.has-error) .file-error-label { display: none; }
 .run { min-width: 12em; }
 #save-state.is-error { color: var(--bad); font-weight: 700; }
 

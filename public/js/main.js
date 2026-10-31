@@ -189,7 +189,7 @@ async function openLesson(id, { initial = false, preloaded = null } = {}) {
   clearPreview($('#preview-host'));
   $('#preview-host').innerHTML = PREVIEW_EMPTY;
 
-  setEditorValue(hasCode ? saved.code : lesson.starterCode);
+  setEditorContent(hasCode ? saved.code : null);
   clearMarkers();
   tutor.setMessages(saved ? saved.chat : []);
 
@@ -207,9 +207,88 @@ async function openLesson(id, { initial = false, preloaded = null } = {}) {
   else { renderResults(null); }
 }
 
-function setEditorValue(code) {
+const isMultiFile = () => !!(state.lesson && state.lesson.starterFiles);
+
+function savedFiles(code) {
+  try {
+    const data = JSON.parse(code);
+    if (data && data.dateien && typeof data.dateien === 'object') return data.dateien;
+  } catch (e) { }
+  return null;
+}
+
+function currentFiles() {
+  return Object.fromEntries([...state.files.models].map(([name, model]) => [name, model.getValue()]));
+}
+
+function currentCode() {
+  return state.files ? JSON.stringify({ dateien: currentFiles() }) : state.editor.getValue();
+}
+
+function readableCode() {
+  if (!state.files) return state.editor.getValue();
+  return Object.entries(currentFiles()).map(([name, text]) => `// ===== Datei: ${name} =====\n${text}`).join('\n\n');
+}
+
+function renderFileTabs() {
+  const bar = $('#file-tabs');
+  bar.hidden = !state.files;
+  $('#editor-file').hidden = !!state.files;
+  if (!state.files) { bar.replaceChildren(); return; }
+  bar.replaceChildren(...[...state.files.models.keys()].map((name) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tab';
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-controls', 'editor');
+    b.dataset.file = name;
+    b.textContent = name;
+    if (name === state.lesson.entry) {
+      b.classList.add('is-entry');
+      b.title = 'Startdatei: Hier beginnt das Programm';
+    }
+    const mark = document.createElement('span');
+    mark.className = 'sr-only file-error-label';
+    mark.textContent = ' (Fehler)';
+    b.append(mark);
+    return b;
+  }));
+  showFile(state.files.active);
+}
+
+function showFile(name) {
+  if (!state.files || !state.files.models.has(name)) return;
+  state.files.active = name;
+  if (state.editor.getModel() !== state.files.models.get(name)) state.editor.setModel(state.files.models.get(name));
+  $$('#file-tabs [data-file]').forEach((b) => {
+    const on = b.dataset.file === name;
+    b.setAttribute('aria-selected', String(on));
+    b.tabIndex = on ? 0 : -1;
+  });
+}
+
+function setEditorContent(code) {
+  const lesson = state.lesson;
+  const old = state.files;
   state.suppressChange = true;
-  state.editor.setValue(code);
+  if (lesson.starterFiles) {
+    const saved = typeof code === 'string' ? savedFiles(code) : null;
+    const models = new Map();
+    Object.keys(lesson.starterFiles).forEach((name) => {
+      const text = saved && typeof saved[name] === 'string' ? saved[name] : lesson.starterFiles[name];
+      const uri = state.monaco.Uri.parse('file:///' + lesson.id + '/' + name);
+      const model = state.monaco.editor.createModel(text, 'javascript', uri);
+      model.onDidChangeContent(onEditorChange);
+      models.set(name, model);
+    });
+    state.files = { models, active: lesson.entry };
+  } else {
+    state.files = null;
+    state.editor.setModel(state.singleModel);
+    state.editor.setValue(typeof code === 'string' ? code : lesson.starterCode);
+  }
+  renderFileTabs();
+  if (old) old.models.forEach((model) => model.dispose());
   state.suppressChange = false;
   state.editor.setScrollTop(0);
   state.dirty = false;
@@ -229,14 +308,14 @@ async function flushSave(keepalive = false) {
   clearTimeout(state.saveTimer);
   if (!state.dirty || !state.lesson) return;
   const id = state.lesson.id;
-  const code = state.editor.getValue();
+  const code = currentCode();
   state.dirty = false;
   setSaveState('saving');
   try {
     await api.saveLesson(id, { code }, keepalive);
     lessonProgress(id).code = code;
     state.progress.lastLessonId = id;
-    if (state.editor.getValue() === code) setSaveState('saved'); else setSaveState('dirty');
+    if (currentCode() === code) setSaveState('saved'); else setSaveState('dirty');
     const now = Date.now();
     if (!state.lastEditEvent[id] || now - state.lastEditEvent[id] > 5 * 60 * 1000) {
       state.lastEditEvent[id] = now;
@@ -249,21 +328,24 @@ async function flushSave(keepalive = false) {
 }
 
 function clearMarkers() {
-  const model = state.editor && state.editor.getModel();
-  if (model) state.monaco.editor.setModelMarkers(model, 'codewerk', []);
+  const models = state.files ? [...state.files.models.values()] : [state.editor && state.editor.getModel()];
+  models.forEach((model) => { if (model) state.monaco.editor.setModelMarkers(model, 'codewerk', []); });
+  $$('#file-tabs .has-error').forEach((b) => b.classList.remove('has-error'));
 }
 
-function markLine(line, column, message) {
-  const model = state.editor.getModel();
-  if (!line || line > model.getLineCount()) return;
+function markLine(line, column, message, file) {
+  const model = file && state.files ? state.files.models.get(file) : state.editor.getModel();
+  if (!model || !line || line > model.getLineCount()) return;
+  if (file) $$('#file-tabs [data-file]').forEach((b) => b.classList.toggle('has-error', b.dataset.file === file));
   state.monaco.editor.setModelMarkers(model, 'codewerk', [{
     severity: state.monaco.MarkerSeverity.Error,
     message, startLineNumber: line, startColumn: column || 1, endLineNumber: line, endColumn: model.getLineMaxColumn(line),
   }]);
 }
 
-function gotoLine(line, column) {
+function gotoLine(line, column, file) {
   if (MOBILE.matches) setView('code');
+  if (file) showFile(file);
   state.editor.revealLineInCenter(line);
   state.editor.setPosition({ lineNumber: line, column: column || 1 });
   state.editor.focus();
@@ -273,8 +355,8 @@ function classify(result) {
   if (!result) return { kind: 'none' };
   if (result.crashed) return { kind: 'crashed', text: result.crashed };
   if (result.timeout) return { kind: 'timeout' };
-  if (result.syntaxError) return { kind: 'syntax', line: result.syntaxError.line };
-  if (result.error) return { kind: 'error', line: result.error.line };
+  if (result.syntaxError) return { kind: 'syntax', line: result.syntaxError.line, file: result.syntaxError.file };
+  if (result.error) return { kind: 'error', line: result.error.line, file: result.error.file };
   if (result.testsBroken) return { kind: 'broken', text: result.testsBroken };
   if (result.tests) {
     const passed = result.tests.filter((t) => t.ok).length;
@@ -285,13 +367,14 @@ function classify(result) {
 
 function errorText(result) {
   if (!result) return '';
-  if (result.syntaxError) return `Syntaxfehler in Zeile ${result.syntaxError.line}: ${result.syntaxError.message}`;
-  if (result.error) return `${result.error.line ? 'Zeile ' + result.error.line + ': ' : ''}${result.error.raw} (${result.error.message})`;
+  const where = (e) => (e.file ? e.file + (e.line ? ', ' : ': ') : '') + (e.line ? 'Zeile ' + e.line + ': ' : '');
+  if (result.syntaxError) return `Syntaxfehler in ${where(result.syntaxError)}${result.syntaxError.message}`;
+  if (result.error) return `${where(result.error)}${result.error.raw} (${result.error.message})`;
   if (result.timeout) return `Zeitlimit von ${TIMEOUT_SECONDS} Sekunden überschritten (Endlosschleife?)`;
   return '';
 }
 
-async function runPageLesson(code, lessonId) {
+async function runPageLesson(job, lessonId) {
   const { page, testsSource } = state.lesson;
   const storage = state.pageStorage.get(lessonId) || {};
   const live = (msg) => {
@@ -299,8 +382,8 @@ async function runPageLesson(code, lessonId) {
     if (msg.log && state.lesson && state.lesson.id === lessonId) appendLiveLog(msg.log);
   };
   const [shown, tested] = await Promise.all([
-    runInPage({ code, tests: null, page, storage }, $('#preview-host'), live),
-    runInPage({ code, tests: testsSource, page, storage }, null),
+    runInPage({ ...job, tests: null, page, storage }, $('#preview-host'), live),
+    runInPage({ ...job, tests: testsSource, page, storage }, null),
   ]);
   if (shown.storage) state.pageStorage.set(lessonId, shown.storage);
   if (shown.syntaxError || shown.error || shown.timeout || shown.crashed) return shown;
@@ -316,9 +399,10 @@ async function run({ auto = false } = {}) {
   btn.firstChild.textContent = 'Läuft … ';
   await flushSave();
 
-  const code = state.editor.getValue();
+  const code = currentCode();
+  const job = state.files ? { files: currentFiles(), entry: state.lesson.entry } : { code };
   const lessonId = state.lesson.id;
-  const result = isPageLesson() ? await runPageLesson(code, lessonId) : await runCode({ code, tests: state.lesson.testsSource });
+  const result = isPageLesson() ? await runPageLesson(job, lessonId) : await runCode({ ...job, tests: state.lesson.testsSource });
   state.last = { result, code };
   state.running = false;
   btn.disabled = false;
@@ -327,7 +411,7 @@ async function run({ auto = false } = {}) {
   clearMarkers();
   const info = classify(result);
   const err = result.syntaxError || result.error;
-  if (err && err.line) markLine(err.line, err.column, err.message);
+  if (err && err.line) markLine(err.line, err.column, err.message, err.file);
 
   renderResults(result);
 
@@ -427,9 +511,10 @@ function renderConsole(result, info) {
   } else if (result.syntaxError || result.error) {
     const e = result.syntaxError || result.error;
     const title = result.syntaxError ? 'Schreibfehler im Code' : 'Fehler beim Ausführen';
-    parts.push(`<div class="errorcard"><div class="errorcard-title">${title}${e.line ? ' · Zeile ' + e.line : ''}</div>` +
+    const place = [e.file, e.line ? 'Zeile ' + e.line : ''].filter(Boolean).join(', ');
+    parts.push(`<div class="errorcard"><div class="errorcard-title">${title}${place ? ' · ' + escapeHtml(place) : ''}</div>` +
       `<p>${inline(e.message)}</p><div class="errorcard-actions">` +
-      (e.line ? `<button type="button" class="btn small" data-goto-line="${e.line}" data-goto-col="${e.column || 1}">Zu Zeile ${e.line} springen</button>` : '') +
+      (e.line ? `<button type="button" class="btn small" data-goto-line="${e.line}" data-goto-col="${e.column || 1}"${e.file ? ` data-goto-file="${escapeHtml(e.file)}"` : ''}>Zu ${e.file ? escapeHtml(e.file) + ', ' : ''}Zeile ${e.line} springen</button>` : '') +
       '<button type="button" class="btn small" data-action="explain">Erklär mir den Fehler</button></div>' +
       `<details><summary>Originalmeldung</summary><code>${escapeHtml(e.raw)}</code></details></div>`);
   }
@@ -479,7 +564,7 @@ function renderNextStep() {
       '<button type="button" class="btn" data-action="tip">Gib mir einen Tipp</button>';
   } else if (['syntax', 'error', 'timeout', 'crashed'].includes(info.kind)) {
     cls = 'is-error';
-    html = '<div class="ns-text"><strong>Ein Fehler stoppt deinen Code.</strong> Nächster Schritt: Lies die Meldung unter „Ausgabe“' + (info.line ? ` und schau in Zeile ${info.line}.` : '.') + '</div>' +
+    html = '<div class="ns-text"><strong>Ein Fehler stoppt deinen Code.</strong> Nächster Schritt: Lies die Meldung unter „Ausgabe“' + (info.line ? ` und schau in ${info.file ? escapeHtml(info.file) + ', ' : ''}Zeile ${info.line}.` : '.') + '</div>' +
       '<button type="button" class="btn" data-action="explain">Erklär mir den Fehler</button>';
   } else if (info.kind === 'broken') {
     cls = 'is-error';
@@ -500,7 +585,7 @@ function tutorContext() {
   const last = state.last && state.last.result;
   return {
     lessonId: state.lesson.id,
-    code: state.editor.getValue(),
+    code: readableCode(),
     output: last && last.logs ? last.logs.map((l) => l.text).join('\n') : '',
     error: errorText(last),
     tests: last && last.tests ? last.tests.map((t) => ({ name: t.name, ok: t.ok, message: t.message })) : [],
@@ -538,6 +623,14 @@ function wireUi() {
   $$('[data-rtab]').forEach((b) => b.addEventListener('click', () => setResultTab(b.dataset.rtab)));
   wireTabKeys('.pane-left .tabs .tab', 'tab', (t) => setLeftTab(t));
   wireTabKeys('.results-card .tabs .tab', 'rtab', (t) => setResultTab(t));
+  $('#file-tabs').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const all = $$('#file-tabs [data-file]');
+    const i = all.findIndex((b) => b.dataset.file === state.files.active);
+    const next = all[(i + (e.key === 'ArrowRight' ? 1 : all.length - 1)) % all.length];
+    showFile(next.dataset.file);
+    next.focus();
+  });
 
   $('#btn-run').addEventListener('click', () => run());
   $$('.mn-btn').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
@@ -565,7 +658,8 @@ function wireUi() {
     if (!t) return;
     if (t.classList.contains('try')) return trySnippet(t);
     if (t.dataset.goto) { setView('lernen'); setLeftTab(t.dataset.goto); renderNextStep(); return; }
-    if (t.dataset.gotoLine) return gotoLine(Number(t.dataset.gotoLine), Number(t.dataset.gotoCol));
+    if (t.dataset.gotoLine) return gotoLine(Number(t.dataset.gotoLine), Number(t.dataset.gotoCol), t.dataset.gotoFile);
+    if (t.dataset.file) return showFile(t.dataset.file);
     switch (t.dataset.action) {
       case 'next': {
         const i = state.lessons.findIndex((l) => l.id === state.lesson.id);
@@ -611,7 +705,7 @@ function wireUi() {
     const lp = lessonProgress(id);
     lp.code = null;
     lp.lastRun = null;
-    setEditorValue(state.lesson.starterCode);
+    setEditorContent(null);
     state.last = null;
     clearMarkers();
     renderResults(null);
@@ -738,7 +832,9 @@ async function init() {
   }
   const size = document.documentElement.dataset.size || 'm';
   state.editor = createEditor(state.monaco, $('#editor'), { fontSize: FONT_SIZES[size] });
-  state.editor.onDidChangeModelContent(onEditorChange);
+  state.singleModel = state.monaco.editor.createModel('', 'javascript');
+  state.singleModel.onDidChangeContent(onEditorChange);
+  state.editor.setModel(state.singleModel);
   state.editor.addCommand(state.monaco.KeyMod.CtrlCmd | state.monaco.KeyCode.Enter, () => run());
 
   diagram = createDiagram($('#rtab-diagramm'));

@@ -1,31 +1,33 @@
-test('`rechner` ist ein Objekt mit genau zwei Funktionen', () => {
-  expect(typeof rechner, 'const rechner = (() => { … return { addiere, letzteRechnung }; })();').toBe('object');
-  expect(Object.keys(rechner).sort(), 'Gib nur addiere und letzteRechnung zurück.').toEqual(['addiere', 'letzteRechnung']);
+const ohneKommentare = (text) => (text || '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+
+test('rechner.js exportiert genau addiere und letzteRechnung', () => {
+  const rechner = modul('rechner.js');
+  expect(Object.keys(rechner), 'Schreibe export vor beide Funktionen, aber nicht vor verlauf.').toEqual(['addiere', 'letzteRechnung']);
 });
 
-test('Vor der ersten Rechnung gibt es keine letzte Rechnung', () => {
-  expect(rechner.letzteRechnung(), 'Ist verlauf leer, gib null zurück.').toBeNull();
+test('`verlauf` bleibt privat', () => {
+  expect(modul('rechner.js').verlauf, 'verlauf darf nicht exportiert werden.').toBeUndefined();
 });
 
-test('addiere rechnet und merkt sich die Rechnung', () => {
-  expect(rechner.addiere(2, 3)).toBe(5);
-  expect(rechner.letzteRechnung(), 'Format: 2 + 3 = 5').toBe('2 + 3 = 5');
-  rechner.addiere(10, 4);
-  expect(rechner.letzteRechnung()).toBe('10 + 4 = 14');
+test('letzteRechnung gibt die letzte Rechnung zurück', () => {
+  const { addiere, letzteRechnung } = modul('rechner.js');
+  expect(typeof letzteRechnung, 'export function letzteRechnung() { … }').toBe('function');
+  expect(addiere(1, 1)).toBe(2);
+  expect(letzteRechnung(), 'Gib den letzten Eintrag aus verlauf zurück: verlauf.at(-1)').toBe('1 + 1 = 2');
+  expect(ohneKommentare(source('rechner.js')), 'Ist verlauf leer, gib null zurück, z. B. mit ?? null.').toMatch(/null/);
 });
 
-test('`verlauf` ist privat', () => {
-  expect(typeof verlauf, 'Lege verlauf innerhalb der Klammer-Funktion an, nicht ganz oben.').toBe('undefined');
-  expect(rechner.verlauf, 'verlauf darf nicht im zurückgegebenen Objekt stehen.').toBeUndefined();
+test('main.js importiert aus ./rechner.js', () => {
+  const code = ohneKommentare(source('main.js'));
+  expect(code, 'import { addiere, letzteRechnung } from "./rechner.js";').toMatch(/import\s*\{[^}]*\baddiere\b[^}]*\}\s*from\s*["']\.\/rechner\.js["']/);
+  expect(code, 'Importiere auch letzteRechnung.').toMatch(/import\s*\{[^}]*\bletzteRechnung\b[^}]*\}\s*from/);
 });
 
-test('`addiere` wurde per Destructuring „importiert“', () => {
-  expect(addiere, 'const { addiere } = rechner;').toBe(rechner.addiere);
-  const code = source().replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-  expect(code).toMatch(/const\s*\{\s*addiere\s*\}\s*=\s*rechner/);
+test('main.js importiert den Standard-Export als `schoen`', () => {
+  expect(ohneKommentare(source('main.js')), 'import schoen from "./format.js"; (ohne geschweifte Klammern)')
+    .toMatch(/import\s+schoen\s+from\s*["']\.\/format\.js["']/);
 });
 
-test('Das „importierte“ addiere schreibt in denselben Verlauf', () => {
-  addiere(1, 1);
-  expect(rechner.letzteRechnung()).toBe('1 + 1 = 2');
+test('Die Ausgabe zeigt die letzte Rechnung', () => {
+  expect(output(), 'Rechne erst 2 + 3, dann 10 + 4, und gib schoen(letzteRechnung()) aus.').toContain('Ergebnis: 10 + 4 = 14');
 });

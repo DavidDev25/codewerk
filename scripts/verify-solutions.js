@@ -31,7 +31,7 @@ process.on('unhandledRejection', (reason) => { if (activeCtx) activeCtx.CW.async
  * frischer Worker), bei Browser-Lektionen (seite.html) ein jsdom-Fenster mit der Seite
  * (wie das iframe im Browser, inklusive Schleifenschutz und Ersatz-localStorage).
  */
-async function run(code, tests, page) {
+async function run(source, tests, page, entry) {
   let ctx;
   let evaluate;
   if (typeof page === 'string') {
@@ -52,7 +52,8 @@ async function run(code, tests, page) {
     vm.runInContext(coreSource, ctx);
     evaluate = (src) => vm.runInContext(src, ctx, { timeout: 5000 });
   }
-  ctx.__input = JSON.stringify({ code, tests, loopGuard: typeof page === 'string' });
+  const job = typeof source === 'string' ? { code: source } : { files: source, entry };
+  ctx.__input = JSON.stringify({ ...job, tests, loopGuard: typeof page === 'string' });
   activeCtx = ctx;
   try {
     // Der synchrone Teil ist durch timeout (vm) bzw. den Schleifenschutz (jsdom) begrenzt,
@@ -82,12 +83,12 @@ for (const lesson of all) {
   /* 1. Musterlösung */
   let sol;
   try {
-    sol = await run(lesson.solution, lesson.testsSource, lesson.page);
+    sol = await run(lesson.solutionFiles || lesson.solution, lesson.testsSource, lesson.page, lesson.entry);
   } catch (e) {
     fail('Musterlösung brach ab: ' + e.message);
     continue;
   }
-  if (sol.syntaxError) fail(`Musterlösung hat einen Syntaxfehler (Zeile ${sol.syntaxError.line}): ${sol.syntaxError.raw}`);
+  if (sol.syntaxError) fail(`Musterlösung hat einen Syntaxfehler (${sol.syntaxError.file ? sol.syntaxError.file + ', ' : ''}Zeile ${sol.syntaxError.line}): ${sol.syntaxError.raw}`);
   else if (sol.error) fail(`Musterlösung wirft einen Fehler: ${sol.error.raw}`);
   else if (sol.testsBroken) fail(sol.testsBroken);
   else if (!sol.tests || sol.tests.length === 0) fail('Die Lektion hat keine Tests.');
@@ -102,12 +103,12 @@ for (const lesson of all) {
   /* 2. Startcode */
   let start;
   try {
-    start = await run(lesson.starterCode, lesson.testsSource, lesson.page);
+    start = await run(lesson.starterFiles || lesson.starterCode, lesson.testsSource, lesson.page, lesson.entry);
   } catch (e) {
     fail('Startcode brach ab: ' + e.message);
     continue;
   }
-  if (start.syntaxError) fail(`Startcode hat einen Syntaxfehler (Zeile ${start.syntaxError.line}): ${start.syntaxError.raw}`);
+  if (start.syntaxError) fail(`Startcode hat einen Syntaxfehler (${start.syntaxError.file ? start.syntaxError.file + ', ' : ''}Zeile ${start.syntaxError.line}): ${start.syntaxError.raw}`);
   else if (start.error) fail(`Startcode wirft schon beim Start einen Fehler: ${start.error.raw}`);
   else if (start.tests && start.tests.every((t) => t.ok)) fail('Der Startcode besteht schon alle Tests – die Aufgabe wäre sofort „gelöst“.');
   else console.log(`   ✓ Startcode läuft und besteht noch nicht alles (${start.tests ? start.tests.filter((t) => t.ok).length : 0}/${start.tests ? start.tests.length : 0})`);
