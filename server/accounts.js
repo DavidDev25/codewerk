@@ -193,7 +193,7 @@ function router({ db, dataDir, isKnownLesson }) {
   });
 
   // Gast-Fortschritt aus dem Browser ins Konto übernehmen (direkt nach der Anmeldung)
-  r.post('/api/progress/import', express.json({ limit: '5mb' }), async (req, res) => {
+  r.post('/api/progress/import', express.json({ limit: '5mb', inflate: false }), async (req, res) => {
     if (!req.user) return res.status(401).json({ error: 'Nicht angemeldet.' });
     let count = 0;
     await db.progressFor(req.user.id).update((doc) => { count = progress.importGuest(doc, req.body || {}, isKnownLesson); });

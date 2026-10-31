@@ -120,7 +120,9 @@ async function main() {
   if (accountsOn) app.use(accounts.router({ db, dataDir: DATA_DIR, isKnownLesson }));
   else app.get('/api/me', (req, res) => res.json({ accounts: false, user: null }));
 
-  app.use('/api', express.json({ limit: '1mb' }));
+  // inflate: false – der Browser schickt nie komprimierte Bodies. Schützt zugleich vor
+  // GHSA-27r3-jxmh-p828 (body-parser < 1.20.9: DoS über komprimierte Bodies).
+  app.use('/api', express.json({ limit: '1mb', inflate: false }));
 
   /* ---- Lektionen ---- */
   app.get('/api/lessons', (req, res) => res.json(lessons.list()));

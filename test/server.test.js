@@ -149,3 +149,13 @@ test('Unbekannte API-Adresse liefert 404 als JSON', async () => {
   assert.equal(res.status, 404);
   assert.ok((await res.json()).error);
 });
+
+test('Komprimierte Request-Bodies werden abgelehnt (Schutz vor Entpack-DoS)', async () => {
+  const body = require('zlib').gzipSync(JSON.stringify({ tab: 'aufgabe' }));
+  const res = await fetch(base + '/api/progress/ui', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Content-Encoding': 'gzip', Origin: base },
+    body,
+  });
+  assert.equal(res.status, 415);
+});
