@@ -4,14 +4,18 @@ In Lektion 45 hast du mit `Promise.all` mehrere Anfragen gleichzeitig gestartet.
 
 | Werkzeug | erfüllt, sobald … | Ergebnis |
 | --- | --- | --- |
-| `Promise.all` | **alle** erfüllt sind (scheitert bei einem Fehler) | Array der Werte |
-| `Promise.allSettled` | alle **fertig** sind, egal ob gut oder schlecht | Array von Berichten |
+| `Promise.all` | **alle** erfüllt sind, scheitert beim ersten Fehler | Liste der Werte |
+| `Promise.allSettled` | alle **fertig** sind, egal ob gut oder schlecht | Liste von Berichten |
 | `Promise.race` | das **erste** fertig ist, gut oder schlecht | dessen Wert oder Fehler |
 | `Promise.any` | das erste **erfolgreich** ist | dessen Wert |
 
 :::alltag
-Du fragst drei Freunde, ob sie dir beim Umzug helfen. `all`: Du planst nur, wenn alle zusagen. `allSettled`: Du wartest auf alle Antworten und planst mit denen, die Ja sagen. `any`: Die erste Zusage reicht dir. `race`: Die erste Antwort entscheidet, auch wenn sie Nein ist.
+Du fragst drei Freunde, ob sie dir beim Umzug helfen. Bei `all` planst du nur, wenn alle zusagen. Bei `allSettled` wartest du auf alle Antworten und planst mit denen, die Ja sagen. Bei `any` reicht dir die erste Zusage. Bei `race` entscheidet die erste Antwort, auch wenn sie Nein ist.
 :::
+
+## Alle Antworten abwarten
+
+Im Beispiel klappt eine Anfrage, die andere scheitert, weil echte Adressen gesperrt sind. Mit `allSettled` bekommst du trotzdem beide Ergebnisse:
 
 ```js
 async function bericht() {
@@ -27,7 +31,11 @@ async function bericht() {
 bericht();
 ```
 
-`allSettled` liefert für jedes Promise ein Objekt: `{ status: "fulfilled", value }` oder `{ status: "rejected", reason }`.
+Die erste Zeile zeigt „fulfilled Mara“, die zweite „rejected“ und den Anfang der Fehlermeldung. `allSettled` liefert für jedes Promise einen Bericht. Hat es geklappt, sieht er so aus: `{ status: "fulfilled", value }`. Ist es gescheitert, so: `{ status: "rejected", reason }`. In `reason` steckt dann der Fehler.
+
+## Die erste erfolgreiche Antwort
+
+`any` wartet nur, bis ein Promise erfolgreich ist. Im Beispiel antwortet ein Server nach 300 Millisekunden, der andere nach 50:
 
 ```js
 async function schnellsteAntwort() {
@@ -41,9 +49,11 @@ async function schnellsteAntwort() {
 schnellsteAntwort();
 ```
 
+Ausgegeben wird „Zuerst geantwortet hat 50 ms“. Die langsamere Antwort interessiert `any` nicht mehr.
+
 ## Anfragen abbrechen
 
-Manchmal braucht man eine Antwort nicht mehr, etwa weil jemand schon weitergetippt hat. Mit einem `AbortController` brichst du eine laufende Anfrage ab:
+Manchmal braucht man eine Antwort nicht mehr, etwa weil jemand schon weitergetippt hat. Mit einem `AbortController` brichst du eine laufende Anfrage ab. Im Beispiel dauert die Anfrage eine Sekunde, wird aber nach 100 Millisekunden abgebrochen:
 
 ```js
 async function abbrechenDemo() {
@@ -60,9 +70,11 @@ async function abbrechenDemo() {
 abbrechenDemo();
 ```
 
+Ausgegeben wird „Abgebrochen: AbortError“. Der Controller hat zwei Teile: Sein `signal` gibst du an `fetch` mit, und mit `controller.abort()` löst du den Abbruch aus. Die Anfrage scheitert dann mit einem `AbortError`.
+
 ## Zeitlimits
 
-Ein Server kann hängen. Damit dein Programm nicht ewig wartet, gibt es ein fertiges Signal mit Zeitlimit:
+Ein Server kann hängen bleiben. Damit dein Programm nicht ewig wartet, gibt es ein fertiges Signal mit Zeitlimit. Im Beispiel braucht der Server 800 Millisekunden, das Limit ist 200:
 
 ```js
 async function mitLimit() {
@@ -76,4 +88,4 @@ async function mitLimit() {
 mitLimit();
 ```
 
-Der Fehler heißt dann `TimeoutError`, bei einem manuellen Abbruch `AbortError`. Die Übungs-API antwortet unter `/uebung/langsam?ms=…` absichtlich verzögert, höchstens 1,5 Sekunden.
+Ausgegeben wird „Zu langsam: TimeoutError“. Bei einem Zeitlimit heißt der Fehler `TimeoutError`, bei einem Abbruch von Hand `AbortError`. Die Übungs-API antwortet unter `/uebung/langsam?ms=…` absichtlich verzögert, höchstens 1,5 Sekunden.

@@ -3,18 +3,20 @@
 Du kennst jetzt **Objekte und Klassen** aus Teil 2 und **asynchronen Code** aus Teil 3. Im Abschlussprojekt baust du daraus einen kleinen Shop.
 
 :::alltag
-Beim Online-Einkauf passiert dreierlei: Der **Shop lädt sein Sortiment** (das dauert einen Moment). Dein **Warenkorb** merkt sich, was du hineinlegst, und rechnet die Summe aus. An der **Kasse** kann etwas schiefgehen, z. B. wenn das Kartenlimit überschritten ist – dann bekommst du eine verständliche Meldung statt eines Absturzes.
+Beim Online-Einkauf passieren drei Dinge. Der **Shop lädt sein Sortiment**, und das dauert einen Moment. Dein **Warenkorb** merkt sich, was du hineinlegst, und rechnet die Summe aus. An der **Kasse** kann etwas schiefgehen, zum Beispiel wenn das Kartenlimit überschritten ist. Dann bekommst du eine verständliche Meldung statt eines Absturzes.
 :::
 
-Jedes Teil hat **eine** Aufgabe:
+## Jedes Teil hat eine Aufgabe
+
+Der Shop besteht aus drei Teilen. Jedes kümmert sich um genau **eine** Sache:
 
 | Teil | Aufgabe | Werkzeuge |
 | --- | --- | --- |
 | `Warenkorb` | Artikel merken und zusammenrechnen | Klasse, `#private`, Getter, `reduce`, `map`, `throw` |
 | `einkaufen(namen)` | Sortiment laden, Produkte finden, Korb füllen | `async`, `await`, `find`, `throw` |
-| `kasse(korb)` | Bezahlen und Fehler abfangen | `async`, `await`, `try … catch` |
+| `kasse(korb)` | Bezahlen und Fehler abfangen | `async`, `await`, `try` und `catch` |
 
-Ein kleines Beispiel für dieses Zusammenspiel – eine Playlist, deren Lieder erst geladen werden:
+Das folgende Beispiel zeigt dasselbe Zusammenspiel im Kleinen. Eine Playlist ist eine Klasse mit privatem Feld. Ihre Lieder werden erst geladen und dann eingefügt:
 
 ```js
 class Playlist {
@@ -48,4 +50,6 @@ async function playlistBauen() {
 playlistBauen();
 ```
 
-Im **Diagramm** siehst du am Ende die Klasse `Warenkorb`. Den Korb selbst siehst du dort nicht: Er entsteht **innerhalb** von `start()`, und Variablen in einer Funktion gibt es nur, solange die Funktion läuft.
+Ausgegeben wird „Dauer: 7 Minuten“. `playlistBauen` wartet mit `await` auf die Lieder und legt sie dann einzeln in die Playlist. Der Getter `dauer` zählt mit `reduce` die Minuten zusammen: 3 + 4 ergibt 7. Dein Warenkorb funktioniert genauso, nur mit Preisen statt Minuten.
+
+Im **Diagramm** siehst du am Ende die Klasse `Warenkorb`. Den Korb selbst siehst du dort nicht. Er entsteht **innerhalb** von `start()`, und Variablen in einer Funktion gibt es nur, solange die Funktion läuft.
