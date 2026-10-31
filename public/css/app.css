@@ -260,7 +260,7 @@ pre code { background: none; border: 0; padding: 0; font-size: inherit; }
 .nextstep { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex: none; flex-wrap: wrap; }
 .nextstep .ns-text { flex: 1; min-width: 14em; }
 .nextstep.is-info { background: var(--accent-soft); }
-.nextstep.is-progress { background: var(--warn-soft); }
+.nextstep.is-progress { background: var(--brass-soft); }
 .nextstep.is-success { background: var(--ok-soft); }
 .nextstep.is-error { background: var(--bad-soft); }
 .results-body { flex: 1; min-height: 0; position: relative; overflow: hidden; display: flex; }
