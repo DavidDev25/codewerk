@@ -105,6 +105,19 @@ const SPLIT_DEFAULT = 56;
 const SPLIT_EXPANDED = 30;
 const SPLIT_MIN = 20;
 const SPLIT_MAX = 80;
+const WIDTH_DEFAULT = 36;
+const WIDTH_MIN = 22;
+const WIDTH_MAX = 60;
+
+function relayout() {
+  requestAnimationFrame(() => { if (diagram) diagram.refresh(); if (state.editor) state.editor.layout(); });
+}
+
+function storedNumber(key, fallback) {
+  let saved = NaN;
+  try { saved = Number(localStorage.getItem(key)); } catch (e) { }
+  return Number.isFinite(saved) && saved > 0 ? saved : fallback;
+}
 
 function setSplit(value, persist = true) {
   const split = Math.round(Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, value)));
@@ -119,47 +132,65 @@ function setSplit(value, persist = true) {
   $('#btn-expand').setAttribute('aria-pressed', String(expanded));
   $('#btn-expand').textContent = expanded ? 'Ergebnis verkleinern' : 'Ergebnis vergrößern';
   if (persist) { try { localStorage.setItem('cw-split', String(split)); } catch (e) { } }
-  requestAnimationFrame(() => { if (diagram) diagram.refresh(); if (state.editor) state.editor.layout(); });
+  relayout();
 }
 
-function wireSplitter() {
-  const bar = $('#split');
-  let saved = NaN;
-  try { saved = Number(localStorage.getItem('cw-split')); } catch (e) { }
-  setSplit(Number.isFinite(saved) && saved > 0 ? saved : SPLIT_DEFAULT, false);
+function setWidth(value, persist = true) {
+  const width = Math.round(Math.min(WIDTH_MAX, Math.max(WIDTH_MIN, value)));
+  state.width = width;
+  const layout = $('.layout');
+  layout.style.setProperty('--split-left', width + 'fr');
+  layout.style.setProperty('--split-right', (100 - width) + 'fr');
+  const bar = $('#split-width');
+  bar.setAttribute('aria-valuenow', String(width));
+  bar.setAttribute('aria-valuetext', `Lektion ${width} %, Code ${100 - width} %`);
+  if (persist) { try { localStorage.setItem('cw-width', String(width)); } catch (e) { } }
+  relayout();
+}
+
+function wireSplitter({ bar, box, horizontal, get, set, min, max, reset }) {
   const fromPointer = (e) => {
-    const box = $('.pane-right').getBoundingClientRect();
-    return ((e.clientY - box.top) / box.height) * 100;
+    const { start, size } = box();
+    return (((horizontal ? e.clientX : e.clientY) - start) / size) * 100;
   };
   bar.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     e.preventDefault();
     bar.setPointerCapture(e.pointerId);
     bar.classList.add('is-dragging');
-    document.body.classList.add('is-resizing');
+    document.body.classList.add(horizontal ? 'is-resizing-x' : 'is-resizing');
   });
   bar.addEventListener('pointermove', (e) => {
-    if (bar.hasPointerCapture(e.pointerId)) setSplit(fromPointer(e), false);
+    if (bar.hasPointerCapture(e.pointerId)) set(fromPointer(e), false);
   });
   const stop = (e) => {
     if (!bar.hasPointerCapture(e.pointerId)) return;
     bar.releasePointerCapture(e.pointerId);
     bar.classList.remove('is-dragging');
-    document.body.classList.remove('is-resizing');
-    setSplit(state.split);
+    document.body.classList.remove('is-resizing', 'is-resizing-x');
+    set(get());
   };
   bar.addEventListener('pointerup', stop);
   bar.addEventListener('pointercancel', stop);
-  bar.addEventListener('dblclick', () => setSplit(SPLIT_DEFAULT));
+  bar.addEventListener('dblclick', () => set(reset));
   bar.addEventListener('keydown', (e) => {
-    const steps = { ArrowUp: -5, ArrowDown: 5, PageUp: -15, PageDown: 15 };
-    if (steps[e.key]) setSplit(state.split + steps[e.key]);
-    else if (e.key === 'Home') setSplit(SPLIT_MIN);
-    else if (e.key === 'End') setSplit(SPLIT_MAX);
-    else if (e.key === 'Enter') setSplit(SPLIT_DEFAULT);
+    const steps = horizontal
+      ? { ArrowLeft: -5, ArrowRight: 5, PageUp: -15, PageDown: 15 }
+      : { ArrowUp: -5, ArrowDown: 5, PageUp: -15, PageDown: 15 };
+    if (steps[e.key]) set(get() + steps[e.key]);
+    else if (e.key === 'Home') set(min);
+    else if (e.key === 'End') set(max);
+    else if (e.key === 'Enter') set(reset);
     else return;
     e.preventDefault();
   });
+}
+
+function wireSplitters() {
+  setSplit(storedNumber('cw-split', SPLIT_DEFAULT), false);
+  setWidth(storedNumber('cw-width', WIDTH_DEFAULT), false);
+  wireSplitter({ bar: $('#split'), box: () => { const r = $('.pane-right').getBoundingClientRect(); return { start: r.top, size: r.height }; }, horizontal: false, get: () => state.split, set: setSplit, min: SPLIT_MIN, max: SPLIT_MAX, reset: SPLIT_DEFAULT });
+  wireSplitter({ bar: $('#split-width'), box: () => { const l = $('.pane-left').getBoundingClientRect(); const r = $('.pane-right').getBoundingClientRect(); return { start: l.left, size: r.right - l.left }; }, horizontal: true, get: () => state.width, set: setWidth, min: WIDTH_MIN, max: WIDTH_MAX, reset: WIDTH_DEFAULT });
 }
 
 function scheduleUiSave() {
@@ -710,7 +741,7 @@ function wireUi() {
   $$('.mn-btn').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
   MOBILE.addEventListener('change', () => renderNextStep());
 
-  wireSplitter();
+  wireSplitters();
   $('#btn-expand').addEventListener('click', () => {
     if (state.split > SPLIT_EXPANDED) {
       state.splitBefore = state.split;

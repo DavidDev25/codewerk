@@ -126,8 +126,7 @@ code { font-size: .88em; background: var(--surface-2); border: 1px solid var(--l
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(340px, 36%) minmax(0, 1fr);
-  gap: var(--gap);
+  grid-template-columns: minmax(300px, var(--split-left, 36fr)) var(--gap) minmax(420px, var(--split-right, 64fr));
   padding: 0 16px 16px;
   min-height: 0;
 }
@@ -137,8 +136,12 @@ code { font-size: .88em; background: var(--surface-2); border: 1px solid var(--l
 .splitter { position: relative; cursor: row-resize; touch-action: none; border-radius: 6px; outline-offset: -2px; }
 .splitter::after { content: ""; position: absolute; left: 50%; top: 50%; width: 56px; height: 5px; transform: translate(-50%, -50%); border-radius: 99px; background: var(--line); transition: background .15s; }
 .splitter:hover::after, .splitter:focus-visible::after, .splitter.is-dragging::after { background: var(--accent); width: 96px; }
+.splitter-x { cursor: col-resize; }
+.splitter-x::after { width: 5px; height: 56px; }
+.splitter-x:hover::after, .splitter-x:focus-visible::after, .splitter-x.is-dragging::after { width: 5px; height: 96px; }
 body.is-resizing { cursor: row-resize; user-select: none; }
-body.is-resizing iframe { pointer-events: none; }
+body.is-resizing-x { cursor: col-resize; user-select: none; }
+body.is-resizing iframe, body.is-resizing-x iframe { pointer-events: none; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); min-height: 0; min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
 
 .tabs { display: flex; gap: 4px; padding: 8px 8px 0; border-bottom: 1px solid var(--line); background: var(--surface-2); flex: none; }
