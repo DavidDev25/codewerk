@@ -83,9 +83,10 @@ export function renderMarkdown(src, opts) {
       continue;
     }
     if (/^\s*\d+[.)]\s+/.test(line)) {
+      const start = parseInt(line, 10);
       const items = [];
       while (i < lines.length && /^\s*\d+[.)]\s+/.test(lines[i])) items.push(inline(lines[i++].replace(/^\s*\d+[.)]\s+/, '')));
-      out.push('<ol>' + items.map((t) => '<li>' + t + '</li>').join('') + '</ol>');
+      out.push((start > 1 ? `<ol start="${start}">` : '<ol>') + items.map((t) => '<li>' + t + '</li>').join('') + '</ol>');
       continue;
     }
 

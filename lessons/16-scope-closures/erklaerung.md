@@ -1,8 +1,12 @@
-## Wo gilt eine Variable?
+## Wo eine Variable sichtbar ist
+
+Jede Variable hat einen Bereich, in dem du sie benutzen kannst. Dieser Bereich heißt **Scope**. Bei `let` und `const` ist das der Block aus geschweiften Klammern, in dem die Variable steht, und alles, was darin noch verschachtelt ist.
 
 :::alltag
-In einer Wohnung hat jedes Zimmer eigene Dinge. Aus der Küche siehst du den Flur, aber nicht in das abgeschlossene Bad. Variablen funktionieren genauso: Jeder Block `{ … }` ist ein Zimmer. Von innen siehst du nach außen, von außen nicht nach innen.
+Denk an eine Wohnung. Wer in der Küche steht, sieht auch, was im Flur liegt. Wer im Flur steht, kann aber nicht in die geschlossene Küche schauen. Bei Variablen ist es genauso: Von innen siehst du nach außen, von außen nicht nach innen.
 :::
+
+Im folgenden Beispiel liegt `haus` außen und `moebel` innerhalb der Funktion:
 
 ```js
 const haus = "außen";
@@ -16,10 +20,9 @@ zimmer();
 console.log(typeof moebel);
 ```
 
-- Eine Variable gilt in dem Block, in dem sie mit `let` oder `const` angelegt wurde, und in allen Blöcken darin. Diesen Bereich nennt man **Scope**.
-- `moebel` gibt es außerhalb von `zimmer` nicht.
+Die Funktion kann beide Variablen ausgeben, weil sie `haus` von außen sieht. Die letzte Zeile steht dagegen außerhalb der Funktion und kennt `moebel` nicht. Deshalb meldet `typeof` dort `"undefined"`.
 
-Das gilt für jeden Block, auch für `if` und Schleifen:
+Das gilt nicht nur für Funktionen, sondern für jeden Block, also auch für `if` und Schleifen:
 
 ```js
 if (true) {
@@ -28,9 +31,11 @@ if (true) {
 console.log(typeof geheim);
 ```
 
-## Funktionen merken sich ihre Umgebung
+Auch hier ist `geheim` nach der schließenden Klammer verschwunden.
 
-Jetzt wird es spannend. Eine Funktion kann eine **andere Funktion zurückgeben**. Die innere Funktion nimmt die Variablen ihrer Umgebung mit:
+## Eine Funktion merkt sich ihre Umgebung
+
+Eine Funktion kann selbst eine neue Funktion zurückgeben. Das Besondere daran: Die neue Funktion behält Zugriff auf die Variablen, die beim Erstellen um sie herum lagen, auch dann, wenn die äußere Funktion längst fertig ist.
 
 ```js
 function zaehlerErstellen() {
@@ -47,13 +52,15 @@ console.log(klicks());
 console.log(klicks());
 ```
 
-`zaehlerErstellen` ist längst fertig, trotzdem kennt die zurückgegebene Funktion `stand` noch und zählt weiter. Eine Funktion samt der Variablen, die sie sich gemerkt hat, heißt **Closure**.
+Die Ausgabe ist 1, 2 und 3. `zaehlerErstellen` ist nach dem ersten Aufruf beendet, trotzdem zählt `klicks` mit derselben Variable `stand` weiter. Eine Funktion zusammen mit den Variablen, die sie sich so gemerkt hat, nennt man **Closure**.
 
 :::alltag
-Wie ein Rucksack: Die innere Funktion packt beim Entstehen die Variablen ein, die sie braucht, und trägt sie überallhin mit.
+Stell dir einen Rucksack vor. Wenn die innere Funktion entsteht, packt sie die Variablen ein, die sie braucht, und nimmt sie überallhin mit.
 :::
 
-## Jeder Aufruf bekommt einen eigenen Rucksack
+## Jeder Aufruf packt einen eigenen Rucksack
+
+Rufst du `zaehlerErstellen` zweimal auf, entstehen zwei getrennte Zähler mit je einem eigenen `stand`:
 
 ```js
 function zaehlerErstellen() {
@@ -68,6 +75,8 @@ a();
 console.log(a(), b());
 ```
 
-## Wozu das gut ist
+`a` steht danach bei 3, `b` erst bei 1. Die beiden Zähler wissen nichts voneinander.
 
-Von außen kommt niemand an `stand` heran. Nur die Funktionen, die du zurückgibst, können ihn ändern. So schützt du Daten vor versehentlichen Änderungen. Später lernst du mit `#private` in Klassen eine zweite Art kennen, dasselbe zu erreichen.
+## Wozu man das braucht
+
+An `stand` kommt von außen niemand heran. Ändern können ihn nur die Funktionen, die du zurückgibst. So schützt du Daten davor, versehentlich überschrieben zu werden. In Teil 2 lernst du mit `#private` in Klassen einen zweiten Weg kennen, der dasselbe erreicht.
