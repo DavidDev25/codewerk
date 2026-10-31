@@ -1,0 +1,7 @@
+{
+  "titel": "Eigene Fehlerklassen",
+  "kapitel": "Teil 3 · Fehler & Asynchron",
+  "minuten": 18,
+  "kurz": "Eigene Fehlerarten mit extends Error, gezielt mit instanceof abfangen und mit cause die eigentliche Ursache weiterreichen.",
+  "tipp": "class EingabeFehler extends Error { constructor(feld, nachricht) { super(nachricht); this.name = \"EingabeFehler\"; this.feld = feld; } } Im catch prüfst du mit instanceof, ob es dein Fehler ist – alle anderen wirfst du mit throw weiter."
+}
