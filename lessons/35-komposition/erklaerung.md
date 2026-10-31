@@ -1,11 +1,14 @@
-## Komposition: Ein Auto hat einen Motor
+## Ein Objekt besteht aus Teilen
+
+Vererbung passt, wenn etwas ein Sonderfall von etwas anderem ist. Oft besteht ein Objekt aber einfach aus anderen Objekten. Dann steckst du die Teile in das große Objekt hinein. Das nennt man **Komposition**, auf Deutsch „Zusammensetzung“.
 
 :::alltag
-Ein Auto **ist kein** Motor. Es **hat** einen Motor, vier Räder und ein Radio. Wenn der Motor kaputt ist, tauschst du ihn aus, und das Auto bleibt dasselbe.
+Ein Auto **ist kein** Motor. Es **hat** einen Motor, vier Räder und ein Radio. Ist der Motor kaputt, tauschst du ihn aus, und es bleibt dasselbe Auto.
 :::
 
-Vererbung sagt: **ist ein** (`Hund` ist ein `Tier`).
-Komposition sagt: **hat ein** (`Auto` hat einen `Motor`).
+Vererbung beantwortet die Frage „ist ein?“: Ein `Hund` ist ein `Tier`. Komposition beantwortet die Frage „hat ein?“: Ein `Auto` hat einen `Motor`.
+
+Im Beispiel hat ein Schreibtisch eine Lampe. Der Schreibtisch baut die Lampe in seinem `constructor` selbst:
 
 ```js
 class Lampe {
@@ -36,8 +39,10 @@ tisch.arbeitenBeginnen();
 console.log(tisch.lampe.an);
 ```
 
-- Das Teil (`Lampe`) ist ein **eigenes Objekt** innerhalb des großen.
-- Das große Objekt **delegiert**: Es gibt Aufgaben an das Teil weiter.
+Ausgegeben wird `true`. `arbeitenBeginnen` schaltet die Lampe nicht selbst ein. Sie gibt die Aufgabe an die Lampe weiter, indem sie `this.lampe.einschalten()` aufruft.
+
+- Die `Lampe` ist ein **eigenes Objekt** innerhalb des Schreibtischs.
+- Der Schreibtisch **gibt Aufgaben weiter** an seine Teile. Fachleute nennen das **delegieren**.
 - Im **Diagramm** zeigt ein Pfeil von `tisch` zu `lampe`.
 
-Faustregel: Wenn du „ist ein“ nicht sinnvoll sagen kannst, nimm Komposition.
+Eine Faustregel: Klingt der Satz „X ist ein Y“ unsinnig, nimm Komposition.

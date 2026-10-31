@@ -1,10 +1,12 @@
-## Wo wohnen die Methoden?
+## Wo die Methoden wohnen
 
-Du hast mit `class` Baupläne geschrieben. Jetzt schauen wir unter die Motorhaube. JavaScript hatte lange gar keine Klassen. `class` ist eine bequeme Schreibweise für etwas, das es schon immer gab: **Prototypen**.
+Du hast mit `class` schon Baupläne geschrieben. Jetzt schaust du nach, was dabei im Hintergrund passiert. JavaScript hatte lange gar keine Klassen. `class` ist eine bequeme Schreibweise für etwas, das es schon immer gab: **Prototypen**.
 
 :::alltag
-In einer WG hat jeder sein eigenes Zimmer mit eigenen Sachen. Die Küche teilen sich alle. Suchst du etwas und findest es nicht in deinem Zimmer, schaust du in der Küche nach. Das eigene Zimmer sind die **eigenen Eigenschaften** eines Objekts, die Küche ist sein **Prototyp**.
+In einer WG hat jeder ein eigenes Zimmer mit eigenen Sachen. Die Küche teilen sich alle. Suchst du etwas und findest es nicht in deinem Zimmer, schaust du in der Küche nach. Das eigene Zimmer sind die **eigenen Eigenschaften** eines Objekts. Die Küche ist sein **Prototyp**.
 :::
+
+Im Beispiel gibt es zwei Katzen. Du prüfst, was jeder Katze selbst gehört und was sie sich teilen:
 
 ```js
 class Katze {
@@ -24,13 +26,15 @@ console.log(minka.miau === felix.miau);
 console.log(Object.getPrototypeOf(minka) === Katze.prototype);
 ```
 
-- `name` gehört jedem Objekt selbst (eigenes Zimmer).
-- `miau` gibt es nur **einmal**, auf `Katze.prototype` (Küche). Alle Katzen teilen sie.
-- Fragst du `minka.miau`, sucht JavaScript erst bei `minka`, findet nichts und schaut dann im Prototyp nach.
+Die erste Zeile gibt `["name"]` aus. Nur der Name gehört `minka` selbst, die Methode `miau` nicht. Die zweite Zeile gibt `true` aus: Beide Katzen benutzen genau dieselbe Methode. Die dritte Zeile zeigt, wo diese Methode wohnt. Der Prototyp von `minka` ist `Katze.prototype`.
 
-## Die Prototyp-Kette
+- `name` gehört jedem Objekt selbst. Das ist das eigene Zimmer.
+- `miau` gibt es nur **einmal**, auf `Katze.prototype`. Das ist die Küche, die sich alle Katzen teilen.
+- Schreibst du `minka.miau`, sucht JavaScript zuerst bei `minka`. Dort findet es nichts und schaut deshalb im Prototyp nach.
 
-Auch der Prototyp hat wieder einen Prototyp. Ganz oben steht `Object.prototype`. Daher kommen Methoden wie `toString` oder `hasOwnProperty`, die jedes Objekt kennt:
+## Die Kette der Prototypen
+
+Auch ein Prototyp hat wieder einen Prototyp. Ganz oben steht `Object.prototype`. Von dort kommen Methoden wie `toString`, die jedes Objekt kennt:
 
 ```js
 const minka = { name: "Minka" };
@@ -39,11 +43,13 @@ console.log(Object.hasOwn(minka, "name"));
 console.log(Object.hasOwn(minka, "toString"));
 ```
 
-Bei Vererbung mit `extends` wird die Kette einfach länger: `Hund` → `Tier` → `Object`.
+`toString` gibt „[object Object]“ aus. Die Methode funktioniert, obwohl du sie nie geschrieben hast. `Object.hasOwn` fragt, ob eine Eigenschaft dem Objekt **selbst** gehört. Bei `name` ist das `true`, bei `toString` ist es `false`, weil `toString` aus dem Prototyp kommt.
+
+Bei Vererbung mit `extends` wird die Kette einfach länger. Ein Hund sucht zuerst bei sich, dann bei `Hund`, dann bei `Tier` und zuletzt bei `Object`.
 
 ## Objekte direkt verketten
 
-Mit `Object.create(vorlage)` baust du ein Objekt, dessen Prototyp `vorlage` ist, ganz ohne Klasse:
+Mit `Object.create(vorlage)` baust du ein Objekt, dessen Prototyp `vorlage` ist. Dafür brauchst du gar keine Klasse:
 
 ```js
 const tier = {
@@ -58,9 +64,11 @@ console.log(bello.vorstellen());
 console.log(Object.hasOwn(bello, "vorstellen"));
 ```
 
-## Klassen von früher: Konstruktorfunktionen
+Ausgegeben werden „Ich bin Bello.“ und `false`. `bello` hat selbst nur den Namen. `vorstellen` findet JavaScript in `tier`, dem Prototyp von `bello`.
 
-In älterem Code und in vielen Anleitungen siehst du statt `class` eine normale Funktion mit `new`. Methoden werden dann von Hand auf den Prototyp gelegt:
+## Klassen von früher
+
+In älterem Code und in vielen Anleitungen siehst du statt `class` eine normale Funktion, die mit `new` aufgerufen wird. So eine Funktion heißt **Konstruktorfunktion**. Die Methoden legt man dort von Hand auf den Prototyp:
 
 ```js
 function Kreis(radius) {
@@ -75,8 +83,8 @@ const k = new Kreis(2);
 console.log(k.flaeche());
 ```
 
-Das ist genau das, was `class` heute für dich erledigt. Für neuen Code nimmst du `class`. Aber jetzt weißt du, was dabei passiert.
+Ausgegeben wird 13, also π · 2 · 2 gerundet. Genau das erledigt `class` heute für dich. Für neuen Code nimmst du `class`. Jetzt weißt du aber, was dabei passiert.
 
-:::alltag
+:::achtung
 Ändere nie die Prototypen von eingebauten Typen wie `Array.prototype`. Das betrifft dann jedes Array im ganzen Programm, auch in fremden Bibliotheken.
 :::

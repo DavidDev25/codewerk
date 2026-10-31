@@ -1,10 +1,12 @@
 ## Objekte, die etwas können
 
-Bisher haben deine Objekte nur Daten gespeichert. Jetzt bekommen sie **Fähigkeiten**: Funktionen, die zu einem Objekt gehören, heißen **Methoden**.
+Bisher haben deine Objekte nur Daten gespeichert. Jetzt bekommen sie auch **Fähigkeiten**. Eine Funktion, die zu einem Objekt gehört, nennt man **Methode**.
 
 :::alltag
-Eine Kaffeemaschine hat Daten (Wasserstand, Bohnen) und Knöpfe (Kaffee machen, entkalken). Drückst du „Kaffee machen“, benutzt die Maschine **ihr eigenes** Wasser, nicht das der Nachbarmaschine. In JavaScript heißt „mein eigenes“ `this`.
+Eine Kaffeemaschine hat Daten, zum Beispiel Wasserstand und Bohnen. Sie hat auch Knöpfe, zum Beispiel „Kaffee machen“ und „Entkalken“. Drückst du „Kaffee machen“, benutzt die Maschine **ihr eigenes** Wasser, nicht das der Nachbarmaschine. In JavaScript schreibst du für „mein eigenes“ das Wort `this`.
 :::
+
+Im Beispiel hat die Maschine 500 ml Wasser und eine Methode, die bei jedem Kaffee 150 ml verbraucht:
 
 ```js
 const maschine = {
@@ -19,12 +21,14 @@ console.log(maschine.kaffeeMachen());
 console.log(maschine.kaffeeMachen());
 ```
 
-- `kaffeeMachen() { … }` ist die Kurzschreibweise für eine Methode.
-- `this` ist das Objekt **vor dem Punkt** beim Aufruf. Bei `maschine.kaffeeMachen()` ist `this` also `maschine`.
+Beim ersten Kaffee sind noch 350 ml übrig, beim zweiten 200 ml. Die Methode hat jedes Mal das Wasser von `maschine` verringert.
+
+- `kaffeeMachen() { … }` ist die kurze Schreibweise für eine Methode.
+- `this` ist das Objekt, das beim Aufruf **vor dem Punkt** steht. Bei `maschine.kaffeeMachen()` ist `this` also `maschine`.
 
 ## Warum nicht einfach den Namen schreiben?
 
-Du könntest `maschine.wasser` statt `this.wasser` schreiben. Dann funktioniert die Methode aber nur für genau dieses eine Objekt. Mit `this` funktioniert sie für **jedes** Objekt, das sie benutzt:
+Du könntest auch `maschine.wasser` statt `this.wasser` schreiben. Dann funktioniert die Methode aber nur für genau dieses eine Objekt. Mit `this` funktioniert sie für **jedes** Objekt, das sie benutzt. Im Beispiel teilen sich zwei Objekte dieselbe Funktion:
 
 ```js
 function vorstellen() {
@@ -37,11 +41,11 @@ console.log(lea.vorstellen());
 console.log(tom.vorstellen());
 ```
 
-Dieselbe Funktion, zwei Objekte, zwei Ergebnisse. Genau darauf bauen gleich die **Klassen** auf.
+Ausgegeben werden „Ich bin Lea.“ und „Ich bin Tom.“. Es ist dieselbe Funktion, aber `this` ist jedes Mal ein anderes Objekt. Genau darauf bauen gleich die **Klassen** auf.
 
-## Die Falle: Methode ohne Objekt
+## Die Falle: eine Methode ohne Objekt
 
-`this` wird erst **beim Aufruf** festgelegt. Rufst du eine Methode ohne Objekt davor auf, ist `this` leer:
+`this` wird erst **beim Aufruf** festgelegt. Rufst du eine Methode ohne Objekt davor auf, ist `this` leer. Das Beispiel zeigt den Fehler und wie du ihn vermeidest:
 
 ```js
 const lampe = {
@@ -62,11 +66,13 @@ const gebunden = lampe.zeigen.bind(lampe);
 console.log(gebunden());
 ```
 
-Mit `bind(objekt)` bekommst du eine Funktion, deren `this` fest an das Objekt gebunden ist. Das brauchst du, wenn du eine Methode weitergibst, zum Beispiel an einen Timer.
+`losgeloest()` hat kein Objekt vor dem Punkt. `this` ist deshalb `undefined`, und `this.farbe` führt zu einem Fehler. `gebunden()` klappt dagegen und gibt „Die Lampe leuchtet gelb.“ aus.
+
+`bind(objekt)` liefert eine neue Funktion, deren `this` fest an das Objekt gebunden ist. Das brauchst du, wenn du eine Methode weitergibst, zum Beispiel an einen Timer.
 
 ## Arrow-Funktionen haben kein eigenes this
 
-Eine Arrow-Funktion übernimmt das `this` ihrer Umgebung. Als Methode taugt sie deshalb nicht, **innerhalb** einer Methode ist sie aber praktisch:
+Eine Arrow-Funktion übernimmt das `this` aus ihrer Umgebung. Als Methode taugt sie deshalb nicht. **Innerhalb** einer Methode ist sie aber praktisch:
 
 ```js
 const team = {
@@ -80,4 +86,4 @@ const team = {
 console.log(team.liste());
 ```
 
-Die Arrow-Funktion in `map` sieht das `this` von `liste`, also `team`.
+Heraus kommt `["Lea (Team Blau)", "Tom (Team Blau)"]`. Die Arrow-Funktion in `map` sieht das `this` von `liste`, also `team`. Deshalb kennt sie den Teamnamen.

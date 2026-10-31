@@ -1,16 +1,20 @@
 ## Alles zusammen: eine Mini-Bibliothek
 
-Du hast jetzt alle Werkzeuge. Hier baust du eine kleine Bibliothek, in der man Bücher ausleihen kann.
+Du hast jetzt alle Werkzeuge aus Teil 2 kennengelernt. Zum Abschluss baust du damit eine kleine Bibliothek, in der man Bücher ausleihen kann.
 
 :::alltag
-In einer echten Bücherei merkt sich **jedes Buch** selbst, ob es verliehen ist. Die **Bibliothek** hat viele Bücher und sorgt dafür, dass man nur freie ausleihen kann. Hörbücher sind auch Bücher, nur mit einer Laufzeit.
+In einer echten Bücherei merkt sich **jedes Buch** selbst, ob es gerade verliehen ist. Die **Bibliothek** hat viele Bücher und sorgt dafür, dass man nur freie ausleihen kann. Hörbücher sind auch Bücher, sie haben nur zusätzlich eine Laufzeit.
 :::
 
-Das Zusammenspiel:
+## Welches Werkzeug wohin gehört
 
-- `Buch` hat ein **privates** Feld `#verliehen` und einen **Getter** `istVerliehen`.
-- `Hoerbuch` **erbt** von `Buch`, nutzt `super(…)` und überschreibt `beschreibung()` (**Polymorphie**).
-- `Bibliothek` **hat** ein Array von Büchern (**Komposition**).
+Drei Klassen arbeiten zusammen. Jede benutzt etwas, das du in den letzten Lektionen gelernt hast:
+
+- `Buch` merkt sich in einem **privaten Feld** `#verliehen`, ob es verliehen ist. Lesen kann man das über den **Getter** `istVerliehen`.
+- `Hoerbuch` **erbt** von `Buch`. Es ruft `super(…)` auf und hat eine eigene Methode `beschreibung()`, die die von `Buch` überschreibt.
+- `Bibliothek` **hat** eine Liste von Büchern. Das ist Komposition.
+
+So sieht eine Klasse aus, die eine Liste von etwas hat. Die Bibliothek funktioniert nach demselben Muster, nur mit Büchern statt Namen:
 
 ```js
 class Verein {
@@ -24,6 +28,8 @@ class Verein {
 }
 ```
 
-Die Bibliothek arbeitet ganz normal mit jedem Buch. Ob es ein Buch oder Hörbuch ist, interessiert sie nicht.
+Die Liste entsteht im `constructor`, und eine Methode legt neue Einträge hinein.
 
-Im **Diagramm** siehst du am Ende alles auf einen Blick: Pfeile, Vererbung, Schlösser.
+Die Bibliothek behandelt jedes Buch gleich. Sie ruft einfach `beschreibung()` auf. Ob ein normales Buch oder ein Hörbuch antwortet, muss sie nicht wissen. Das ist die Polymorphie aus Lektion 34.
+
+Im **Diagramm** siehst du am Ende alles auf einen Blick: die Pfeile zwischen den Objekten, die Vererbung und die Schlösser der privaten Felder.
