@@ -101,6 +101,67 @@ function setView(view) {
   if (view === 'code' && state.editor) requestAnimationFrame(() => state.editor.layout());
 }
 
+const SPLIT_DEFAULT = 56;
+const SPLIT_EXPANDED = 30;
+const SPLIT_MIN = 20;
+const SPLIT_MAX = 80;
+
+function setSplit(value, persist = true) {
+  const split = Math.round(Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, value)));
+  state.split = split;
+  const pane = $('.pane-right');
+  pane.style.setProperty('--split-code', split + 'fr');
+  pane.style.setProperty('--split-result', (100 - split) + 'fr');
+  const bar = $('#split');
+  bar.setAttribute('aria-valuenow', String(split));
+  bar.setAttribute('aria-valuetext', `Code ${split} %, Ergebnis ${100 - split} %`);
+  const expanded = split <= SPLIT_EXPANDED;
+  $('#btn-expand').setAttribute('aria-pressed', String(expanded));
+  $('#btn-expand').textContent = expanded ? 'Ergebnis verkleinern' : 'Ergebnis vergrößern';
+  if (persist) { try { localStorage.setItem('cw-split', String(split)); } catch (e) { } }
+  requestAnimationFrame(() => { if (diagram) diagram.refresh(); if (state.editor) state.editor.layout(); });
+}
+
+function wireSplitter() {
+  const bar = $('#split');
+  let saved = NaN;
+  try { saved = Number(localStorage.getItem('cw-split')); } catch (e) { }
+  setSplit(Number.isFinite(saved) && saved > 0 ? saved : SPLIT_DEFAULT, false);
+  const fromPointer = (e) => {
+    const box = $('.pane-right').getBoundingClientRect();
+    return ((e.clientY - box.top) / box.height) * 100;
+  };
+  bar.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    bar.setPointerCapture(e.pointerId);
+    bar.classList.add('is-dragging');
+    document.body.classList.add('is-resizing');
+  });
+  bar.addEventListener('pointermove', (e) => {
+    if (bar.hasPointerCapture(e.pointerId)) setSplit(fromPointer(e), false);
+  });
+  const stop = (e) => {
+    if (!bar.hasPointerCapture(e.pointerId)) return;
+    bar.releasePointerCapture(e.pointerId);
+    bar.classList.remove('is-dragging');
+    document.body.classList.remove('is-resizing');
+    setSplit(state.split);
+  };
+  bar.addEventListener('pointerup', stop);
+  bar.addEventListener('pointercancel', stop);
+  bar.addEventListener('dblclick', () => setSplit(SPLIT_DEFAULT));
+  bar.addEventListener('keydown', (e) => {
+    const steps = { ArrowUp: -5, ArrowDown: 5, PageUp: -15, PageDown: 15 };
+    if (steps[e.key]) setSplit(state.split + steps[e.key]);
+    else if (e.key === 'Home') setSplit(SPLIT_MIN);
+    else if (e.key === 'End') setSplit(SPLIT_MAX);
+    else if (e.key === 'Enter') setSplit(SPLIT_DEFAULT);
+    else return;
+    e.preventDefault();
+  });
+}
+
 function scheduleUiSave() {
   clearTimeout(state.uiTimer);
   state.uiTimer = setTimeout(() => api.saveUi({ tab: state.leftTab, resultTab: state.resultTab }).catch(() => {}), 600);
@@ -649,11 +710,14 @@ function wireUi() {
   $$('.mn-btn').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
   MOBILE.addEventListener('change', () => renderNextStep());
 
+  wireSplitter();
   $('#btn-expand').addEventListener('click', () => {
-    const on = $('.pane-right').classList.toggle('is-expanded');
-    $('#btn-expand').setAttribute('aria-pressed', String(on));
-    $('#btn-expand').textContent = on ? 'Ergebnis verkleinern' : 'Ergebnis vergrößern';
-    requestAnimationFrame(() => { diagram.refresh(); state.editor.layout(); });
+    if (state.split > SPLIT_EXPANDED) {
+      state.splitBefore = state.split;
+      setSplit(SPLIT_EXPANDED);
+    } else {
+      setSplit(state.splitBefore && state.splitBefore > SPLIT_EXPANDED ? state.splitBefore : SPLIT_DEFAULT);
+    }
   });
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
