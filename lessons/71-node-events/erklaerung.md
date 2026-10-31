@@ -1,12 +1,14 @@
 ## Bescheid sagen statt nachfragen
 
-Im Browser kennst du Events schon: `button.addEventListener("click", …)`. Node hat dasselbe Prinzip für alles, was „irgendwann“ passiert: Ein Server bekommt eine Anfrage, eine Datei ist fertig gelesen, ein Programm wird beendet. Die Grundlage dafür ist die Klasse `EventEmitter` aus `node:events`.
+Im Browser kennst du Events schon, zum Beispiel `button.addEventListener("click", …)`. Node benutzt dasselbe Prinzip für alles, was irgendwann passiert: Ein Server bekommt eine Anfrage, eine Datei ist fertig gelesen, ein Programm wird beendet. Die Grundlage dafür ist die Klasse `EventEmitter` aus `node:events`.
 
 :::alltag
-Ein Paketdienst: Du meldest dich einmal für „Paket zugestellt“ an (`on`). Der Dienst schickt die Nachricht (`emit`), sobald es so weit ist. Du musst nicht alle fünf Minuten an der Tür nachsehen.
+Denk an einen Paketdienst. Du meldest dich einmal für die Nachricht „Paket zugestellt“ an, das ist `on`. Der Dienst schickt die Nachricht, sobald es so weit ist, das ist `emit`. Du musst nicht alle fünf Minuten an der Tür nachsehen.
 :::
 
 ## on und emit
+
+Im Beispiel klingelt es zweimal an einer Tür:
 
 ```js
 const { EventEmitter } = require("node:events");
@@ -21,11 +23,15 @@ tuer.emit("klingeln", "Mara");
 tuer.emit("klingeln", "Ali");
 ```
 
-- `on(name, funktion)` meldet einen **Listener** an. Es dürfen beliebig viele sein.
-- `emit(name, …werte)` ruft alle Listener **sofort und der Reihe nach** auf (synchron!) und gibt `true` zurück, wenn es mindestens einen gab.
-- Event-Namen sind frei wählbare Texte.
+Ausgegeben werden „Mara steht vor der Tür“ und „Ali steht vor der Tür“. Jedes `emit` ruft den Listener mit dem mitgegebenen Namen auf.
 
-## once und off
+- `on(name, funktion)` meldet einen **Listener** an. Es dürfen beliebig viele sein.
+- `emit(name, …werte)` ruft alle Listener **sofort und der Reihe nach** auf. Es wartet also nicht wie ein Timer. Es gibt `true` zurück, wenn es mindestens einen Listener gab.
+- Die Namen der Events darfst du frei wählen.
+
+## Nur einmal hören und abmelden
+
+Im Beispiel spielt ein Radio drei Lieder. Ein Listener hört immer zu, ein anderer nur beim ersten Lied:
 
 ```js
 const { EventEmitter } = require("node:events");
@@ -41,12 +47,14 @@ radio.off("lied", melden);
 console.log(radio.emit("lied", "Song C"), radio.listenerCount("lied"));
 ```
 
+Bei Song A erscheinen „läuft: Song A“ und „Das erste Lied heute!“. Bei Song B erscheint nur noch „läuft: Song B“. Danach meldet `off` auch `melden` ab. Bei Song C hört niemand mehr zu, deshalb gibt die letzte Zeile `false` und `0` aus.
+
 - `once` hört nur auf das **nächste** Event und meldet sich danach selbst ab.
-- `off` braucht **dieselbe** Funktion wie `on`. Deshalb speichert man sie vorher in einer Variablen. Mit einer neuen Arrow-Funktion klappt das Abmelden nicht.
+- `off` braucht **dieselbe** Funktion wie `on`. Deshalb speichert man sie vorher in einer Variable wie `melden`. Mit einer neuen Arrow-Funktion klappt das Abmelden nicht.
 
-## Eigene Klassen, die Events auslösen
+## Eigene Klassen, die Bescheid sagen
 
-Meist erbt man von `EventEmitter`. Dann kann die Klasse selbst mit `this.emit` Bescheid sagen:
+Meistens erbt eine Klasse von `EventEmitter`. Dann kann sie selbst mit `this.emit` Bescheid sagen. Im Beispiel meldet ein Timer jede Sekunde und das Ende:
 
 ```js
 const { EventEmitter } = require("node:events");
@@ -69,11 +77,13 @@ t.on("fertig", () => console.log("Zeit ist um!"));
 t.tick(); t.tick(); t.tick();
 ```
 
-So funktioniert `http.Server` in der nächsten Lektion: ein `EventEmitter`, der bei jeder Anfrage `"request"` auslöst.
+Ausgegeben werden „Sekunde 1“, „Sekunde 2“, „Sekunde 3“ und „Zeit ist um!“. Beim dritten `tick` löst der Timer zusätzlich `"fertig"` aus.
+
+Genau so funktioniert der HTTP-Server in der nächsten Lektion. Er ist ein `EventEmitter`, der bei jeder Anfrage das Event `"request"` auslöst.
 
 ## Das besondere error-Event
 
-Ein `"error"`-Event ohne Listener **wirft** den Fehler. Das Programm stürzt also ab, wenn niemand zuhört. Das ist Absicht: Fehler sollen nicht unbemerkt verschwinden.
+Ein `"error"`-Event, für das es keinen Listener gibt, **wirft** den Fehler. Das Programm stürzt also ab, wenn niemand zuhört. Das ist Absicht, denn Fehler sollen nicht unbemerkt verschwinden. Im Beispiel hört jemand zu:
 
 ```js
 const { EventEmitter } = require("node:events");
@@ -83,11 +93,13 @@ leitung.on("error", (fehler) => console.log("Abgefangen:", fehler.message));
 leitung.emit("error", new Error("Verbindung weg"));
 ```
 
-Faustregel: Jeder Emitter, der `"error"` auslösen kann, bekommt einen `"error"`-Listener.
+Ausgegeben wird „Abgefangen: Verbindung weg“. Ohne den Listener würde das Programm hier abbrechen.
+
+Eine Faustregel: Jeder Emitter, der `"error"` auslösen kann, bekommt einen Listener für `"error"`.
 
 ## Auf ein Event warten
 
-Mit `once` aus `node:events` wird ein Event zu einem Promise:
+Mit der Funktion `once` aus `node:events` wird ein Event zu einem Promise. Im Beispiel ist der Ofen nach 50 Millisekunden fertig:
 
 ```js
 const { EventEmitter, once } = require("node:events");
@@ -97,3 +109,5 @@ setTimeout(() => ofen.emit("fertig", "Pizza"), 50);
 
 once(ofen, "fertig").then(([gericht]) => console.log(gericht, "ist fertig"));
 ```
+
+Ausgegeben wird „Pizza ist fertig“. Das Promise liefert alle Werte des Events als Array. Deshalb packt `[gericht]` den ersten Wert aus.

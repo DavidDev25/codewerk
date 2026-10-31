@@ -1,14 +1,16 @@
 ## Dateien: das Gedächtnis eines Programms
 
-Variablen sind weg, sobald ein Programm endet. Was bleiben soll, landet in **Dateien**: Einstellungen, Protokolle, Daten. In Node erledigt das das eingebaute Modul `node:fs` (file system).
+Variablen sind weg, sobald ein Programm endet. Was bleiben soll, landet in **Dateien**: Einstellungen, Protokolle und Daten. In Node erledigt das das eingebaute Modul `node:fs`. Die Abkürzung steht für „file system“, also Dateisystem.
 
 :::alltag
-`fs` ist wie ein Aktenschrank: Ordner anlegen, Blätter herausnehmen (lesen), neue Blätter einheften (schreiben) oder unten etwas dazuschreiben (anhängen). Und manchmal ist eine Akte einfach nicht da.
+`fs` ist wie ein Aktenschrank. Du kannst Ordner anlegen, Blätter herausnehmen und lesen, neue Blätter einheften oder unten auf ein Blatt etwas dazuschreiben. Und manchmal ist eine Akte einfach nicht da.
 :::
 
-In Codewerk liegt das Dateisystem im Speicher. Es startet bei jedem Lauf mit den Dateien aus dem Editor. Was dein Programm ändert, siehst du unter **Ausgabe** bei „Dateien nach dem Lauf“.
+In Codewerk liegt das Dateisystem im Speicher. Es startet bei jedem Lauf mit den Dateien aus dem Editor. Was dein Programm ändert, siehst du im Reiter **Ausgabe** unter „Dateien nach dem Lauf“.
 
 ## Lesen und schreiben
+
+Im Beispiel liest du die Notizen, schreibst eine neue Datei und hängst eine Zeile an:
 
 ```js
 const fs = require("node:fs");
@@ -20,11 +22,15 @@ fs.writeFileSync("gruss.txt", "Hallo Datei!");
 fs.appendFileSync("notizen.txt", "\nNeue Zeile");
 ```
 
-- Ohne `"utf8"` liefert echtes Node einen **Buffer** (rohe Bytes) statt Text. Gib die Kodierung also immer an.
-- `writeFileSync` **ersetzt** den ganzen Inhalt, `appendFileSync` hängt hinten an.
-- Gespeichert wird nur Text. Objekte wandelst du vorher um: `JSON.stringify(daten, null, 2)`. Beim Lesen wieder zurück: `JSON.parse(text)`.
+Ausgegeben wird der Inhalt von `notizen.txt`. Danach gibt es eine neue Datei `gruss.txt`, und in `notizen.txt` steht unten eine Zeile mehr. Beides siehst du unter „Dateien nach dem Lauf“.
+
+- Ohne `"utf8"` liefert echtes Node rohe Bytes statt Text, einen sogenannten **Buffer**. Gib die Kodierung deshalb immer an.
+- `writeFileSync` **ersetzt** den ganzen Inhalt. `appendFileSync` hängt hinten an.
+- Gespeichert wird nur Text. Objekte wandelst du vorher um: `JSON.stringify(daten, null, 2)`. Beim Lesen geht es mit `JSON.parse(text)` zurück.
 
 ## Ordner
+
+Im Beispiel legst du zwei Ordner ineinander an und speicherst darin eine Datei:
 
 ```js
 const fs = require("node:fs");
@@ -35,11 +41,13 @@ console.log(fs.readdirSync("berichte"));
 console.log(fs.existsSync("berichte/2026/januar.txt"));
 ```
 
-`{ recursive: true }` legt auch fehlende Zwischenordner an und meckert nicht, wenn der Ordner schon existiert.
+Ausgegeben werden `["2026"]` und `true`. `readdirSync` listet auf, was in einem Ordner liegt. `existsSync` prüft, ob es einen Pfad gibt.
+
+`{ recursive: true }` legt auch fehlende Zwischenordner an. Hier entsteht also zuerst `berichte` und darin `2026`. Gibt es den Ordner schon, gibt es keinen Fehler.
 
 ## Pfade mit node:path
 
-Pfade als Text zusammenzukleben geht schnell schief: doppelte `/`, Windows mit `\`, `..` an der falschen Stelle. `path` erledigt das sauber:
+Pfade als Text zusammenzukleben geht schnell schief: doppelte Schrägstriche, Windows mit `\` oder `..` an der falschen Stelle. `path` erledigt das sauber:
 
 ```js
 const path = require("node:path");
@@ -50,18 +58,22 @@ console.log(path.extname("gedicht.txt"));
 console.log(path.dirname("/projekt/texte/gedicht.txt"));
 ```
 
-Mit `__dirname` hängt der Pfad an der Datei, nicht daran, aus welchem Ordner jemand `node` gestartet hat.
+Ausgegeben werden „/projekt/texte/gedicht.txt“, „gedicht.txt“, „.txt“ und „/projekt/texte“. `join` setzt Teile zusammen. `basename` liefert den Dateinamen, `extname` die Endung und `dirname` den Ordner.
 
-## Wenn eine Datei fehlt: Fehlercodes
+Mit `__dirname` hängt der Pfad an deiner Datei und nicht daran, aus welchem Ordner jemand `node` gestartet hat.
 
-Geht etwas schief, wirft `fs` einen Fehler mit einem **Code**. Den prüfst du gezielt:
+## Wenn eine Datei fehlt
+
+Geht etwas schief, wirft `fs` einen Fehler mit einem **Code**. Den kannst du gezielt prüfen:
 
 | Code | Bedeutung |
 | --- | --- |
 | `ENOENT` | Datei oder Ordner gibt es nicht |
-| `EEXIST` | gibt es schon (z. B. bei `mkdirSync` ohne `recursive`) |
+| `EEXIST` | gibt es schon, zum Beispiel bei `mkdirSync` ohne `recursive` |
 | `EISDIR` | das ist ein Ordner, keine Datei |
 | `ENOTDIR` | ein Teil des Pfades ist kein Ordner |
+
+Im Beispiel liefert `lesen` für eine fehlende Datei einen leeren Text:
 
 ```js
 const fs = require("node:fs");
@@ -78,11 +90,13 @@ function lesen(pfad) {
 console.log(JSON.stringify(lesen("gibt-es-nicht.txt")));
 ```
 
-Wichtig: Nur den **erwarteten** Fehler abfangen und alles andere mit `throw fehler;` weiterwerfen. Sonst verschluckst du echte Probleme.
+Ausgegeben wird `""`, also ein leerer Text. Die Datei fehlt, der Fehler hat den Code `ENOENT`, und `lesen` gibt deshalb `""` zurück.
+
+Wichtig: Fange nur den **erwarteten** Fehler ab und wirf alles andere mit `throw fehler;` weiter. Sonst verschluckst du echte Probleme. Das kennst du schon aus Lektion 40.
 
 ## Drei Schreibweisen für dieselbe Arbeit
 
-Dateizugriffe dauern. Ein Server soll in der Zwischenzeit andere Anfragen beantworten. Deshalb gibt es jede Funktion in drei Formen:
+Dateizugriffe dauern. Ein Server soll in der Zwischenzeit andere Anfragen beantworten können. Deshalb gibt es jede Funktion in drei Formen. Im Beispiel liest du dieselbe Datei auf alle drei Arten:
 
 ```js
 const fs = require("node:fs");
@@ -99,8 +113,10 @@ fsp.readFile("notizen.txt", "utf8").then((c) => console.log("4. Promise:", c.len
 console.log("2. weiter geht's");
 ```
 
+Die Zahlen vor den Ausgaben zeigen die Reihenfolge. Die synchrone Form wartet, bis die Datei gelesen ist. Die beiden anderen lesen im Hintergrund weiter. Deshalb erscheint „2. weiter geht's“ vor den Ergebnissen von Callback und Promise.
+
 | Form | Wann |
 | --- | --- |
 | `readFileSync` | Skripte und Start eines Programms, einfach und klar |
 | `readFile(…, callback)` | ältere Programme. Der Callback bekommt immer zuerst den Fehler |
-| `await fsp.readFile(…)` | Server und moderne Programme. Am besten lesbar mit `async`/`await` |
+| `await fsp.readFile(…)` | Server und moderne Programme, am besten lesbar mit `async` und `await` |

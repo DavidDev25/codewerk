@@ -1,12 +1,14 @@
 ## Was ein Server macht
 
-In Teil 3 hast du mit `fetch` Anfragen **gestellt**. Jetzt baust du die andere Seite: einen Server, der Anfragen **beantwortet**. Jede Webseite, jede App und auch Codewerk funktioniert so.
+In Teil 3 hast du mit `fetch` Anfragen **gestellt**. Jetzt baust du die andere Seite: einen Server, der Anfragen **beantwortet**. Jede Webseite und jede App funktioniert so, auch Codewerk.
 
 :::alltag
-Ein Server ist wie die Theke einer Bäckerei. Kundschaft sagt, was sie will (**Methode** wie GET und **Adresse** wie `/brot`). Die Verkäuferin schaut nach und gibt eine Antwort: die Ware mit einem Etikett, was drin ist (**Content-Type**), oder „haben wir nicht“ (**Status 404**).
+Ein Server ist wie die Theke einer Bäckerei. Die Kundschaft sagt, was sie will. Dazu gehört die **Methode**, zum Beispiel GET für „ich möchte haben“, und die **Adresse**, zum Beispiel `/brot`. Die Verkäuferin schaut nach und antwortet. Entweder gibt sie die Ware mit einem Etikett heraus, auf dem steht, was drin ist. Das ist der **Content-Type**. Oder sie sagt „haben wir nicht“. Das ist der **Status 404**.
 :::
 
 ## Der kleinste Server
+
+Im Beispiel antwortet ein Server auf jede Anfrage mit demselben Text:
 
 ```js
 const http = require("node:http");
@@ -21,12 +23,14 @@ server.listen(3000, () => {
 });
 ```
 
-- `createServer` bekommt eine Funktion, den **Handler**. Er läuft bei **jeder** Anfrage.
-- `req` (request) ist die Anfrage: `req.method`, `req.url`, `req.headers`.
-- `res` (response) ist die Antwort: Statuscode und Header setzen, dann mit `res.end(…)` abschicken.
-- `listen(3000)` öffnet den Port. Der Server ist ein `EventEmitter`: Jede Anfrage ist ein `"request"`-Event.
+Ausgegeben wird „Server läuft auf http://localhost:3000“. Der Server wartet jetzt auf Anfragen. Jede bekommt die Antwort „Hallo vom Server!“.
 
-**Jeder Weg durch den Handler muss `res.end(…)` aufrufen.** Sonst wartet der Browser ewig. Und `res.end` nimmt nur Text: Objekte musst du mit `JSON.stringify` umwandeln.
+- `createServer` bekommt eine Funktion, den **Handler**. Er läuft bei **jeder** Anfrage.
+- `req` ist die Anfrage, auf Englisch „request“. Darin stehen `req.method`, `req.url` und `req.headers`.
+- `res` ist die Antwort, auf Englisch „response“. Du setzt Statuscode und Header und schickst sie dann mit `res.end(…)` ab.
+- `listen(3000)` öffnet den Port 3000. Der Server ist ein `EventEmitter`, und jede Anfrage ist ein `"request"`-Event.
+
+**Jeder Weg durch den Handler muss `res.end(…)` aufrufen.** Sonst wartet der Browser ewig. Außerdem nimmt `res.end` nur Text. Objekte musst du vorher mit `JSON.stringify` umwandeln.
 
 ## Wichtige Statuscodes
 
@@ -34,15 +38,15 @@ server.listen(3000, () => {
 | --- | --- |
 | `200` | OK |
 | `201` | Created: etwas wurde angelegt |
-| `204` | No Content: erfolgreich, aber nichts zurückzugeben |
+| `204` | No Content: hat geklappt, aber es gibt nichts zurückzugeben |
 | `400` | Bad Request: die Anfrage ist falsch |
 | `404` | Not Found: gibt es nicht |
-| `405` | Method Not Allowed: Adresse stimmt, Methode nicht |
+| `405` | Method Not Allowed: die Adresse stimmt, die Methode nicht |
 | `500` | Internal Server Error: der Server hat einen Fehler |
 
-## Routing: Anfragen verteilen
+## Anfragen verteilen
 
-Ein Server hat viele Adressen. Welche Antwort passt, entscheidest du anhand von Methode und Pfad. `req.url` enthält auch den Query-Teil (`/suche?q=tee`), deshalb zerlegst du sie mit `URL`:
+Ein Server hat viele Adressen. Welche Antwort passt, entscheidest du anhand von Methode und Pfad. Das nennt man **Routing**. `req.url` enthält auch die Suchangaben, zum Beispiel `/suche?q=tee`. Deshalb zerlegst du sie mit `URL` aus Lektion 66:
 
 ```js
 const http = require("node:http");
@@ -68,11 +72,13 @@ server.listen(3000, async () => {
 });
 ```
 
-In Codewerk kannst du deinen Server direkt mit `fetch("http://localhost:3000/…")` ausprobieren, so wie oben im `listen`-Callback.
+Ausgegeben wird „200 Gesucht: tee“. Der Server schickt sich im `listen`-Callback selbst eine Anfrage an `/suche?q=tee`. Der Handler landet im zweiten Zweig und liest `q` aus. `new URL` braucht dabei eine Basisadresse wie `"http://localhost"`, weil `req.url` nur den Pfad enthält.
 
-## JSON ausliefern: eine API
+In Codewerk kannst du deinen Server genau so mit `fetch("http://localhost:3000/…")` ausprobieren.
 
-Server für Apps antworten meist mit JSON. Der Header `Content-Type: application/json` sagt dem Gegenüber, was kommt:
+## JSON ausliefern
+
+Server für Apps antworten meistens mit JSON. Ein Server, der so Daten anbietet, ist eine **API**. Der Header `Content-Type: application/json` sagt dem Gegenüber, dass JSON kommt. Eine kleine Hilfsfunktion spart viel Wiederholung:
 
 ```js
 function json(res, status, daten) {
@@ -81,7 +87,7 @@ function json(res, status, daten) {
 }
 ```
 
-Eine kleine Hilfsfunktion wie diese spart viel Wiederholung.
+Mit `json(res, 200, produkte)` schickst du dann eine ganze Liste mit einer Zeile ab.
 
 ## Teile der Adresse auslesen
 
@@ -92,13 +98,17 @@ const treffer = /^\/api\/produkte\/(\d+)$/.exec("/api/produkte/2");
 console.log(treffer && Number(treffer[1]));
 ```
 
-Frameworks wie **Express** machen genau das bequemer (`app.get("/api/produkte/:id", …)`). Darunter steckt aber dasselbe `node:http`, das du gerade lernst.
+Ausgegeben wird 2. Die Gruppe `(\d+)` fängt die Zahl am Ende ein. Passt die Adresse nicht, ist `treffer` gleich `null`, und `treffer && …` gibt `null` zurück, statt abzustürzen.
+
+Frameworks wie **Express** machen genau das bequemer, zum Beispiel mit `app.get("/api/produkte/:id", …)`. Darunter steckt aber dasselbe `node:http`, das du gerade lernst.
 
 ## Den Port von außen festlegen
 
-Auf echten Servern bestimmt die Umgebung den Port:
+Auf echten Servern bestimmt die Umgebung, auf welchem Port das Programm läuft:
 
 ```js
 const port = Number(process.env.PORT ?? 3000);
 console.log(port);
 ```
+
+Ausgegeben wird 3000, weil `PORT` hier nicht gesetzt ist. Auf einem Server, auf dem `PORT=8080` gesetzt ist, liefe das Programm stattdessen auf 8080.

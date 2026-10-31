@@ -1,6 +1,6 @@
 ## Eine REST-API
 
-Fast jede App spricht mit einer **API**: Die App schickt Anfragen, der Server antwortet mit JSON. Bei einer **REST-API** beschreibt die Adresse, *welche* Daten gemeint sind, und die Methode, *was* passieren soll:
+Fast jede App spricht mit einer **API**. Die App schickt Anfragen, und der Server antwortet mit JSON. Bei einer **REST-API** gibt es dafür eine feste Regel: Die Adresse sagt, *welche* Daten gemeint sind. Die Methode sagt, *was* mit ihnen passieren soll.
 
 | Methode | Adresse | Bedeutung | Antwort |
 | --- | --- | --- | --- |
@@ -9,15 +9,15 @@ Fast jede App spricht mit einer **API**: Die App schickt Anfragen, der Server an
 | `PATCH` | `/notizen/3` | Notiz 3 teilweise ändern | `200` mit der geänderten Notiz |
 | `DELETE` | `/notizen/3` | Notiz 3 löschen | `204` ohne Inhalt |
 
-Gibt es Notiz 3 nicht: `404`. Ist die Anfrage kaputt, etwa ohne Text: `400`.
+Gibt es Notiz 3 nicht, antwortet der Server mit `404`. Ist die Anfrage kaputt, etwa weil der Text fehlt, antwortet er mit `400`.
 
 :::alltag
-Eine Bibliothek: `GET` ist nachschlagen, `POST` ein neues Buch einstellen, `PATCH` einen Vermerk im Buch ändern, `DELETE` das Buch aussortieren. Die Regalnummer (`/notizen/3`) sagt, welches Buch gemeint ist.
+Denk an eine Bibliothek. `GET` ist nachschlagen, `POST` ein neues Buch einstellen, `PATCH` einen Vermerk im Buch ändern und `DELETE` das Buch aussortieren. Die Regalnummer, hier `/notizen/3`, sagt, welches Buch gemeint ist.
 :::
 
-## Den Body einer Anfrage lesen
+## Den Inhalt einer Anfrage lesen
 
-Bei `POST` und `PATCH` schickt der Client Daten mit, den **Body**. Er kommt in Stücken an, weil große Uploads nicht auf einmal in den Speicher passen. `req` ist dafür ein **Stream**, den du mit `for await` liest (Async-Iteratoren aus Teil 4):
+Bei `POST` und `PATCH` schickt die App Daten mit. Diese Daten heißen **Body**. Sie kommen in Stücken an, weil große Uploads nicht auf einmal in den Speicher passen. `req` ist dafür ein **Stream**, also ein Datenstrom. Du liest ihn mit `for await`, wie die Async-Iteratoren aus Lektion 50:
 
 ```js
 async function bodyLesen(req) {
@@ -27,7 +27,9 @@ async function bodyLesen(req) {
 }
 ```
 
-Danach wird aus dem Text ein Objekt. Aber Vorsicht: Der Client kann **alles** schicken. Ein Server darf bei kaputten Daten nie abstürzen:
+Die Schleife hängt jedes ankommende Stück an `text` an. Ist der Strom zu Ende, gibt die Funktion den ganzen Text zurück.
+
+Danach wird aus dem Text ein Objekt. Aber Vorsicht: Die App kann **alles** schicken. Ein Server darf bei kaputten Daten nie abstürzen:
 
 ```js
 function jsonLesen(text) {
@@ -41,11 +43,13 @@ function jsonLesen(text) {
 console.log(jsonLesen('{"text":"Tee"}'), jsonLesen("kaputt{"));
 ```
 
-Danach prüfst du die Felder: Ist `text` wirklich ein Text und nicht leer? Eingaben von außen sind nie vertrauenswürdig.
+Ausgegeben werden `{ text: "Tee" }` und `null`. Den kaputten Text fängt `catch` ab, statt dass der Server abstürzt.
 
-## Ein async-Handler
+Danach prüfst du die Felder. Ist `text` wirklich ein Text und nicht leer? Eingaben von außen darfst du nie einfach vertrauen.
 
-Weil das Lesen des Bodys wartet, ist der Handler `async`. Ein Fehler darin landet sonst als unbehandeltes Promise im Nichts. Deshalb fängt ein äußeres `try/catch` alles ab und antwortet mit `500`:
+## Ein Handler, der warten kann
+
+Weil das Lesen des Bodys wartet, ist der Handler `async`. Ein Fehler darin würde sonst als abgelehntes Promise unbemerkt verschwinden, und die Anfrage bekäme nie eine Antwort. Deshalb fängt ein äußeres `try` und `catch` alles ab und antwortet mit `500`:
 
 ```js
 import http from "node:http";
@@ -69,11 +73,13 @@ server.listen(3000, async () => {
 });
 ```
 
-Interne Details (wie die Fehlermeldung) gehören ins Protokoll (`console.error`), nicht in die Antwort an Fremde.
+Ausgegeben werden der Fehler „Error: Ups“ im Fehlerkanal und danach 500. `bearbeiten` wirft absichtlich einen Fehler. Der äußere `catch` schreibt ihn ins Protokoll und schickt der App eine allgemeine Antwort.
+
+Interne Angaben wie die echte Fehlermeldung gehören ins Protokoll, also in `console.error`. In der Antwort an Fremde haben sie nichts zu suchen.
 
 ## Projektaufbau mit ES-Modulen
 
-Diesmal steht in `package.json` `"type": "module"`. Alle Dateien nutzen `import` und `export`:
+Diesmal steht in `package.json` der Eintrag `"type": "module"`. Alle Dateien benutzen deshalb `import` und `export`:
 
 ```mjs
 // speicher.js
@@ -93,11 +99,11 @@ import { Speicher } from "./speicher.js";
 const speicher = new Speicher(path.join(import.meta.dirname, "daten", "notizen.json"));
 ```
 
-Die Aufgaben sind sauber getrennt: `speicher.js` kümmert sich um die Daten und die Datei, `main.js` nur um HTTP. So kann man später die Datei durch eine Datenbank ersetzen, ohne den Server anzufassen.
+Die Aufgaben sind sauber getrennt. `speicher.js` kümmert sich um die Daten und die Datei, `main.js` nur um HTTP. So kann man später die Datei durch eine Datenbank ersetzen, ohne den Server anzufassen.
 
 ## Ausprobieren
 
-Im echten Terminal testet man APIs mit `curl`:
+Im echten Terminal testet man APIs mit dem Programm `curl`:
 
 ```bash
 curl http://localhost:3000/notizen
@@ -105,4 +111,4 @@ curl -X POST -d '{"text":"Brot"}' http://localhost:3000/notizen
 curl -X DELETE http://localhost:3000/notizen/1
 ```
 
-In Codewerk nimmst du `fetch` im `listen`-Callback. Unter **Ausgabe** siehst du nach dem Lauf, wie `daten/notizen.json` aussieht.
+Die erste Zeile holt alle Notizen, die zweite legt eine an und die dritte löscht Notiz 1. In Codewerk nimmst du stattdessen `fetch` im `listen`-Callback. Im Reiter **Ausgabe** siehst du nach dem Lauf, wie `daten/notizen.json` aussieht.
