@@ -1,4 +1,4 @@
-// Lektion 7 – Klassen
+// Lektion 23 – Klassen
 
 // 1. class Buch { constructor(...) { ... } }
 

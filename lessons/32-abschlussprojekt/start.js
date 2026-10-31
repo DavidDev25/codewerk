@@ -1,4 +1,4 @@
-// Lektion 15 – Abschlussprojekt: Mini-Bibliothek
+// Lektion 32 – Abschlussprojekt: Mini-Bibliothek
 // Arbeite von oben nach unten und führe nach jedem Schritt aus.
 
 // 1. Buch

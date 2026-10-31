@@ -1,4 +1,4 @@
-// Lektion 2 – Funktionen
+// Lektion 3 – Funktionen
 
 function quadrat(zahl) {
   // Hier fehlt das return

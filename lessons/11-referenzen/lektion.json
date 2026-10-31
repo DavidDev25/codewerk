@@ -1,5 +1,6 @@
 {
   "titel": "Referenzen",
+  "kapitel": "Teil 1 · Grundlagen",
   "minuten": 15,
   "kurz": "Zwei Namen, ein Objekt: warum Änderungen manchmal „überall“ ankommen.",
   "tipp": "Eine echte Kopie machst du mit { ...obj }. Bei plusEinsKopie: erst kopieren, dann nur die Kopie ändern, dann die Kopie zurückgeben."

@@ -1,4 +1,4 @@
-// Lektion 16 – Fehlerbehandlung
+// Lektion 33 – Fehlerbehandlung
 
 // 1. Bei b === 0 einen Fehler werfen
 function teilen(a, b) {

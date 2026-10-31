@@ -1,4 +1,4 @@
-// Lektion 20 – async & await
+// Lektion 36 – async & await
 // Diese beiden Funktionen tun so, als würden sie Daten von einem Server laden.
 // Ändere sie nicht.
 const benutzer = {

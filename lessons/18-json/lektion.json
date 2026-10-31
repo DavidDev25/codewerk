@@ -1,0 +1,7 @@
+{
+  "titel": "JSON",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 12,
+  "kurz": "Daten als Text speichern und verschicken: JSON.stringify macht aus Objekten Text, JSON.parse macht daraus wieder Objekte.",
+  "tipp": "Speichern: JSON.stringify(obj). Laden: JSON.parse(text). Ist nichts gespeichert (null oder leerer Text), gib die Standard-Einstellungen zurück, bevor du parse aufrufst."
+}

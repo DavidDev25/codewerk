@@ -1,5 +1,6 @@
 {
   "titel": "async & await",
+  "kapitel": "Teil 3 · Fehler & Asynchron",
   "minuten": 18,
   "kurz": "Asynchronen Code schreiben, der sich liest wie normaler Code: async, await und try … catch.",
   "tipp": "Schreibe async vor function. Innerhalb der Funktion wartet await auf ein Promise und liefert dessen Ergebnis: const benutzer = await ladeBenutzer(id); Wird das Promise abgelehnt, fängst du den Fehler mit try … catch ab."

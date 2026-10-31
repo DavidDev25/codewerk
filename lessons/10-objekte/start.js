@@ -1,4 +1,4 @@
-// Lektion 5 – Objekte
+// Lektion 10 – Objekte
 
 // 1. const auto = { ... }
 

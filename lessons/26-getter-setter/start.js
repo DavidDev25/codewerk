@@ -1,4 +1,4 @@
-// Lektion 10 – Getter & Setter
+// Lektion 26 – Getter & Setter
 
 class Thermometer {
   #celsius = 20;

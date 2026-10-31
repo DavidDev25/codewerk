@@ -1,4 +1,4 @@
-// Lektion 9 – Kapselung mit #private
+// Lektion 25 – Kapselung mit #private
 
 class Konto {
   // privates Feld: #saldo = 0;

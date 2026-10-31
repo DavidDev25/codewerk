@@ -1,0 +1,7 @@
+{
+  "titel": "Datentypen & Operatoren",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 15,
+  "kurz": "Zahlen, Texte und Wahrheitswerte: rechnen, vergleichen und mit typeof nachsehen, was in einer Variable steckt.",
+  "tipp": "Ein Text, der wie eine Zahl aussieht, ist trotzdem ein Text: \"7\" + 3 ergibt \"73\". Mit Number(\"7\") machst du daraus eine echte Zahl."
+}

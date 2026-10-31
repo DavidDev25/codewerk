@@ -1,6 +1,6 @@
 ## Alles zusammen: ein kleiner Online-Shop
 
-Du kennst jetzt beide Hälften von JavaScript: **Objekte und Klassen** aus Teil 1 und **asynchronen Code** aus Teil 2. Im Abschlussprojekt baust du daraus einen kleinen Shop.
+Du kennst jetzt **Objekte und Klassen** aus Teil 2 und **asynchronen Code** aus Teil 3. Im Abschlussprojekt baust du daraus einen kleinen Shop.
 
 :::alltag
 Beim Online-Einkauf passiert dreierlei: Der **Shop lädt sein Sortiment** (das dauert einen Moment). Dein **Warenkorb** merkt sich, was du hineinlegst, und rechnet die Summe aus. An der **Kasse** kann etwas schiefgehen, z. B. wenn das Kartenlimit überschritten ist – dann bekommst du eine verständliche Meldung statt eines Absturzes.

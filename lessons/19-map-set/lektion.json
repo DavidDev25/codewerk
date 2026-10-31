@@ -1,0 +1,7 @@
+{
+  "titel": "Map & Set",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 15,
+  "kurz": "Set für Listen ohne Doppelte, Map für Zuordnungen mit beliebigen Schlüsseln und zum Zählen.",
+  "tipp": "Doppelte entfernen: [...new Set(liste)]. Zählen mit Map: zaehler.set(wort, (zaehler.get(wort) ?? 0) + 1);"
+}

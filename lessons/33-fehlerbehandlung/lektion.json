@@ -1,5 +1,6 @@
 {
   "titel": "Fehlerbehandlung",
+  "kapitel": "Teil 3 · Fehler & Asynchron",
   "minuten": 15,
   "kurz": "Mit throw Alarm schlagen und mit try … catch den Fehler auffangen.",
   "tipp": "throw new Error(\"Text\") beendet die Funktion sofort. Wer die Funktion in try { … } aufruft, landet bei einem Fehler im catch (fehler) { … } und findet den Text in fehler.message."

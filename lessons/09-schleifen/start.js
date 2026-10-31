@@ -1,4 +1,4 @@
-// Lektion 4 – Schleifen
+// Lektion 9 – Schleifen
 
 function summe(zahlen) {
   // Startwert, Schleife, return

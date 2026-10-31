@@ -1,5 +1,6 @@
 {
   "titel": "So funktioniert Codewerk",
+  "kapitel": "Teil 1 · Grundlagen",
   "minuten": 5,
   "kurz": "Einmal den ganzen Ablauf ausprobieren: lesen, Code schreiben, ausführen, Ergebnis prüfen.",
   "tipp": "Ändere nur den Text zwischen den Anführungszeichen. Für die Zahl: Entferne die zwei Schrägstriche // am Anfang der Zeile und setze hinter = eine Zahl ohne Anführungszeichen."

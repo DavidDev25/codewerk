@@ -1,0 +1,7 @@
+{
+  "titel": "fetch & APIs",
+  "kapitel": "Teil 3 · Fehler & Asynchron",
+  "minuten": 20,
+  "kurz": "Daten von einem Server holen und hinschicken: fetch, Statuscodes, JSON und Fehler. Geübt wird mit der eingebauten Übungs-API.",
+  "tipp": "Immer zwei await: const antwort = await fetch(url); dann const daten = await antwort.json(); Prüfe dazwischen antwort.ok – ein 404 ist für fetch kein Fehler."
+}

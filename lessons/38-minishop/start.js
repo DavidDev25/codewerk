@@ -1,4 +1,4 @@
-// Lektion 21 – Abschlussprojekt 2: Mini-Shop
+// Lektion 38 – Abschlussprojekt: Mini-Shop
 // Diese beiden Funktionen tun so, als würden sie mit einem Server sprechen.
 // Ändere sie nicht.
 function ladeProdukte() {

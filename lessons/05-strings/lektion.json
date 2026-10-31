@@ -1,0 +1,7 @@
+{
+  "titel": "Strings",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 15,
+  "kurz": "Mit Texten arbeiten: Länge, einzelne Zeichen, Groß- und Kleinschreibung, suchen und Teile herausschneiden.",
+  "tipp": "Text-Methoden verändern den Text nie, sie liefern einen neuen. Schreibe also return text.trim().toLowerCase(); und nicht nur text.trim();"
+}

@@ -1,4 +1,4 @@
-// Lektion 13 – Polymorphie
+// Lektion 29 – Polymorphie
 
 class Form {
   flaeche() {

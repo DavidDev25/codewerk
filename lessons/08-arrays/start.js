@@ -1,4 +1,4 @@
-// Lektion 3 – Arrays
+// Lektion 8 – Arrays
 const einkaufsliste = ["Milch", "Eier", "Käse"];
 
 // 1. "Brot" hinten anhängen

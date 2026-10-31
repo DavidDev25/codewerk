@@ -1,4 +1,4 @@
-// Lektion 17 – Array-Methoden
+// Lektion 15 – Array-Methoden
 const produkte = [
   { name: "Apfel", preis: 1, kategorie: "Obst" },
   { name: "Brot", preis: 3, kategorie: "Backwaren" },

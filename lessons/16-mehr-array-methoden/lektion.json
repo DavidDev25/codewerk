@@ -1,0 +1,7 @@
+{
+  "titel": "Mehr Array-Methoden",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 15,
+  "kurz": "Prüfen mit some und every, Positionen finden, richtig sortieren und zwischen Text und Array wechseln mit split und join.",
+  "tipp": "sort verändert das Original! Kopiere vorher: [...noten].sort((a, b) => a - b). Ohne Vergleichsfunktion sortiert sort Zahlen wie Text, dann kommt 10 vor 2."
+}

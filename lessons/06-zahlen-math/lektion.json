@@ -1,0 +1,7 @@
+{
+  "titel": "Zahlen & Math",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 15,
+  "kurz": "Runden, Zufallszahlen, Preise schön anzeigen und erkennen, wenn etwas keine Zahl ist.",
+  "tipp": "Zwei Nachkommastellen: erst mal 100, dann runden, dann durch 100. Für eine Zufallszahl von 1 bis 6: Math.floor(Math.random() * 6) + 1."
+}

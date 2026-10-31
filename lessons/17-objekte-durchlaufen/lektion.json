@@ -1,0 +1,7 @@
+{
+  "titel": "Objekte durchlaufen",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 15,
+  "kurz": "Mit Object.keys, values und entries alle Einträge eines Objekts bearbeiten, wie bei einem Array.",
+  "tipp": "Object.entries(lager) macht aus dem Objekt ein Array von [schluessel, wert]-Paaren. Darauf funktionieren filter und map. Object.fromEntries baut daraus wieder ein Objekt."
+}

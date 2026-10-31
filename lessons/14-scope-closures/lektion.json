@@ -1,0 +1,7 @@
+{
+  "titel": "Scope & Closures",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 18,
+  "kurz": "Wo eine Variable gilt und wie eine Funktion sich Werte merkt, auch nachdem sie fertig ist.",
+  "tipp": "Lege die Variable in der äußeren Funktion an und gib eine innere Funktion zurück, die sie benutzt: function zaehlerErstellen() { let stand = 0; return () => { … }; }"
+}

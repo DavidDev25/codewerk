@@ -1,4 +1,4 @@
-// Lektion 19 – Promises
+// Lektion 35 – Promises
 const speisekarte = ["Pizza", "Pasta", "Salat"];
 
 // 1. function warten(ms) gibt ein Promise zurück

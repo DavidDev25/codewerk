@@ -1,0 +1,7 @@
+{
+  "titel": "Arrow-Funktionen",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 15,
+  "kurz": "Die kurze Schreibweise mit =>, Standardwerte für Parameter und Funktionen, die andere Funktionen bekommen.",
+  "tipp": "const quadrat = (x) => x * x; – ohne geschweifte Klammern wird das Ergebnis automatisch zurückgegeben. Ein Standardwert steht direkt am Parameter: (name = \"Gast\") => …"
+}

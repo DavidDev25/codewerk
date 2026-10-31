@@ -1,0 +1,7 @@
+{
+  "titel": "Destructuring & Spread",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 15,
+  "kurz": "Werte elegant aus Objekten und Arrays herausholen, Objekte mit ... zusammenbauen und beliebig viele Parameter annehmen.",
+  "tipp": "Destructuring steht links vom =: const { name, stadt } = nutzer; Rest-Parameter sammeln alles Übrige in ein Array: function summe(...zahlen) { … }"
+}

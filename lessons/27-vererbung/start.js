@@ -1,4 +1,4 @@
-// Lektion 11 – Vererbung
+// Lektion 27 – Vererbung
 
 class Tier {
   constructor(name) {

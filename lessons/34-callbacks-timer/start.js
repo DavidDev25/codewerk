@@ -1,4 +1,4 @@
-// Lektion 18 – Callbacks & Timer
+// Lektion 34 – Callbacks & Timer
 
 // 1. function rechne(a, b, operation)
 

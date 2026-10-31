@@ -1,0 +1,7 @@
+{
+  "titel": "?. und ??",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 12,
+  "kurz": "Sicher auf Daten zugreifen, die vielleicht fehlen, und vernünftige Ersatzwerte festlegen.",
+  "tipp": "?. bricht ab, wenn links null oder undefined steht, und ergibt dann undefined. ?? setzt nur dann den Ersatzwert ein. || würde ihn auch bei 0 oder \"\" einsetzen."
+}

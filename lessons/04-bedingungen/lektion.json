@@ -1,0 +1,7 @@
+{
+  "titel": "Bedingungen",
+  "kapitel": "Teil 1 · Grundlagen",
+  "minuten": 15,
+  "kurz": "Entscheidungen treffen mit if, else if und else, Bedingungen verknüpfen mit && und || und kurz fassen mit ? :.",
+  "tipp": "Prüfe von oben nach unten: Die erste Bedingung, die zutrifft, gewinnt. Bei kleidung also zuerst grad < 10, dann grad < 20, sonst T-Shirt."
+}

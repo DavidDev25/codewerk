@@ -1,5 +1,6 @@
 {
   "titel": "Array-Methoden",
+  "kapitel": "Teil 1 · Grundlagen",
   "minuten": 15,
   "kurz": "Listen umwandeln, filtern und zusammenrechnen mit map, filter, reduce und find.",
   "tipp": "Jede Methode bekommt eine kleine Funktion, die für jedes Element einmal aufgerufen wird: produkte.map((p) => p.name). Bei reduce brauchst du zusätzlich einen Startwert, z. B. 0."

@@ -1,4 +1,4 @@
-// Lektion 14 – Komposition
+// Lektion 30 – Komposition
 
 class Motor {
   #laeuft = false;

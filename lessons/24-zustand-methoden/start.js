@@ -1,4 +1,4 @@
-// Lektion 8 – Zustand & Methoden
+// Lektion 24 – Zustand & Methoden
 
 class Zaehler {
   constructor(start = 0) {

@@ -1,0 +1,7 @@
+{
+  "titel": "Prototypen",
+  "kapitel": "Teil 2 · Objektorientierung",
+  "minuten": 18,
+  "kurz": "Was hinter class steckt: Objekte erben über ihren Prototyp. So liest du auch älteren Code mit Konstruktorfunktionen.",
+  "tipp": "Methoden gehören auf den Prototyp, nicht in den Konstruktor: Punkt.prototype.abstand = function () { … }; Nimm hier eine normale function, keine Arrow-Funktion, sonst fehlt this."
+}

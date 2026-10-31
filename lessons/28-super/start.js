@@ -1,4 +1,4 @@
-// Lektion 12 – super
+// Lektion 28 – super
 
 class Tier {
   constructor(name) {

@@ -1,6 +1,6 @@
 ## Warten, ohne dass alles stehen bleibt
 
-In Lektion 19 hast du Ergebnisse mit `.then(…)` abgeholt. Das funktioniert, wird aber schnell unübersichtlich, wenn mehrere Schritte nacheinander warten müssen. Mit `async` und `await` liest sich asynchroner Code wie ganz normaler Code – von oben nach unten.
+In Lektion 35 hast du Ergebnisse mit `.then(…)` abgeholt. Das funktioniert, wird aber schnell unübersichtlich, wenn mehrere Schritte nacheinander warten müssen. Mit `async` und `await` liest sich asynchroner Code wie ganz normaler Code – von oben nach unten.
 
 :::alltag
 Beim Nudelkochen nach Rezept: Du setzt Wasser auf und **wartest**, bis es kocht. Dann kommen die Nudeln rein und du **wartest** wieder 10 Minuten. Erst danach gießt du ab. Jeder Schritt wartet auf den vorherigen – aber während das Wasser heiß wird, kannst du in der Küche trotzdem etwas anderes tun.
@@ -53,7 +53,7 @@ spielen();
 ```
 
 - `const wurf = await wuerfeln();` – das Ergebnis des Promises landet direkt in der Variablen.
-- Wird das Promise **abgelehnt**, wirft `await` den Fehler. Mit `try … catch` fängst du ihn ab – genau wie in Lektion 16.
+- Wird das Promise **abgelehnt**, wirft `await` den Fehler. Mit `try … catch` fängst du ihn ab – genau wie in Lektion 33.
 - Eine `async`-Funktion kann mit `return` ein Ergebnis liefern. Wer sie aufruft, bekommt es mit `await` oder `.then(…)`.
 
 Probiere das zweite Beispiel ein paar Mal aus – manchmal würfelst du eine 1.

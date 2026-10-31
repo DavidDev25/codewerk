@@ -1,0 +1,7 @@
+{
+  "titel": "Methoden & this",
+  "kapitel": "Teil 2 · Objektorientierung",
+  "minuten": 15,
+  "kurz": "Objekte bekommen eigene Funktionen. Mit this greifen sie auf ihre eigenen Daten zu.",
+  "tipp": "In einer Methode ist this das Objekt vor dem Punkt: figur.treffer(10) → this ist figur. Schreibe also this.leben, nicht figur.leben."
+}

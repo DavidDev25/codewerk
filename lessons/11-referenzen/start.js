@@ -1,4 +1,4 @@
-// Lektion 6 – Referenzen
+// Lektion 11 – Referenzen
 const original = { name: "Mara", punkte: 5 };
 
 // 1. Mache eine ECHTE Kopie (jetzt ist es nur ein zweiter Name!)
