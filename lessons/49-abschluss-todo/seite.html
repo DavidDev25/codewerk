@@ -1,0 +1,17 @@
+<style>
+  form { display: flex; gap: 6px; max-width: 360px; }
+  input, button { font: inherit; padding: 6px; }
+  input { flex: 1; }
+  #aufgaben { list-style: none; padding: 0; max-width: 360px; }
+  #aufgaben li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #ddd; }
+  #aufgaben li span { flex: 1; }
+  #aufgaben li.erledigt span { text-decoration: line-through; color: #777; }
+  .loeschen { background: none; border: 0; cursor: pointer; font-size: 1.1rem; }
+</style>
+<h1>Meine Aufgaben</h1>
+<form id="neu">
+  <input name="text" placeholder="Neue Aufgabe" aria-label="Neue Aufgabe" autocomplete="off">
+  <button type="submit">Hinzufügen</button>
+</form>
+<ul id="aufgaben"></ul>
+<p id="zaehler"></p>

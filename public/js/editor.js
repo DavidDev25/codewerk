@@ -27,7 +27,7 @@ export function createEditor(monaco, element, { fontSize }) {
     colors: {
       'editor.background': '#FFFFFF',
       'editor.foreground': '#1B2B2A',
-      'editorLineNumber.foreground': '#8FA3A1',
+      'editorLineNumber.foreground': '#617775',
       'editorLineNumber.activeForeground': '#226B74',
       'editor.lineHighlightBackground': '#F2F7F6',
       'editorCursor.foreground': '#226B74',
@@ -45,7 +45,7 @@ export function createEditor(monaco, element, { fontSize }) {
     colors: {
       'editor.background': '#1A2425',
       'editor.foreground': '#E4EEEC',
-      'editorLineNumber.foreground': '#5F7977',
+      'editorLineNumber.foreground': '#86A09E',
       'editorLineNumber.activeForeground': '#6FC1C9',
       'editor.lineHighlightBackground': '#213031',
       'editorCursor.foreground': '#6FC1C9',

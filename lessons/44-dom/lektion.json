@@ -1,0 +1,7 @@
+{
+  "titel": "Die Seite verändern (DOM)",
+  "kapitel": "Teil 5 · Browser",
+  "minuten": 15,
+  "kurz": "JavaScript im Browser: Elemente finden mit querySelector und Text, Klassen und Attribute ändern.",
+  "tipp": "Erst finden, dann ändern: const titel = document.querySelector(\"#titel\"); titel.textContent = \"…\"; Für mehrere Elemente nimmst du querySelectorAll und eine for…of-Schleife."
+}

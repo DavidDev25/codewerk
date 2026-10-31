@@ -1,6 +1,6 @@
 # Codewerk – deine persönliche JavaScript-Lernplattform
 
-Codewerk bringt dir JavaScript bei, von den Grundlagen über die objektorientierte Programmierung (OOP) bis zu asynchronem Code. Es gibt eine Einstiegslektion (Lektion 0 „So funktioniert Codewerk“) und 43 kurze Lektionen in vier Kapiteln, jedes mit einem Abschlussprojekt:
+Codewerk bringt dir JavaScript bei, von den Grundlagen über die objektorientierte Programmierung (OOP) bis zu asynchronem Code und JavaScript im Browser. Es gibt eine Einstiegslektion (Lektion 0 „So funktioniert Codewerk“) und 49 kurze Lektionen in fünf Kapiteln, jedes mit einem Abschlussprojekt:
 
 | Kapitel | Lektionen | Inhalt |
 | --- | --- | --- |
@@ -8,6 +8,7 @@ Codewerk bringt dir JavaScript bei, von den Grundlagen über die objektorientier
 | Teil 2 · Objektorientierung | 22–32 | `this`, Klassen, `#private`, Getter/Setter, Vererbung, `super`, Polymorphie, Komposition, Prototypen |
 | Teil 3 · Fehler & Asynchron | 33–38 | Fehlerbehandlung, Callbacks & Timer, Promises, async/await, `fetch` mit eingebauter Übungs-API |
 | Teil 4 · Fortgeschritten | 39–43 | Module, Iteratoren & Generatoren, reguläre Ausdrücke, Datum & `Intl` |
+| Teil 5 · Browser | 44–49 | DOM, Elemente erzeugen (und XSS vermeiden), Events, Formulare, `localStorage`, To-do-App |
 
 Jede Lektion hat eine kleine Erklärung, eine Aufgabe, automatische Tests, ein Diagramm deines Codes und einen KI-Tutor.
 
@@ -144,6 +145,8 @@ Neue Besucher starten in **Lektion 0**, die den Ablauf an einer Mini-Aufgabe zei
 
 Dein Code läuft sicher in einem Web Worker, getrennt von der Seite. Nach 5 Sekunden wird er angehalten (Endlosschleife). Dein Code läuft im „strict mode“: Tippfehler wie nicht deklarierte Variablen werden so zu klaren Fehlern.
 
+**Browser-Lektionen (Teil 5)** brauchen ein echtes DOM, das ein Worker nicht hat. Dort läuft der Code in einem abgeschotteten `iframe` (`sandbox="allow-scripts allow-forms"`, eigene „null“-Origin: kein Zugriff auf Cookies, Sitzung oder die Codewerk-Seite). Der neue Reiter **Vorschau** zeigt die Seite, die man danach auch anklicken kann; Ausgaben aus Klicks erscheinen live in **Ausgabe**. Dabei laufen zwei Durchgänge: einer sichtbar ohne Tests und einer unsichtbar mit Tests, damit Testklicks die Vorschau nicht verändern. Endlosschleifen bricht ein Schleifenschutz nach 3 Sekunden ab (in jede Schleife wird vor dem Ausführen eine Zeitprüfung eingesetzt). `localStorage` ist ein Übungsspeicher pro Lektion, der bis zum Neuladen von Codewerk erhalten bleibt; Netzwerkzugriffe sind wie im Worker gesperrt.
+
 ---
 
 ## 4. Eigene Lektionen hinzufügen
@@ -153,7 +156,7 @@ Jede Lektion ist ein Ordner in `lessons/`. Die Reihenfolge ergibt sich aus dem O
 **Schritt 1: Vorlage kopieren**
 
 ```bash
-cp -r lessons/_vorlage lessons/44-mein-thema
+cp -r lessons/_vorlage lessons/50-mein-thema
 ```
 
 In `lektion.json` legt `kapitel` fest, unter welcher Überschrift die Lektion in der Liste erscheint. Lektionen eines Kapitels müssen direkt hintereinander stehen, und die Nummern müssen lückenlos sein (beides prüft `npm test`).
@@ -170,6 +173,7 @@ In `lektion.json` legt `kapitel` fest, unter welcher Überschrift die Lektion in
 | `start.js` | Startcode im Editor. Er sollte ohne Fehler laufen, aber noch nicht alle Tests bestehen |
 | `tests.js` | die automatischen Tests |
 | `loesung.js` | Musterlösung. Sie bleibt auf dem Server, nur der KI-Tutor kennt sie |
+| `seite.html` | *(optional)* HTML einer Seite. Damit wird die Lektion zur Browser-Lektion mit Vorschau, und die Tests können `document` benutzen. `npm run pruefen` prüft sie mit jsdom |
 
 **Schritt 3: Prüfen**
 

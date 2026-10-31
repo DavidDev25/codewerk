@@ -26,16 +26,34 @@ const coreSource = fs.readFileSync(path.join(ROOT, 'public', 'js', 'core.js'), '
 let activeCtx = null;
 process.on('unhandledRejection', (reason) => { if (activeCtx) activeCtx.CW.asyncError(reason); });
 
-/** Führt Code in einer frischen, isolierten vm-Umgebung aus (wie ein frischer Worker). */
-async function run(code, tests) {
-  const ctx = vm.createContext({ setTimeout, clearTimeout, setInterval, clearInterval });
-  vm.runInContext(acornSource, ctx);
-  vm.runInContext(coreSource, ctx);
-  ctx.__input = JSON.stringify({ code, tests });
+/**
+ * Führt Code in einer frischen, isolierten Umgebung aus: normalerweise eine vm (wie ein
+ * frischer Worker), bei Browser-Lektionen (seite.html) ein jsdom-Fenster mit der Seite
+ * (wie das iframe im Browser, inklusive Schleifenschutz und Ersatz-localStorage).
+ */
+async function run(code, tests, page) {
+  let ctx;
+  let evaluate;
+  if (typeof page === 'string') {
+    const { JSDOM } = require('jsdom'); // nur zum Prüfen nötig (devDependency)
+    const dom = new JSDOM(`<!doctype html><html lang="de"><body>${page}</body></html>`, { runScripts: 'outside-only', pretendToBeVisual: true });
+    ctx = dom.window;
+    ctx.eval(acornSource);
+    ctx.eval(coreSource);
+    ctx.CW.installPage(ctx, {});
+    evaluate = (src) => ctx.eval(src);
+  } else {
+    ctx = vm.createContext({ setTimeout, clearTimeout, setInterval, clearInterval });
+    vm.runInContext(acornSource, ctx);
+    vm.runInContext(coreSource, ctx);
+    evaluate = (src) => vm.runInContext(src, ctx, { timeout: 5000 });
+  }
+  ctx.__input = JSON.stringify({ code, tests, loopGuard: typeof page === 'string' });
   activeCtx = ctx;
   try {
-    // Der synchrone Teil ist durch timeout begrenzt, der asynchrone durch das Rennen gegen 6 Sekunden.
-    const pending = vm.runInContext('CW.runLesson(JSON.parse(__input)).then(JSON.stringify)', ctx, { timeout: 5000 });
+    // Der synchrone Teil ist durch timeout (vm) bzw. den Schleifenschutz (jsdom) begrenzt,
+    // der asynchrone durch das Rennen gegen 6 Sekunden.
+    const pending = evaluate('CW.runLesson(JSON.parse(__input)).then(JSON.stringify)');
     let timer;
     const json = await Promise.race([
       pending,
@@ -60,7 +78,7 @@ for (const lesson of all) {
   /* 1. Musterlösung */
   let sol;
   try {
-    sol = await run(lesson.solution, lesson.testsSource);
+    sol = await run(lesson.solution, lesson.testsSource, lesson.page);
   } catch (e) {
     fail('Musterlösung brach ab: ' + e.message);
     continue;
@@ -80,7 +98,7 @@ for (const lesson of all) {
   /* 2. Startcode */
   let start;
   try {
-    start = await run(lesson.starterCode, lesson.testsSource);
+    start = await run(lesson.starterCode, lesson.testsSource, lesson.page);
   } catch (e) {
     fail('Startcode brach ab: ' + e.message);
     continue;

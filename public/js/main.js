@@ -1,7 +1,7 @@
 import { api } from './api.js';
 import { renderMarkdown, inline, escapeHtml } from './markdown.js';
 import { loadMonaco, createEditor } from './editor.js';
-import { runCode, TIMEOUT_SECONDS } from './runner.js';
+import { runCode, runInPage, clearPreview, TIMEOUT_SECONDS } from './runner.js';
 import { createDiagram } from './diagram.js';
 import { createTutor } from './tutor-chat.js';
 import { createTour, tourSeen } from './tour.js';
@@ -26,7 +26,12 @@ const state = {
   saveTimer: null,
   uiTimer: null,
   lastEditEvent: {},
+  pageStorage: new Map(),
 };
+
+const isPageLesson = () => !!(state.lesson && typeof state.lesson.page === 'string');
+
+const PREVIEW_EMPTY = '<div class="empty"><p>Hier erscheint deine Seite.</p><p class="muted">Drücke <strong>Ausführen</strong>. Danach kannst du die Seite hier auch anklicken und ausprobieren.</p></div>';
 
 let diagram;
 let tutor;
@@ -75,6 +80,7 @@ function setLeftTab(tab, persist = true) {
 }
 
 function setResultTab(tab, persist = true) {
+  if (tab === 'vorschau' && !isPageLesson()) tab = 'pruefung';
   state.resultTab = tab;
   $$('[data-rtab]').forEach((b) => {
     const on = b.dataset.rtab === tab;
@@ -104,7 +110,7 @@ function wireTabKeys(selector, attr, setter) {
   $$(selector).forEach((btn) => {
     btn.addEventListener('keydown', (e) => {
       if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-      const all = $$(selector, btn.parentElement);
+      const all = $$(selector, btn.parentElement).filter((b) => !b.hidden);
       const next = all[(all.indexOf(btn) + (e.key === 'ArrowRight' ? 1 : all.length - 1)) % all.length];
       setter(next.dataset[attr]);
       next.focus();
@@ -179,6 +185,9 @@ async function openLesson(id, { initial = false, preloaded = null } = {}) {
 
   renderLessonTexts();
   renderLessonList();
+  $('#rtabbtn-vorschau').hidden = !isPageLesson();
+  clearPreview($('#preview-host'));
+  $('#preview-host').innerHTML = PREVIEW_EMPTY;
 
   setEditorValue(hasCode ? saved.code : lesson.starterCode);
   clearMarkers();
@@ -282,6 +291,23 @@ function errorText(result) {
   return '';
 }
 
+async function runPageLesson(code, lessonId) {
+  const { page, testsSource } = state.lesson;
+  const storage = state.pageStorage.get(lessonId) || {};
+  const live = (msg) => {
+    if (msg.storage) state.pageStorage.set(lessonId, msg.storage);
+    if (msg.log && state.lesson && state.lesson.id === lessonId) appendLiveLog(msg.log);
+  };
+  const [shown, tested] = await Promise.all([
+    runInPage({ code, tests: null, page, storage }, $('#preview-host'), live),
+    runInPage({ code, tests: testsSource, page, storage }, null),
+  ]);
+  if (shown.storage) state.pageStorage.set(lessonId, shown.storage);
+  if (shown.syntaxError || shown.error || shown.timeout || shown.crashed) return shown;
+  if (tested.timeout || tested.crashed || tested.error) return { ...tested, logs: shown.logs, snapshot: shown.snapshot };
+  return { ...shown, tests: tested.tests, testsBroken: tested.testsBroken };
+}
+
 async function run({ auto = false } = {}) {
   if (state.running || !state.lesson) return;
   state.running = true;
@@ -291,7 +317,8 @@ async function run({ auto = false } = {}) {
   await flushSave();
 
   const code = state.editor.getValue();
-  const result = await runCode({ code, tests: state.lesson.testsSource });
+  const lessonId = state.lesson.id;
+  const result = isPageLesson() ? await runPageLesson(code, lessonId) : await runCode({ code, tests: state.lesson.testsSource });
   state.last = { result, code };
   state.running = false;
   btn.disabled = false;
@@ -305,7 +332,8 @@ async function run({ auto = false } = {}) {
   renderResults(result);
 
   if (!auto) {
-    if (info.kind === 'tests' || info.kind === 'ran') setResultTab(info.kind === 'tests' ? 'pruefung' : 'ausgabe');
+    if (isPageLesson() && (info.kind === 'ran' || (info.kind === 'tests' && info.all))) setResultTab('vorschau');
+    else if (info.kind === 'tests' || info.kind === 'ran') setResultTab(info.kind === 'tests' ? 'pruefung' : 'ausgabe');
     else setResultTab('ausgabe');
     if (MOBILE.matches) setView('ergebnis');
   }
@@ -415,6 +443,22 @@ function renderConsole(result, info) {
   el.innerHTML = parts.join('');
 }
 
+function appendLiveLog(entry) {
+  const panel = $('#rtab-ausgabe');
+  let box = $('.console', panel);
+  if (!box) {
+    panel.innerHTML = '<div class="console" aria-label="Konsole"></div>';
+    box = $('.console', panel);
+  }
+  const line = document.createElement('div');
+  line.className = 'log log-' + (['log', 'warn', 'error'].includes(entry.type) ? entry.type : 'log');
+  line.textContent = String(entry.text);
+  box.appendChild(line);
+  while (box.children.length > 300) box.firstChild.remove();
+  const badge = $('#badge-ausgabe');
+  if (badge.textContent !== '!') badge.textContent = String(box.children.length);
+}
+
 function renderNextStep() {
   const el = $('#nextstep');
   const l = state.lesson;
@@ -472,7 +516,9 @@ function askTutor(mode) {
 async function trySnippet(button) {
   const out = button.closest('.codeblock').querySelector('.try-out');
   button.disabled = true;
-  const result = await runCode({ code: button.dataset.code, tests: null });
+  const result = isPageLesson()
+    ? await runInPage({ code: button.dataset.code, tests: null, page: state.lesson.page }, null)
+    : await runCode({ code: button.dataset.code, tests: null });
   button.disabled = false;
   let html;
   if (result.timeout) html = '<div class="log log-error">Das hat zu lange gedauert.</div>';

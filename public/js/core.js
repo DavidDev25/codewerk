@@ -29,6 +29,20 @@
     }
   }
 
+  function isDomNode(value) {
+    return value !== null && typeof value === 'object' && typeof value.nodeType === 'number' && typeof value.nodeName === 'string';
+  }
+
+  function domLabel(node) {
+    if (node.nodeType === 3) return '#text ' + JSON.stringify(cut(String(node.textContent), 30));
+    if (node.nodeType === 9) return '#document';
+    if (node.nodeType !== 1) return String(node.nodeName);
+    let label = '<' + String(node.nodeName).toLowerCase();
+    if (node.id) label += '#' + node.id;
+    if (typeof node.className === 'string' && node.className.trim()) label += '.' + node.className.trim().split(/\s+/).join('.');
+    return label + '>';
+  }
+
   function show(value, depth, seen) {
     depth = depth || 0;
     seen = seen || [];
@@ -43,6 +57,7 @@
     if (type === 'function') {
       return (isClassFunction(value) ? '[Klasse ' : '[Funktion ') + (value.name || 'anonym') + ']';
     }
+    if (isDomNode(value)) return domLabel(value);
     if (seen.indexOf(value) !== -1) return '[Zirkulär]';
     const tag = Object.prototype.toString.call(value);
     if (tag === '[object Date]') return isNaN(value) ? 'Invalid Date' : value.toISOString();
@@ -355,6 +370,7 @@
         }
         return { t: 'fn', text: functionLabel(v) };
       }
+      if (isDomNode(v)) return prim('symbol', domLabel(v));
       const id = objectNode(v);
       return id ? { t: 'ref', id: id } : prim('more', '…');
     }
@@ -674,6 +690,84 @@
     };
   }
 
+  const LOOP_LIMIT_MS = 3000;
+  const LOOP_TYPES = ['ForStatement', 'ForInStatement', 'ForOfStatement', 'WhileStatement', 'DoWhileStatement'];
+  const LOOP_MESSAGE = 'Diese Schleife lief länger als ' + (LOOP_LIMIT_MS / 1000) + ' Sekunden und wurde angehalten. Wird ihre Bedingung irgendwann falsch?';
+
+  function guardLoops(source, ast) {
+    const edits = [];
+    let count = 0;
+    function walk(node, parent) {
+      if (!node || typeof node.type !== 'string') return;
+      if (LOOP_TYPES.indexOf(node.type) !== -1) {
+        const name = '__cwL' + (count++);
+        const outer = parent && parent.type === 'LabeledStatement' ? parent : node;
+        edits.push({ at: outer.start, text: '{const ' + name + '=Date.now();' });
+        edits.push({ at: outer.end, text: '}' });
+        if (node.body.type === 'BlockStatement') {
+          edits.push({ at: node.body.start + 1, text: '__cw.loop(' + name + ');' });
+        } else {
+          edits.push({ at: node.body.start, text: '{__cw.loop(' + name + ');' });
+          edits.push({ at: node.body.end, text: '}' });
+        }
+      }
+      Object.keys(node).forEach(function (key) {
+        const child = node[key];
+        if (Array.isArray(child)) child.forEach(function (c) { if (c && typeof c.type === 'string') walk(c, node); });
+        else if (child && typeof child.type === 'string') walk(child, node);
+      });
+    }
+    walk(ast, null);
+    edits.forEach(function (e, i) { e.i = i; });
+    edits.sort(function (a, b) { return b.at - a.at || b.i - a.i; });
+    let out = source;
+    edits.forEach(function (e) { out = out.slice(0, e.at) + e.text + out.slice(e.at); });
+    return out;
+  }
+  CW.guardLoops = guardLoops;
+
+  const STORAGE_LIMIT = 100 * 1024;
+
+  function makeStorage(store, changed) {
+    const has = function (k) { return Object.prototype.hasOwnProperty.call(store, k); };
+    const storage = {
+      getItem: function (k) { k = String(k); return has(k) ? store[k] : null; },
+      setItem: function (k, v) {
+        k = String(k);
+        v = String(v);
+        let size = k.length + v.length;
+        Object.keys(store).forEach(function (key) { if (key !== k) size += key.length + store[key].length; });
+        if (size > STORAGE_LIMIT) throw new Error('Der Speicher ist voll (höchstens 100 KB in Codewerk).');
+        store[k] = v;
+        changed();
+      },
+      removeItem: function (k) { delete store[String(k)]; changed(); },
+      clear: function () { Object.keys(store).forEach(function (k) { delete store[k]; }); changed(); },
+      key: function (i) { const keys = Object.keys(store); return i >= 0 && i < keys.length ? keys[i] : null; },
+    };
+    Object.defineProperty(storage, 'length', { get: function () { return Object.keys(store).length; } });
+    return storage;
+  }
+
+  CW.installPage = function installPage(g, initial) {
+    const data = {};
+    if (initial && typeof initial === 'object') {
+      Object.keys(initial).forEach(function (k) { data[k] = String(initial[k]); });
+    }
+    let listener = null;
+    const changed = function () { if (listener) listener(); };
+    [['localStorage', data, changed], ['sessionStorage', {}, function () {}]].forEach(function (entry) {
+      try { Object.defineProperty(g, entry[0], { configurable: true, enumerable: true, value: makeStorage(entry[1], entry[2]) }); } catch (e) { }
+    });
+    ['XMLHttpRequest', 'WebSocket', 'EventSource', 'indexedDB', 'caches', 'BroadcastChannel', 'SharedWorker', 'Worker', 'open'].forEach(function (name) {
+      try { g[name] = undefined; } catch (e) { }
+    });
+    return {
+      dump: function () { return Object.assign({}, data); },
+      onChange: function (fn) { listener = fn; },
+    };
+  };
+
   let currentAsyncError = null;
   CW.asyncError = function (reason) { if (currentAsyncError) currentAsyncError(reason); };
 
@@ -692,9 +786,11 @@
     };
 
     let declarations = [];
+    let guarded = null;
     try {
       const ast = g.acorn.parse(STRICT_PREFIX + code, { ecmaVersion: 'latest', sourceType: 'script', locations: true });
       declarations = topLevelDeclarations(ast);
+      if (options.loopGuard) guarded = guardLoops(STRICT_PREFIX + code, ast);
     } catch (e) {
       if (e && e.loc) {
         const line = e.loc.line;
@@ -743,6 +839,9 @@
     }
     g.__cw = {
       phase: 'user',
+      loop: function (start) {
+        if (Date.now() - start > LOOP_LIMIT_MS) throw new Error(LOOP_MESSAGE);
+      },
       snapshot: function (entries) {
         entriesFn = entries;
         takeSnapshot();
@@ -775,7 +874,7 @@
     }).join(',');
     const userLineCount = code.split('\n').length;
 
-    let program = STRICT_PREFIX + code + '\n;__cw.snapshot(function(){return [' + getters + '];});\n';
+    let program = (guarded || STRICT_PREFIX + code) + '\n;__cw.snapshot(function(){return [' + getters + '];});\n';
     if (testsSource) {
       program += ';__cw.phase="tests";\n;(function(){ const { test, expect, output, source, capture, wait } = __cw.api;\n' +
         testsSource + '\n})();\n';

@@ -9,6 +9,8 @@
      start.js       Startcode im Editor
      tests.js       automatische Tests (laufen im Browser-Worker)
      loesung.js     Musterlösung – bleibt auf dem Server, nur der KI-Tutor kennt sie
+     seite.html     (optional) HTML einer Seite: Der Code läuft dann in einem
+                    abgeschotteten iframe mit echtem DOM statt im Worker
 
    Die Ordner werden bei JEDER Anfrage neu gelesen. Eine neue Lektion ist also
    sofort da, sobald du den Ordner angelegt hast – ohne Neustart.
@@ -20,6 +22,7 @@ const { RENAMES } = require('./umzug');
 
 const LESSON_DIR = process.env.LESSON_DIR || path.join(__dirname, '..', 'lessons');
 const FILES = ['lektion.json', 'erklaerung.md', 'aufgabe.md', 'start.js', 'tests.js', 'loesung.js'];
+const PAGE_FILE = 'seite.html';
 
 function read(dir, name) {
   return fs.readFileSync(path.join(dir, name), 'utf8');
@@ -63,6 +66,8 @@ function loadAll() {
         starterCode: read(dir, 'start.js'),
         testsSource: read(dir, 'tests.js'),
         solution: read(dir, 'loesung.js'),
+        // Optional: seite.html macht die Lektion zur Browser-Lektion mit echtem DOM (Vorschau-Reiter)
+        page: fs.existsSync(path.join(dir, PAGE_FILE)) ? read(dir, PAGE_FILE) : null,
       });
     } catch (e) {
       problems.push(`Lektion „${name}“ übersprungen – ${e.message}`);
@@ -80,7 +85,7 @@ function publicView(lesson) {
 function list() {
   const { lessons, problems } = loadAll();
   return {
-    lessons: lessons.map((l) => ({ id: l.id, index: l.index, chapter: l.chapter, title: l.title, minutes: l.minutes, summary: l.summary })),
+    lessons: lessons.map((l) => ({ id: l.id, index: l.index, chapter: l.chapter, title: l.title, minutes: l.minutes, summary: l.summary, browser: l.page !== null })),
     problems,
     renames: RENAMES, // damit der Browser auch Gast-Fortschritt umschreiben kann
   };

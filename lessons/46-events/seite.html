@@ -1,0 +1,19 @@
+<style>
+  button { font: inherit; padding: 6px 14px; margin-right: 6px; }
+  #stand { font-size: 2rem; font-weight: bold; margin: 0 12px; vertical-align: middle; }
+  input { font: inherit; padding: 6px; }
+  #farben li { cursor: pointer; padding: 4px 0; }
+  #farben li:hover { text-decoration: underline; }
+</style>
+<h2>Zähler</h2>
+<p><button id="plus">+1</button><span id="stand">0</span><button id="reset">Zurücksetzen</button></p>
+<h2>Begrüßung</h2>
+<p><input id="name" placeholder="Dein Name" aria-label="Dein Name"></p>
+<p id="gruss"></p>
+<h2>Lieblingsfarbe</h2>
+<ul id="farben">
+  <li data-farbe="rot">Rot</li>
+  <li data-farbe="grün">Grün</li>
+  <li data-farbe="blau">Blau</li>
+</ul>
+<p id="auswahl"></p>

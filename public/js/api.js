@@ -109,7 +109,7 @@ export const api = {
   saveUi: (ui) => (guest
     ? updateGuest((doc) => {
       if (['verstehen', 'aufgabe', 'tutor'].includes(ui.tab)) doc.ui.tab = ui.tab;
-      if (['pruefung', 'ausgabe', 'diagramm'].includes(ui.resultTab)) doc.ui.resultTab = ui.resultTab;
+      if (['pruefung', 'ausgabe', 'diagramm', 'vorschau'].includes(ui.resultTab)) doc.ui.resultTab = ui.resultTab;
     })
     : put('/api/progress/ui', ui)),
   event: (lessonId, type, detail) => (guest

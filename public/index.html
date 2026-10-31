@@ -104,13 +104,15 @@
             <button class="tab" role="tab" data-rtab="pruefung" id="rtabbtn-pruefung" aria-controls="rtab-pruefung">Prüfung <span class="badge" id="badge-pruefung"></span></button>
             <button class="tab" role="tab" data-rtab="ausgabe" id="rtabbtn-ausgabe" aria-controls="rtab-ausgabe">Ausgabe <span class="badge" id="badge-ausgabe"></span></button>
             <button class="tab" role="tab" data-rtab="diagramm" id="rtabbtn-diagramm" aria-controls="rtab-diagramm">Diagramm</button>
+            <button class="tab" role="tab" data-rtab="vorschau" id="rtabbtn-vorschau" aria-controls="rtab-vorschau" hidden>Vorschau</button>
           </div>
           <button id="btn-expand" class="btn ghost small expand" type="button" aria-pressed="false">Ergebnis vergrößern</button>
         </div>
         <div class="results-body">
-          <div class="rtab-panel" id="rtab-pruefung" role="tabpanel" aria-labelledby="rtabbtn-pruefung"></div>
-          <div class="rtab-panel" id="rtab-ausgabe" role="tabpanel" aria-labelledby="rtabbtn-ausgabe" hidden></div>
+          <div class="rtab-panel" id="rtab-pruefung" role="tabpanel" aria-labelledby="rtabbtn-pruefung" tabindex="0"></div>
+          <div class="rtab-panel" id="rtab-ausgabe" role="tabpanel" aria-labelledby="rtabbtn-ausgabe" tabindex="0" hidden></div>
           <div class="rtab-panel" id="rtab-diagramm" role="tabpanel" aria-labelledby="rtabbtn-diagramm" hidden></div>
+          <div class="rtab-panel" id="rtab-vorschau" role="tabpanel" aria-labelledby="rtabbtn-vorschau" hidden><div id="preview-host" class="preview-host"></div></div>
         </div>
       </div>
     </section>

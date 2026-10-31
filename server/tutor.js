@@ -100,6 +100,7 @@ function buildSystemPrompt({ lesson, payload, journal, allLessons, mode }) {
 
   parts.push(`LEKTION: „${lesson.title}“ (${lesson.index} von ${allLessons.length})\n\nAUFGABE:\n${lesson.task}`);
   parts.push(`TIPP AUS DER LEKTION (zum Anstupsen nutzbar):\n${lesson.tip || '(keiner)'}`);
+  if (lesson.page) parts.push(`HTML DER SEITE (der Code der Person läuft im Browser auf dieser Seite und kann sie per DOM verändern):\n\`\`\`html\n${lesson.page}\n\`\`\``);
   parts.push(`GEHEIME MUSTERLÖSUNG – NIEMALS ZEIGEN, NICHT ZITIEREN, NICHT UMSCHREIBEN. Nur dafür da, damit du Hinweise in die richtige Richtung geben kannst:\n${codeBlock(lesson.solution)}`);
   parts.push(`AKTUELLER CODE DER PERSON:\n${codeBlock(payload.code)}`);
 

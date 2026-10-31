@@ -79,7 +79,7 @@ function resetLesson(doc, id) {
 
 function setUi(doc, ui) {
   const allowedTabs = ['verstehen', 'aufgabe', 'tutor'];
-  const allowedResults = ['pruefung', 'ausgabe', 'diagramm'];
+  const allowedResults = ['pruefung', 'ausgabe', 'diagramm', 'vorschau'];
   if (ui && allowedTabs.includes(ui.tab)) doc.ui.tab = ui.tab;
   if (ui && allowedResults.includes(ui.resultTab)) doc.ui.resultTab = ui.resultTab;
 }

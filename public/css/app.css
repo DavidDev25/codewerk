@@ -224,6 +224,11 @@ pre code { background: none; border: 0; padding: 0; font-size: inherit; }
 .results-body { flex: 1; min-height: 0; position: relative; overflow: hidden; display: flex; }
 .rtab-panel { flex: 1; min-width: 0; overflow: auto; padding: 14px 16px 18px; }
 .rtab-panel#rtab-diagramm { padding: 10px 12px 14px; }
+.rtab-panel#rtab-vorschau { padding: 10px 12px 14px; overflow: hidden; }
+.rtab-panel#rtab-vorschau:not([hidden]) { display: flex; }
+.preview-host { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.preview-host .empty { overflow: auto; }
+.preview-frame { flex: 1; width: 100%; min-height: 180px; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; }
 
 .empty { text-align: center; padding: 28px 12px; color: var(--muted); }
 .empty p { margin-bottom: .5em; }
@@ -386,6 +391,8 @@ a.btn { text-decoration: none; }
 
   .tabs { padding: 6px 6px 0; overflow-x: auto; scrollbar-width: none; }
   .tab { padding: .5em .75em .45em; font-size: .88rem; white-space: nowrap; }
+  .small-tabs .tablist { gap: 0; }
+  .small-tabs .tab { padding: .5em .55em .45em; }
   .tab-panel { padding: 16px 16px 24px; }
   .tab-panel.tutor { padding: 12px; }
   .prose h2 { font-size: 1.2rem; }

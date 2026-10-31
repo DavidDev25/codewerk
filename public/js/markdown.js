@@ -47,11 +47,11 @@ export function renderMarkdown(src, opts) {
       i++;
       const text = code.join('\n');
       if (runnable && (lang === 'js' || lang === 'javascript')) {
-        out.push('<div class="codeblock"><pre><code>' + escapeHtml(text) + '</code></pre>' +
+        out.push('<div class="codeblock"><pre tabindex="0"><code>' + escapeHtml(text) + '</code></pre>' +
           '<div class="codeblock-bar"><button type="button" class="btn small try" data-code="' + escapeHtml(text) + '">Ausprobieren</button></div>' +
           '<div class="try-out" hidden></div></div>');
       } else {
-        out.push('<pre><code>' + escapeHtml(text) + '</code></pre>');
+        out.push('<pre tabindex="0"><code>' + escapeHtml(text) + '</code></pre>');
       }
       continue;
     }
