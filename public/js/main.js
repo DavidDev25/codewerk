@@ -216,6 +216,7 @@ function renderProgress() {
   $('#progress-fill').style.width = total ? (done / total) * 100 + '%' : '0';
   $('#progress-track').setAttribute('aria-valuenow', String(total ? Math.round((done / total) * 100) : 0));
   $('#progress-text').textContent = `${done} von ${total} geschafft`;
+  $('.progress').title = `Fortschritt: ${done} von ${total} Lektionen geschafft`;
 }
 
 function lessonItem(l) {
