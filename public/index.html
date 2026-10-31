@@ -161,6 +161,26 @@
     <nav class="legal-links small" aria-label="Rechtliches"><a href="/impressum.html">Impressum</a><a href="/datenschutz.html">Datenschutz</a></nav>
   </dialog>
 
+  <dialog id="dlg-chapter" class="celebrate" aria-labelledby="celebrate-title" aria-describedby="celebrate-text">
+    <span class="celebrate-eyebrow">Kapitel abgeschlossen</span>
+    <svg class="celebrate-badge" viewBox="0 0 120 120" aria-hidden="true">
+      <polygon points="60,6 106.8,33 106.8,87 60,114 13.2,87 13.2,33" fill="#DDB04A"/>
+      <polygon points="60,16 98,38 98,82 60,104 22,82 22,38" fill="none" stroke="#7A5A12" stroke-width="2"/>
+      <circle cx="60" cy="60" r="27" fill="#0B2A2F"/>
+      <path d="M47 61l9 9 17-19" fill="none" stroke="#DDB04A" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h2 id="celebrate-title"></h2>
+    <p id="celebrate-text"></p>
+    <div class="celebrate-stats">
+      <div><strong id="celebrate-chapter"></strong><span>Lektionen im Kapitel</span></div>
+      <div><strong id="celebrate-total"></strong><span>Lektionen insgesamt</span></div>
+    </div>
+    <div class="celebrate-actions">
+      <button class="celebrate-next" type="button" id="btn-celebrate-next"></button>
+      <button class="celebrate-overview" type="button" id="btn-celebrate-overview">Zur Übersicht</button>
+    </div>
+  </dialog>
+
   <dialog id="dlg-account" class="modal" aria-label="Konto">
     <h2>Dein Konto</h2>
     <p>Angemeldet mit GitHub als <strong id="account-login"></strong>.</p>

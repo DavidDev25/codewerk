@@ -272,6 +272,31 @@ function renderLessonList() {
   list.innerHTML = groups.map(chapterCard).join('');
 }
 
+function celebrateChapter(lesson) {
+  const groups = chapterGroups();
+  const index = groups.findIndex((g) => g.lessons.some((l) => l.id === lesson.id));
+  const group = groups[index];
+  if (!group || !group.chapter || !group.lessons.every(isDone)) return;
+  const [part, ...rest] = group.chapter.split(' · ');
+  const name = rest.length ? rest.join(' · ') : part;
+  const next = groups.slice(index + 1).find((g) => !g.lessons.every(isDone)) || groups.find((g) => !g.lessons.every(isDone));
+  const done = state.lessons.filter(isDone).length;
+  $('#celebrate-title').textContent = rest.length ? `${part} geschafft: ${name}` : `${name} geschafft`;
+  $('#celebrate-text').textContent = next
+    ? `Alle ${group.lessons.length} Lektionen dieses Kapitels sind geschafft. Stark, weiter so!`
+    : 'Damit hast du alle Kapitel von Codewerk geschafft. Herzlichen Glückwunsch!';
+  $('#celebrate-chapter').textContent = `${group.lessons.length} / ${group.lessons.length}`;
+  $('#celebrate-total').textContent = `${done} / ${state.lessons.length}`;
+  const btn = $('#btn-celebrate-next');
+  btn.hidden = !next;
+  if (next) {
+    const target = next.lessons.find((l) => !isDone(l)) || next.lessons[0];
+    btn.textContent = `Weiter mit ${next.chapter}`;
+    btn.dataset.id = target.id;
+  }
+  $('#dlg-chapter').showModal();
+}
+
 function renderLessonTexts() {
   const l = state.lesson;
   $('#lesson-title').textContent = l.title;
@@ -552,6 +577,7 @@ async function run({ auto = false } = {}) {
     renderProgress();
     renderLessonList();
     renderNextStep();
+    celebrateChapter(state.lesson);
   }
   api.saveLesson(state.lesson.id, patch).catch(() => {});
   if (!auto) {
@@ -802,6 +828,8 @@ function wireUi() {
     }
   });
 
+  $('#btn-celebrate-next').addEventListener('click', (e) => { $('#dlg-chapter').close(); setView('lernen'); openLesson(e.currentTarget.dataset.id); });
+  $('#btn-celebrate-overview').addEventListener('click', () => { $('#dlg-chapter').close(); $('#btn-menu').click(); });
   const menu = $('#dlg-menu');
   $('#btn-menu').addEventListener('click', () => { renderLessonList(); menu.showModal(); const card = $('.chapter-card.is-here', menu); menu.scrollTop = card ? card.offsetTop - $('.overview-head', menu).offsetHeight - 16 : 0; });
   $('#lesson-list').addEventListener('click', (e) => {
