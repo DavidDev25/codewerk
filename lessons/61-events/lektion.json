@@ -1,0 +1,7 @@
+{
+  "titel": "Events",
+  "kapitel": "Teil 6 · Browser",
+  "minuten": 18,
+  "kurz": "Auf Klicks und Eingaben reagieren mit addEventListener, das Event-Objekt nutzen und mit einem einzigen Listener viele Elemente bedienen.",
+  "tipp": "knopf.addEventListener(\"click\", () => { … }); Für die Farben: Ein Listener auf #farben, darin event.target.closest(\"li\") – so klappt es auch für Einträge, die später dazukommen."
+}

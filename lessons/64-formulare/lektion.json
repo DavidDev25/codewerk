@@ -1,0 +1,7 @@
+{
+  "titel": "Formulare",
+  "kapitel": "Teil 6 · Browser",
+  "minuten": 20,
+  "kurz": "Formulare abschicken, ohne dass die Seite neu lädt, Eingaben auslesen, prüfen und hilfreiche Fehlermeldungen zeigen.",
+  "tipp": "form.addEventListener(\"submit\", (event) => { event.preventDefault(); … }); Die Werte holst du mit form.elements.name.value oder new FormData(form).get(\"name\")."
+}

@@ -29,11 +29,24 @@ function renameId(id) {
   return Object.prototype.hasOwnProperty.call(renames, id) ? renames[id] : id;
 }
 
+function combine(a, b) {
+  if (!a || typeof a !== 'object') return b;
+  if (!b || typeof b !== 'object') return a;
+  const newer = String(b.updatedAt || '') > String(a.updatedAt || '') ? b : a;
+  const older = newer === a ? b : a;
+  const out = { ...newer };
+  if (older.done && !newer.done) {
+    out.done = true;
+    out.doneAt = older.doneAt;
+  }
+  return out;
+}
+
 function migrate(doc) {
   for (const [oldId, entry] of Object.entries(doc.lessons)) {
     const newId = renameId(oldId);
     if (newId === oldId) continue;
-    if (!doc.lessons[newId]) doc.lessons[newId] = entry;
+    doc.lessons[newId] = combine(doc.lessons[newId], entry);
     delete doc.lessons[oldId];
   }
   if (typeof doc.lastLessonId === 'string') doc.lastLessonId = renameId(doc.lastLessonId);

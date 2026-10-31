@@ -1,0 +1,7 @@
+{
+  "titel": "Daten im Browser speichern",
+  "kapitel": "Teil 6 · Browser",
+  "minuten": 15,
+  "kurz": "Mit localStorage Daten behalten, auch wenn die Seite neu geladen wird: Besuche zählen, Notizen speichern, Einstellungen als JSON.",
+  "tipp": "localStorage speichert nur Texte. Zahlen mit Number(…) zurückholen, Objekte mit JSON.stringify speichern und mit JSON.parse laden. getItem liefert null, wenn noch nichts da ist."
+}

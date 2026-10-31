@@ -1,7 +1,0 @@
-{
-  "titel": "Elemente erzeugen",
-  "kapitel": "Teil 5 · Browser",
-  "minuten": 15,
-  "kurz": "Neue Elemente bauen und einfügen, Elemente entfernen und warum textContent sicherer ist als innerHTML.",
-  "tipp": "const li = document.createElement(\"li\"); li.textContent = text; liste.append(li); Für Texte von Nutzern immer textContent, nie innerHTML."
-}

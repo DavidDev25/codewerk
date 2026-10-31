@@ -1,7 +1,0 @@
-{
-  "titel": "Abschlussprojekt: To-do-App",
-  "kapitel": "Teil 5 · Browser",
-  "minuten": 35,
-  "kurz": "Eine echte kleine App: Aufgaben hinzufügen, abhaken, löschen, zählen und speichern. Mit Daten im Array und einer Funktion, die die Liste daraus zeichnet.",
-  "tipp": "Der Trick: Die Wahrheit steht im Array aufgaben, nicht auf der Seite. Jede Änderung ändert das Array, ruft speichern() und dann zeichnen() auf. zeichnen() leert die Liste mit replaceChildren() und baut sie komplett neu."
-}
