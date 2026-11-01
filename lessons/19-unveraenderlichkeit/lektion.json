@@ -3,5 +3,5 @@
   "kapitel": "Teil 1 · Grundlagen",
   "minuten": 18,
   "kurz": "Daten ändern, ohne das Original anzufassen: toSorted, toReversed, with, Object.freeze und tiefe Kopien mit structuredClone.",
-  "tipp": "Die to…-Methoden liefern immer ein neues Array. Für eine echte, tiefe Kopie mit allen verschachtelten Objekten nimmst du structuredClone(obj) – der Spread-Operator kopiert nur die oberste Ebene."
+  "tipp": "Die to…-Methoden liefern immer ein neues Array. Für eine echte, tiefe Kopie mit allen verschachtelten Objekten nimmst du structuredClone(obj). Der Spread-Operator kopiert nur die oberste Ebene."
 }

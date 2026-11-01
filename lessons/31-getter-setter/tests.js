@@ -17,7 +17,7 @@ test('Nach dem Fehler bleibt der alte Wert erhalten', () => {
   const x = new Thermometer();
   x.celsius = 10;
   try { x.celsius = -300; } catch (e) { /* erwartet */ }
-  expect(x.celsius, 'Wirf den Fehler, BEVOR du #celsius änderst.').toBe(10);
+  expect(x.celsius, 'Wirf den Fehler, bevor du #celsius änderst.').toBe(10);
 });
 
 test('`fahrenheit` wird aus celsius berechnet', () => {

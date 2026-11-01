@@ -2,7 +2,7 @@
   "titel": "Dateien mit fs & path",
   "kapitel": "Teil 7 · Node.js",
   "minuten": 25,
-  "kurz": "Dateien lesen, schreiben, anhängen und Ordner anlegen mit node:fs, Pfade sicher bauen mit node:path und Fehler wie ENOENT gezielt behandeln. Synchron, mit Callbacks und mit Promises.",
+  "kurz": "Dateien lesen, schreiben und anhängen, Ordner anlegen, Pfade sicher bauen und fehlende Dateien gezielt behandeln.",
   "laufzeit": "node",
   "dateien": ["main.js", "texte/gedicht.txt", "notizen.txt"],
   "tipp": "fs.readFileSync(pfad, \"utf8\") liest Text. Im catch prüfst du if (fehler.code === \"ENOENT\") return 0; und wirfst andere Fehler mit throw fehler; weiter. Vor dem Schreiben in einen neuen Ordner: fs.mkdirSync(ordner, { recursive: true });"

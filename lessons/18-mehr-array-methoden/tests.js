@@ -1,7 +1,7 @@
 const ohneKommentare = () => source().replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 
 test('`alleBestanden` ist false', () => {
-  expect(alleBestanden, 'noten.every((n) => n <= 4) – die 5 und die 10 sind zu schlecht.').toBe(false);
+  expect(alleBestanden, 'noten.every((n) => n <= 4). Die 5 und die 10 sind zu schlecht.').toBe(false);
 });
 
 test('`einserDabei` ist true', () => {
@@ -17,7 +17,7 @@ test('`noten` selbst ist nicht umsortiert', () => {
 });
 
 test('`positionFuenf` ist 4', () => {
-  expect(positionFuenf, 'noten.indexOf(5) – gezählt wird ab 0.').toBe(4);
+  expect(positionFuenf, 'noten.indexOf(5). Gezählt wird ab 0.').toBe(4);
 });
 
 test('`namen` ist ein Array mit drei Namen', () => {
@@ -29,5 +29,5 @@ test('`liste` ist "Lea und Tom und Ben"', () => {
 });
 
 test('Du nutzt Array-Methoden statt Schleifen', () => {
-  expect(ohneKommentare(), 'Löse alles mit every, some, sort, indexOf, split und join – ohne for-Schleife.').not.toMatch(/\bfor\s*\(/);
+  expect(ohneKommentare(), 'Löse alles mit every, some, sort, indexOf, split und join, ohne for-Schleife.').not.toMatch(/\bfor\s*\(/);
 });

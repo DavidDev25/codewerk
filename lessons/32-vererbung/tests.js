@@ -7,7 +7,7 @@ test('`Katze` erbt von `Tier`', () => {
 });
 
 test('Hund und Katze übernehmen den Namen von Tier', () => {
-  expect(new Hund('Rex').name, 'Du brauchst keinen eigenen constructor – er wird vererbt.').toBe('Rex');
+  expect(new Hund('Rex').name, 'Du brauchst keinen eigenen constructor. Hund übernimmt den von Tier.').toBe('Rex');
   expect(new Katze('Tom').name).toBe('Tom');
 });
 

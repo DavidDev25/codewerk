@@ -2,6 +2,6 @@
   "titel": "Promises kombinieren & abbrechen",
   "kapitel": "Teil 3 · Fehler & Asynchron",
   "minuten": 20,
-  "kurz": "Mehrere Anfragen geschickt verbinden mit allSettled, race und any – und Anfragen abbrechen oder mit Zeitlimit versehen.",
+  "kurz": "Mehrere Anfragen klug verbinden mit allSettled, race und any, Anfragen abbrechen und Zeitlimits setzen.",
   "tipp": "allSettled liefert für jedes Promise { status, value } oder { status, reason }. Für ein Zeitlimit gibst du fetch { signal: AbortSignal.timeout(ms) } mit und fängst den Fehler mit try … catch."
 }

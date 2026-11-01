@@ -25,6 +25,6 @@ test('`geradeQuadrate` stimmt', () => {
 });
 
 test('Die Iterator-Helfer werden benutzt', () => {
-  expect(ohneKommentare(), 'Nutze .take(3) – ohne Begrenzung endet der unendliche Generator nie.').toMatch(/\.take\(/);
+  expect(ohneKommentare(), 'Nutze .take(3). Ohne Begrenzung endet der unendliche Generator nie.').toMatch(/\.take\(/);
   expect(ohneKommentare()).toMatch(/\.toArray\(/);
 });

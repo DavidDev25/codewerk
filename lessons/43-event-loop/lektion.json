@@ -2,6 +2,6 @@
   "titel": "Der Event Loop",
   "kapitel": "Teil 3 · Fehler & Asynchron",
   "minuten": 18,
-  "kurz": "Wann läuft welcher Code? Aufrufstapel, Microtasks (Promises) und Tasks (Timer) – und wie man lange Arbeit aufteilt, damit nichts einfriert.",
-  "tipp": "Reihenfolge: erst der ganze normale Code, dann ALLE Microtasks (then, queueMicrotask), erst danach der nächste Timer. Für zerlegen: eine Funktion, die ein Element verarbeitet und sich dann mit setTimeout(…, 0) selbst wieder einplant."
+  "kurz": "Wann läuft welcher Code? Normaler Code, Microtasks und Timer in der richtigen Reihenfolge, und wie man lange Arbeit aufteilt, damit nichts einfriert.",
+  "tipp": "Die Reihenfolge: erst der ganze normale Code, dann alle Microtasks wie then und queueMicrotask, erst danach der nächste Timer. Für zerlegen: eine Funktion, die ein Element verarbeitet und sich dann mit setTimeout(…, 0) selbst wieder einplant."
 }

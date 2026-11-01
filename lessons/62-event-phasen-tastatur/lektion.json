@@ -2,6 +2,6 @@
   "titel": "Event-Phasen, Tastatur & Barrierefreiheit",
   "kapitel": "Teil 6 · Browser",
   "minuten": 22,
-  "kurz": "Wie Events durch die Seite wandern, wann stopPropagation hilft und wie man Bedienelemente baut, die auch mit Tastatur und Screenreader funktionieren.",
-  "tipp": "Im Klick-Listener des inneren Knopfs: event.stopPropagation(). Für das Menü: hidden umschalten und aria-expanded als Text \"true\"/\"false\" setzen. Pfeiltasten: keydown auf der Liste, event.key === \"ArrowDown\", dann nächstes Element .focus()."
+  "kurz": "Wie Events durch die Seite wandern, wann stopPropagation hilft und wie Bedienelemente auch mit Tastatur und Screenreader funktionieren.",
+  "tipp": "Im Klick-Listener des inneren Knopfs: event.stopPropagation(). Für das Menü: hidden umschalten und aria-expanded als Text \"true\" oder \"false\" setzen. Pfeiltasten: keydown auf der Liste, event.key === \"ArrowDown\", dann beim nächsten Element .focus()."
 }

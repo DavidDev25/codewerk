@@ -2,6 +2,6 @@
   "titel": "Debugging",
   "kapitel": "Teil 5 · Qualität",
   "minuten": 20,
-  "kurz": "Fehler systematisch finden: Fehlermeldungen lesen, Werte sichtbar machen, eingrenzen – und vier versteckte Fehler in fremdem Code reparieren.",
-  "tipp": "Führe aus und lies, WELCHER Test scheitert und was herauskommt. Schreibe dir mit console.log Zwischenwerte heraus. Typische Verdächtige: <= statt <, == statt ===, sort verändert das Original, Arrays zählen ab 0."
+  "kurz": "Fehler mit System finden: Meldungen lesen, Werte sichtbar machen, eingrenzen und vier versteckte Fehler in fremdem Code reparieren.",
+  "tipp": "Führe aus und lies, welcher Test scheitert und was herauskommt. Schreibe dir mit console.log Zwischenwerte heraus. Typische Verdächtige: <= statt <, == statt ===, sort verändert das Original, Arrays zählen ab 0."
 }

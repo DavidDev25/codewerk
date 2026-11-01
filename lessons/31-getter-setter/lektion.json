@@ -2,6 +2,6 @@
   "titel": "Getter & Setter",
   "kapitel": "Teil 2 · Objektorientierung",
   "minuten": 15,
-  "kurz": "Werte wie Eigenschaften benutzen – mit Regeln dahinter.",
+  "kurz": "Werte benutzen wie Eigenschaften, aber mit Regeln dahinter.",
   "tipp": "Ein Getter sieht aus wie eine Methode mit dem Wort get davor, wird aber ohne Klammern benutzt: t.fahrenheit. Fahrenheit = celsius * 9 / 5 + 32."
 }

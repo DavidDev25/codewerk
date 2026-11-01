@@ -2,6 +2,6 @@
   "titel": "Zustand & Methoden",
   "kapitel": "Teil 2 · Objektorientierung",
   "minuten": 15,
-  "kurz": "Objekte merken sich etwas – und können etwas tun.",
+  "kurz": "Objekte merken sich etwas und können etwas tun.",
   "tipp": "In einer Methode erreichst du den gespeicherten Wert mit this.wert. Zum Erhöhen: this.wert = this.wert + 1."
 }

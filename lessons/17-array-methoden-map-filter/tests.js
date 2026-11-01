@@ -20,7 +20,7 @@ test('`guenstig` enthält die Namen bis 2 €', () => {
 });
 
 test('Du nutzt Array-Methoden statt Schleifen', () => {
-  expect(source(), 'Schreibe die Lösung mit map, filter, reduce und find – ohne for-Schleife.').not.toMatch(/\bfor\s*\(/);
+  expect(source(), 'Schreibe die Lösung mit map, filter, reduce und find, ohne for-Schleife.').not.toMatch(/\bfor\s*\(/);
   expect(source()).toMatch(/\.reduce\(/);
 });
 

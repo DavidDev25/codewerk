@@ -2,6 +2,6 @@
   "titel": "URLs & Routing",
   "kapitel": "Teil 6 · Browser",
   "minuten": 22,
-  "kurz": "Adressen mit URL und URLSearchParams lesen und bauen, und eine Seite mit mehreren Ansichten, die sich über die Adresse steuern lässt (Hash-Routing).",
+  "kurz": "Adressen mit URL lesen und bauen, und eine Seite mit mehreren Ansichten, die sich über die Adresse steuern lässt.",
   "tipp": "new URL(adresse).searchParams liefert die Parameter; Object.fromEntries macht ein Objekt daraus. Für den Router: eine Funktion zeigen(), die location.hash liest, und window.addEventListener(\"hashchange\", zeigen) plus einmal zeigen() beim Start."
 }

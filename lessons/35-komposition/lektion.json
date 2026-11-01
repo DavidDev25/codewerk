@@ -3,5 +3,5 @@
   "kapitel": "Teil 2 · Objektorientierung",
   "minuten": 15,
   "kurz": "„Hat ein“ statt „ist ein“: Objekte aus Teilen zusammenbauen.",
-  "tipp": "Im constructor von Auto: this.motor = new Motor(); Die Methoden von Auto rufen dann this.motor.starten() usw. auf."
+  "tipp": "Im constructor von Auto: this.motor = new Motor(); Die Methoden von Auto rufen dann zum Beispiel this.motor.starten() auf."
 }

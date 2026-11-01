@@ -39,7 +39,7 @@ test('verdoppelnBis zählt die Verdopplungen', () => {
 });
 
 test('verdoppelnBis ist 0, wenn die Grenze schon erreicht ist', () => {
-  expect(verdoppelnBis(50, 50), '„Mindestens“ heißt: bei 50 und Grenze 50 muss nicht verdoppelt werden.').toBe(0);
+  expect(verdoppelnBis(50, 50), 'Bei 50 und der Grenze 50 ist der Wert schon mindestens 50. Dann wird gar nicht verdoppelt.').toBe(0);
 });
 
 test('verdoppelnBis nutzt while', () => {

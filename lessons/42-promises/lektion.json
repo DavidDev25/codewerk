@@ -3,5 +3,5 @@
   "kapitel": "Teil 3 · Fehler & Asynchron",
   "minuten": 18,
   "kurz": "Ein Versprechen auf ein Ergebnis, das später kommt: resolve, reject, then und catch.",
-  "tipp": "return new Promise((resolve, reject) => { … }); Im Inneren rufst du nach dem Warten entweder resolve(wert) auf (alles gut) oder reject(new Error(\"…\")) (schiefgegangen). Draußen holst du das Ergebnis mit .then(…) und den Fehler mit .catch(…)."
+  "tipp": "return new Promise((resolve, reject) => { … }); Im Inneren rufst du nach dem Warten resolve(wert) auf, wenn alles geklappt hat, sonst reject(new Error(\"…\")). Draußen holst du das Ergebnis mit .then(…) und den Fehler mit .catch(…)."
 }

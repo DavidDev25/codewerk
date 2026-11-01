@@ -3,5 +3,5 @@
   "kapitel": "Teil 3 · Fehler & Asynchron",
   "minuten": 15,
   "kurz": "Funktionen weitergeben und mit setTimeout etwas später ausführen.",
-  "tipp": "Ein Callback ist eine Funktion, die du einer anderen Funktion übergibst – ohne () dahinter. setTimeout(funktion, ms) ruft sie nach ms Millisekunden auf. Alles andere läuft in der Zwischenzeit schon weiter."
+  "tipp": "Ein Callback ist eine Funktion, die du einer anderen Funktion übergibst, und zwar ohne () dahinter. setTimeout(funktion, ms) ruft sie nach ms Millisekunden auf. Alles andere läuft in der Zwischenzeit schon weiter."
 }

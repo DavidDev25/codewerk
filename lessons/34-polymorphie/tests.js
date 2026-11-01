@@ -18,7 +18,7 @@ test('beschreibe() von Form nutzt die überschriebene flaeche()', () => {
 
 test('gesamtFlaeche() addiert alle Flächen', () => {
   const formen = [new Rechteck(2, 3), new Rechteck(1, 1), new Kreis(1)];
-  expect(gesamtFlaeche(formen), 'Gehe mit for…of durch und addiere forme.flaeche().').toBeCloseTo(10.14, 2);
+  expect(gesamtFlaeche(formen), 'Gehe mit for…of durch und addiere form.flaeche().').toBeCloseTo(10.14, 2);
 });
 
 test('gesamtFlaeche([]) ist 0', () => {
@@ -26,5 +26,5 @@ test('gesamtFlaeche([]) ist 0', () => {
 });
 
 test('gesamtFlaeche() prüft keine Typen', () => {
-  expect(source(), 'Polymorphie heißt: einfach flaeche() aufrufen, ohne zu prüfen, welche Form es ist.').not.toMatch(/instanceof|typeof/);
+  expect(source(), 'Rufe einfach flaeche() auf, ohne zu prüfen, welche Form es ist.').not.toMatch(/instanceof|typeof/);
 });

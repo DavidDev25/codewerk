@@ -2,6 +2,6 @@
   "titel": "JSDoc & Typen",
   "kapitel": "Teil 5 · Qualität",
   "minuten": 20,
-  "kurz": "Code mit JSDoc beschreiben, damit Editor und Team wissen, welche Werte erwartet werden, Typen zur Laufzeit prüfen und ein erster Blick auf TypeScript.",
+  "kurz": "Mit JSDoc beschreiben, welche Werte eine Funktion erwartet, Werte beim Ausführen prüfen und ein erster Blick auf TypeScript.",
   "tipp": "JSDoc steht in /** … */ direkt über der Funktion: @typedef {Object} Posten, @property {number} preis, @param {Posten[]} posten, @returns {number}. Zur Laufzeit prüfst du mit typeof und Number.isFinite."
 }

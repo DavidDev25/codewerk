@@ -2,7 +2,7 @@
   "titel": "Node.js & process",
   "kapitel": "Teil 7 · Node.js",
   "minuten": 15,
-  "kurz": "JavaScript ohne Browser: Was Node.js ist, wie ein Programm im Terminal startet und wie es mit process.argv, process.env und dem Exit-Code mit der Außenwelt spricht.",
+  "kurz": "JavaScript ohne Browser: was Node.js ist, wie man ein Programm im Terminal startet und wie es Argumente, Umgebungsvariablen und den Exit-Code benutzt.",
   "laufzeit": "node",
   "argumente": ["Mara", "2"],
   "umgebung": { "GRUSS": "Moin" },

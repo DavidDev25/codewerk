@@ -2,6 +2,6 @@
   "titel": "Schleifen",
   "kapitel": "Teil 1 · Grundlagen",
   "minuten": 15,
-  "kurz": "Dasselbe mehrmals tun – ohne den Code zu kopieren.",
-  "tipp": "Beginne jede Funktion mit einer Startvariable (let ergebnis = 0 bzw. const ergebnis = []). In der Schleife veränderst du sie, am Ende gibst du sie mit return zurück."
+  "kurz": "Dasselbe mehrmals tun, ohne den Code zu kopieren.",
+  "tipp": "Beginne jede Funktion mit einer Startvariable, zum Beispiel let ergebnis = 0 oder const ergebnis = []. In der Schleife veränderst du sie, am Ende gibst du sie mit return zurück."
 }

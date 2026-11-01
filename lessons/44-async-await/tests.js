@@ -15,7 +15,7 @@ test('bestellAnzahl(1) ist 2', async () => {
 });
 
 test('bestellAnzahl(2) ist 0', async () => {
-  expect(await bestellAnzahl(2), 'Ben hat keine Bestellungen – die Länge seiner Liste ist 0.').toBe(0);
+  expect(await bestellAnzahl(2), 'Ben hat keine Bestellungen, die Länge seiner Liste ist 0.').toBe(0);
 });
 
 test('sicherBegruessen(1) begrüßt Mia', async () => {
@@ -23,7 +23,7 @@ test('sicherBegruessen(1) begrüßt Mia', async () => {
 });
 
 test('sicherBegruessen(9) fängt den Fehler ab', async () => {
-  expect(await sicherBegruessen(9), 'Wichtig: return await begruessung(id); – ohne await landet der Fehler nicht im catch. Dort gibst du "Unbekannter Benutzer" zurück.').toBe('Unbekannter Benutzer');
+  expect(await sicherBegruessen(9), 'Schreibe im try-Block return await begruessung(id); Ohne das await landet der Fehler nicht im catch. Dort gibst du "Unbekannter Benutzer" zurück.').toBe('Unbekannter Benutzer');
 });
 
 test('start() gibt die Begrüßung aus', () => {

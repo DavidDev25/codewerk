@@ -27,7 +27,7 @@ test('anhalten() stoppt den Motor', () => {
 
 test('status() zeigt den Motorzustand', () => {
   const a = new Auto('Polo');
-  expect(a.status(), 'Nutze this.motor.laeuft (ohne Klammern – es ist ein Getter).').toBe('Polo: Motor aus');
+  expect(a.status(), 'Nutze this.motor.laeuft ohne Klammern, denn laeuft ist ein Getter.').toBe('Polo: Motor aus');
   a.fahren();
   expect(a.status()).toBe('Polo: Motor an');
 });

@@ -3,5 +3,5 @@
   "kapitel": "Teil 1 · Grundlagen",
   "minuten": 18,
   "kurz": "Funktionen, die sich selbst aufrufen: ideal für verschachtelte Daten wie Ordner, Menüs oder Stammbäume.",
-  "tipp": "Jede rekursive Funktion braucht zwei Teile: den Abbruch (z. B. if (n <= 1) return 1;) und den Selbstaufruf mit einer kleineren Aufgabe (n * fakultaet(n - 1))."
+  "tipp": "Jede Funktion, die sich selbst aufruft, braucht zwei Teile: den Abbruch, zum Beispiel if (n <= 1) return 1;, und den Selbstaufruf mit einer kleineren Aufgabe, hier n * fakultaet(n - 1)."
 }

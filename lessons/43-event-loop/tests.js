@@ -17,7 +17,7 @@ test('einplanen trägt sync, micro und task richtig ein', async () => {
 test('einplanen plant den Timer zuerst ein', () => {
   const code = source().replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
   const rumpf = code.slice(code.search(/function\s+einplanen/));
-  expect(rumpf.search(/setTimeout/) < rumpf.search(/queueMicrotask|then\(/), 'Schreibe setTimeout vor queueMicrotask – die Reihenfolge entsteht trotzdem durch den Event Loop.').toBe(true);
+  expect(rumpf.search(/setTimeout/) < rumpf.search(/queueMicrotask|then\(/), 'Schreibe setTimeout vor queueMicrotask. Die Reihenfolge entsteht trotzdem durch den Event Loop.').toBe(true);
 });
 
 test('zerlegen verdoppelt alle Zahlen und meldet sich am Ende', async () => {

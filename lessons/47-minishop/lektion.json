@@ -2,6 +2,6 @@
   "titel": "Abschlussprojekt: Mini-Shop",
   "kapitel": "Teil 3 · Fehler & Asynchron",
   "minuten": 25,
-  "kurz": "Objektorientierung und asynchroner Code zusammen:Klasse mit #private, Getter, Array-Methoden, throw, async/await und try … catch.",
+  "kurz": "Klassen und asynchroner Code zusammen: ein Warenkorb mit privatem Feld, ein Einkauf mit await und eine Kasse, die Fehler abfängt.",
   "tipp": "Arbeite von oben nach unten und führe nach jedem Schritt aus. Der Warenkorb merkt sich Einträge wie { produkt, menge }. Für anzahl und summe hilft reduce, für namen map. einkaufen wartet erst mit await auf ladeProdukte() und sucht dann jedes Produkt mit find."
 }

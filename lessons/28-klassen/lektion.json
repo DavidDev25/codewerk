@@ -3,5 +3,5 @@
   "kapitel": "Teil 2 · Objektorientierung",
   "minuten": 12,
   "kurz": "Ein Bauplan, aus dem du beliebig viele Objekte erzeugst.",
-  "tipp": "Im constructor setzt du jede Eigenschaft mit this.titel = titel; – this ist das Objekt, das gerade gebaut wird."
+  "tipp": "Im constructor setzt du jede Eigenschaft mit this, zum Beispiel this.titel = titel;. this ist das Objekt, das gerade gebaut wird."
 }

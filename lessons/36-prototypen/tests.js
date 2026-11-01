@@ -5,7 +5,7 @@ test('`geteilt` ist true', () => {
 });
 
 test('`eigene` enthält nur den Namen', () => {
-  expect(eigene, 'Object.keys(minka) – miau wohnt auf dem Prototyp, nicht im Objekt.').toEqual(['name']);
+  expect(eigene, 'Object.keys(minka). miau wohnt auf dem Prototyp, nicht im Objekt.').toEqual(['name']);
 });
 
 test('`istPrototyp` ist true', () => {

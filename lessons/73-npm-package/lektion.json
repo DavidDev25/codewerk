@@ -2,7 +2,7 @@
   "titel": "npm & package.json",
   "kapitel": "Teil 7 · Node.js",
   "minuten": 25,
-  "kurz": "Wie Node-Projekte Pakete einbinden: package.json, npm install, node_modules, die Lock-Datei, npm-Skripte und was ^ und ~ bei Versionen genau bedeuten.",
+  "kurz": "Wie Node-Projekte fremde Pakete einbinden: package.json, npm, node_modules, die Lock-Datei und was ^ und ~ bei Versionen bedeuten.",
   "laufzeit": "node",
   "dateien": ["package.json", "main.js"],
   "tipp": "Zerlege Versionen mit version.split(\".\").map(Number). Bei ^ muss die erste Zahl gleich sein (bei 0.x auch die zweite), bei ~ die ersten beiden, und die Version muss mindestens so groß sein wie die im Bereich. Vergleiche dafür Zahl für Zahl."

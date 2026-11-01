@@ -6,7 +6,7 @@ test('durchschnitt rechnet und rundet auf eine Stelle', () => {
 
 test('bewertung: sehr gut und gut', () => {
   expect(bewertung(1.0)).toBe('sehr gut');
-  expect(bewertung(1.5), '„Bis 1.5“ heißt: 1.5 gehört noch dazu (<=).').toBe('sehr gut');
+  expect(bewertung(1.5), 'Bei „bis 1.5“ gehört 1.5 noch dazu. Nimm deshalb <=.').toBe('sehr gut');
   expect(bewertung(1.6)).toBe('gut');
   expect(bewertung(2.5)).toBe('gut');
 });

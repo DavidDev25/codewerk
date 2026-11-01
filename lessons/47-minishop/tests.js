@@ -33,7 +33,7 @@ test('Warenkorb: Eine Menge unter 1 wird abgelehnt', () => {
   let meldung = '';
   try { korb.hinzufuegen(tasse, 0); } catch (fehler) { meldung = fehler.message; }
   expect(meldung, 'Prüfe zuerst if (menge < 1) und wirf throw new Error("Menge muss mindestens 1 sein.");').toBe('Menge muss mindestens 1 sein.');
-  expect(korb.anzahl, 'Bei einem Fehler darf nichts im Korb landen – wirf den Fehler vor dem push.').toBe(0);
+  expect(korb.anzahl, 'Bei einem Fehler darf nichts im Korb landen. Wirf den Fehler vor dem push.').toBe(0);
 });
 
 test('Warenkorb: #artikel ist privat', () => {

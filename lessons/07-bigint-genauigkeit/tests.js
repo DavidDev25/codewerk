@@ -8,7 +8,7 @@ test('fastGleich unterscheidet echte Unterschiede', () => {
 });
 
 test('inCent rechnet in ganze Cent um', () => {
-  expect(inCent(19.99), '19.99 * 100 ist 1998.9999… – runde mit Math.round.').toBe(1999);
+  expect(inCent(19.99), '19.99 * 100 ist 1998.9999…, deshalb runde mit Math.round.').toBe(1999);
   expect(inCent(0.1)).toBe(10);
   expect(inCent(4.35)).toBe(435);
 });

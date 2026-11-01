@@ -1,5 +1,5 @@
 test('Die Ausgabe lautet „Hallo Codewerk!“', () => {
-  expect(output(), 'Schreibe genau console.log("Hallo Codewerk!"); – mit Ausrufezeichen.').toContain('Hallo Codewerk!');
+  expect(output(), 'Schreibe genau console.log("Hallo Codewerk!"); mit Ausrufezeichen.').toContain('Hallo Codewerk!');
 });
 
 test('`lieblingszahl` ist eine Zahl', () => {

@@ -2,7 +2,7 @@
   "titel": "require & Module in Node",
   "kapitel": "Teil 7 · Node.js",
   "minuten": 20,
-  "kurz": "Node kennt zwei Modul-Arten: das ältere CommonJS mit require und module.exports und die ES-Module aus Lektion 48. Dazu eingebaute Module mit node: und JSON-Dateien laden.",
+  "kurz": "Node kennt zwei Arten von Modulen: das ältere CommonJS mit require und die ES-Module aus Lektion 48. Dazu eingebaute Module und JSON-Dateien.",
   "laufzeit": "node",
   "dateien": ["main.js", "lager.js", "preise.json"],
   "tipp": "Am Ende von lager.js: module.exports = { einlagern, bestand }; In main.js: const { einlagern, bestand } = require(\"./lager\"); und const preise = require(\"./preise.json\"); Der Wert eines Artikels ist bestand(name) * preise[name]."

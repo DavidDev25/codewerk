@@ -55,7 +55,7 @@ test('PATCH /notizen/:id ändert eine Notiz', async () => {
 test('DELETE /notizen/:id löscht mit 204, danach 404', async () => {
   const a = await node.anfrage('DELETE', '/notizen/2');
   expect(a.status, 'res.writeHead(204); res.end();').toBe(204);
-  expect(a.text, '204 heißt: ohne Inhalt.').toBe('');
+  expect(a.text, 'Eine 204-Antwort hat keinen Inhalt: res.writeHead(204); res.end();').toBe('');
   expect(gespeichert().map((n) => n.id)).not.toContain(2);
   const b = await node.anfrage('DELETE', '/notizen/2');
   expect(b.status).toBe(404);

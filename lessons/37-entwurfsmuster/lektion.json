@@ -2,6 +2,6 @@
   "titel": "Entwurfsmuster",
   "kapitel": "Teil 2 · Objektorientierung",
   "minuten": 20,
-  "kurz": "Bewährte Bauanleitungen für Code: Observer (Ereignisse abonnieren) und Factory (Objekte zentral erzeugen).",
-  "tipp": "Merke dir in einer Map pro Ereignisname ein Array von Funktionen. on fügt hinzu, off filtert heraus, emit ruft alle mit den Daten auf. Für einmal: eine Hilfsfunktion registrieren, die sich beim ersten Aufruf selbst wieder abmeldet."
+  "kurz": "Bewährte Bauanleitungen für Code: Observer zum Abonnieren von Ereignissen und Factory, die Objekte an einer Stelle baut.",
+  "tipp": "Merke dir in einer Map pro Ereignisname ein Array von Funktionen. on fügt hinzu, off filtert heraus, emit ruft alle mit den Daten auf. Für einmal meldest du eine Hilfsfunktion an, die sich beim ersten Aufruf selbst wieder abmeldet."
 }
